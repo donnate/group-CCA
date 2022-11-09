@@ -1,8 +1,10 @@
 rm(list=ls())
-
+setwd("/Users/cdonnat/Documents/group-CCA")
 # LOAD LIBRARIES
-source("http://bioconductor.org/biocLite.R") 
-biocLite("impute") #After executing this line, indicate if you want to update all/some/none of the packages by typing in a/s/n.
+if (!require("BiocManager", quietly = TRUE)){
+  install.packages("BiocManager")
+}
+BiocManager::install(version = "3.16")
 library(PMA)
 library(mvtnorm)
 library(glmnet)
@@ -10,10 +12,11 @@ library(CCA)
 library(pls)
 
 # LOAD Functions
-source('../Functions/SAR.R')
-source('../Functions/Parkhomenko.R')
-source('../Functions/Witten_CrossValidation.R')
-source('../Functions/Waaijenborg.R')
+
+source('experiments/alternative_methods/SAR.R')
+source('experiments/alternative_methods/Parkhomenko.R')
+source('experiments/alternative_methods/Witten_CrossValidation.R')
+source('experiments/alternative_methods/Waaijenborg.R')
 
 
 ###########################################################################
