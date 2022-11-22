@@ -56,14 +56,17 @@ simple_experiment <- function(n, p, q, r, rhos=c(), sigma, sigma_noise=0.1,
   Z = matrix(rnorm(n* k), n, k)  #### these serve has the building blocks.
   if (structure=="coeffs"){
     xcoef= matrix(runif(r * p, min=1, max=10), p, r)
-    ycoef= matrix(runif(r * r, min=1, max=10), q, r)
+    #### We need to ensure that the coefficients are orthogonal.
+    ycoef= matrix(runif(r * q, min=1, max=10), q, r)
     X0 <- matrix(rnorm(n* p, sd=1), n, p)
+    X0 <- X0 - apply(X0, 2, mean)
     #### Make sure that ||Xa||=1
-    X0 <- X0/norm(X0 %*% xcoef,"F")
-    Y0 =  X0 %*% xcoef %*% diag(rhos) %*%inv(ycoef %*% t(ycoef)) 
+    tilde_xcoef = xcoef/apply(X0 %*% xcoef,2, FUN=function(x){sqrt(sum(x^2))})
+    Y0 =  X0 %*% tilde_xcoef %*% diag(rhos) %*%inv(t(ycoef) %*% (ycoef)) 
+    #Y0 = Y0/ norm(Y0 %*% ycoef, "F")
     Y= Y0 + matrix(rnorm(n* q, sd=sigma_noise), n, q)
     X= X0 + matrix(rnorm(n* p, sd=sigma_noise), n, p)
-    cc_results <- cancor(X,Y,xcenter = FALSE, ycenter = FALSE)
+    cc_results <- cancor(X0,Y0,xcenter = FALSE, ycenter = FALSE)
     
   }
   if (structure == "sparse"){
@@ -71,17 +74,6 @@ simple_experiment <- function(n, p, q, r, rhos=c(), sigma, sigma_noise=0.1,
     
   }
   
-  coeffs = switch(  
-    structure,  
-    "None"= list(xcoef= drop_zeros(matrix(runif(k * p, min=1, max=10), p, k)), 
-                 ycoef= runif(k, min=1, max=10)),  
-    "Sparse"= list(xcoef= runif(k, min=1, max=10), 
-                   ycoef= runif(k, min=1, max=10)), 
-    "Group"= cat("Division = ", val1 / val2),  
-    "Shrinked"= cat("Multiplication =", val1 * val2),
-    "Cliques"= cat("Modulus =", val1 %% val2),
-    "Graph"= cat("Power =", val1 ^ val2)
-  )
   
   print(sapply(1:p, FUN=function(k){cor(X[,k], Y[,k])}))
   cc_results <- cancor(X,Y)

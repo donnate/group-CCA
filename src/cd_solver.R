@@ -3,6 +3,7 @@ library(pracma)
 library(roperators)
 library(gear)
 
+
 cgd_solver = function(X,y, D, lambda1, lambda2, eps = 1e-4, max_it = 10000){
   m = dim(D)[1]
   p = dim(D)[2]
@@ -39,4 +40,3 @@ cgd_solver = function(X,y, D, lambda1, lambda2, eps = 1e-4, max_it = 10000){
   beta = X_til_pinv %*% (y_v - t(D_v) %*% u)
   return (beta)
 }
-

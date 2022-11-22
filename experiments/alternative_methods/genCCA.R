@@ -4,14 +4,16 @@ library(MASS)
 library(pls)
 library(CCA)
 
-SparseCCA<-function(X,Y,lambdaAseq=seq(from=1,to=0.01,by=-0.01),lambdaBseq=seq(from=1,to=0.01,by=-0.01),rank,selection.criterion=1,n.cv=5,A.initial=NULL,B.initial=NULL,max.iter=20,conv=10^-2){
+genCCA<-function(X,Y,lambdaAseq=seq(from=1,to=0.01,by=-0.01),lambdaBseq=seq(from=1,to=0.01,by=-0.01),rank,selection.criterion=1,n.cv=5,A.initial=NULL,B.initial=NULL,max.iter=20,conv=10^-2){
   ### Function to perform Sparse Canonical Correlation Analysis using alternating regressions
   
   ### INPUT
   # X                   : (nxp) data matrix
   # Y                   : (nxq) data matrix
-  # lambdaAseq          : grid of sparsity parameters for lambdaA
-  # lambdaBseq          : grid of sparsity parameters for lambdaB
+  # lambdaA1          : grid of sparsity parameters for lambdaA
+  # lambdaB1          : grid of sparsity parameters for lambdaB
+  # lambdaA2          : grid of sparsity parameters for lambda2 for A
+  # lambdaB2          : grid of sparsity parameters for lambda2 for B
   # rank                : number of canonical vector pairs to extract
   # selection.criterion : 1 for BIC, 2 for Cross-validation to select sparsity parameters
   # n.cv                : n.cv-fold cross-validation
@@ -19,7 +21,7 @@ SparseCCA<-function(X,Y,lambdaAseq=seq(from=1,to=0.01,by=-0.01),lambdaBseq=seq(f
   # B.initial           : starting value for the canonical vector B
   # max.iter            : maximum number of iterations
   # conv                : tolerance value for convergence
-    
+  
   ### OUTPUT
   # ALPHA               : (pxr) estimated canonical vectors correpsonding to the first data set
   # BETA                : (qxr) estimated canonical vectors correpsonding to the second data set
@@ -52,7 +54,7 @@ SparseCCA<-function(X,Y,lambdaAseq=seq(from=1,to=0.01,by=-0.01),lambdaBseq=seq(f
     cancor_regul<-rcc(X,Y,cancor_regpar$lambda1.optim,cancor_regpar$lambda2.optim)
     A.initial_ridge<-matrix(cancor_regul$xcoef[,1:rank],ncol=rank,nrow=ncol(X))
     B.initial_ridge<-matrix(cancor_regul$ycoef[,1:rank],ncol=rank,nrow=ncol(Y))
-    A.initial<-apply(A.initial_ridge,2,NORMALIZATION_UNIT) 
+    A.initial<-apply(A.initial_ridge,2, NORMALIZATION_UNIT) 
     B.initial<-apply(B.initial_ridge,2,NORMALIZATION_UNIT) 
   } 
   
@@ -164,7 +166,7 @@ SparseCCA<-function(X,Y,lambdaAseq=seq(from=1,to=0.01,by=-0.01),lambdaBseq=seq(f
 
 
 
-alternating.regression<-function(Xreg,Yreg,lambdaseq=seq(from=1,to=0.01,by=-0.01),selection.criterion=1,n.cv=5){
+alternating.gen.regression<-function(Xreg,Yreg,lambdaseq=seq(from=1,to=0.01,by=-0.01),selection.criterion=1,n.cv=5){
   ### Function to perform sparse alternating regression
   
   ### INPUT
@@ -182,12 +184,13 @@ alternating.regression<-function(Xreg,Yreg,lambdaseq=seq(from=1,to=0.01,by=-0.01
   ##Standardize
   Xreg_st<-matrix(stdize(Xreg),ncol=ncol(Xreg))
   for (i.variable in 1:ncol(Xreg)){
+    #### replace missing variables
     if (is.na(apply(Xreg_st,2,sum)[i.variable])==T) {
       Xreg_st[,i.variable]<-0}    
   }
   
-  ##LASSO FIT
-  LASSOFIT<-glmnet(y=Yreg,x=Xreg_st,family="gaussian",lambda=lambdaseq,intercept=T)
+  ##GEN FIT
+  LASSOFIT<-genglm(y=Yreg,x=Xreg_st,D=D, family="gaussian",lambda1=lambda1, lambda2=lambda2, solver = "ECOS")
   if (is.integer(which(LASSOFIT$df!=0)) && length(which(LASSOFIT$df!=0)) == 0L) {
     # Smaller lambda sequence necessary
     LASSOFIT<-glmnet(y=Yreg,x=Xreg_st,family="gaussian",intercept=T)
@@ -278,12 +281,12 @@ estim.regul_crossvalidation<-function (X, Y, lambda1grid = NULL, lambda2grid = N
   # lambda1grid         : grid of tuning parameters for lambda1
   # lambda2grid         : grid of tuning parameters for lambda2
   # n.cv                : n.cv-fold cross-validation
-
+  
   ### OUTPUT
   #lambda1.optim        : value of the sparsity parameter lambda1
   #lambda2.optim        : value of the sparsity parameter lambda2
   #cv.optim             : value of cross-validation score
-
+  
   
   if (is.null(lambda1grid)) {
     lambda1grid = matrix(seq(0.001, 1, length = 5),nrow=1)
@@ -314,91 +317,3 @@ l2function<-function(V,Xmatrix,Ymatrix,lambda1fixed,n.cv){ # AUXILIARY FUNCTION 
   RCCFIT<-RCC_crossvalidation(X=Xmatrix, Y=Ymatrix, lambda1=lambda1fixed, lambda2=V,n.cv=n.cv) 
   return(RCCFIT$cv)
 }
-
-RCC_crossvalidation<-function (X, Y, lambda1, lambda2,n.cv) { # AUXILIARY FUNCTION CANONICAL RIDGE: n.cv-fold cross-validation
-  ### INPUT
-  # X                   : (nxp) data matrix
-  # Y                   : (nxq) data matrix
-  # lambda1             : tuning parameter for lambda1
-  # lambda2             : tuning parameter for lambda2
-  # n.cv                : n.cv-fold cross-validation
-  
-  ### OUTPUT
-  # cv                  : value test sample canonical correlation
-  
-  n = nrow(X)
-  ncvsample<-trunc(n/n.cv)
-  ncvindex<-matrix(rep(1:n.cv),nrow=1)
-  
-  CVfit=apply(ncvindex,MARGIN=2,FUN=cvfunction,n=n,Xmatrix=X,Ymatrix=Y,lambda1=lambda1,lambda2=lambda2,ncvsample=ncvsample)
-  cv<-sum(CVfit)/n.cv  
-  out=list(cv=cv)
-}
-
-cvfunction<-function(U,n,Xmatrix,Ymatrix,lambda1,lambda2,ncvsample){ # AUXILIARY FUNCTION CANONICAL RIDGE: Canonical ridge fit
-  cv<-0 
-  whole.sample<-seq(1,n)
-  testing.sample<-whole.sample[((U-1)*ncvsample+1):(U*ncvsample)]
-  training.sample<-whole.sample[-(((U-1)*ncvsample+1):(U*ncvsample))]
-  Xcv = Xmatrix[training.sample, ]
-  Ycv = Ymatrix[training.sample, ]
-  res = rcc(Xcv, Ycv, lambda1, lambda2)
-  
-  xscore = Xmatrix[testing.sample, ] %*% res$xcoef[, 1]
-  yscore = Ymatrix[testing.sample, ] %*% res$ycoef[, 1]
-  cv<- cv + abs(cor(xscore,yscore,use="pairwise"))
-  return(cv)
-}
-
-
-
-#########################################
-# AUXILIARLY FUNCTIONS SIMULATION STUDY #
-#########################################
-
-
-principal_angles<-function(a,b){
-  ### Calculate principal angles between subspace spanned by the columns of a and the subspace spanned by the columns of b
-  
-  angles=matrix(0,ncol=ncol(a),nrow=1)
-  qa= qr.Q(qr(a))
-  qb= qr.Q(qr(b))
-  C=svd(t(qa)%*%qb)$d
-  rkA=qr(a)$rank;rkB=qr(b)$rank
-  if (rkA<=rkB){
-    B = qb - qa%*%(t(qa)%*%qb);
-  } else {B = qa - qb%*%(t(qb)%*%qa)}
-  S=svd(B)$d
-  S=sort(S)
-  
-  for (i in 1:min(rkA,rkB)){
-    if (C[i]^2 < 0.5) {angles[1,i]=acos(C[i])}
-    else if (S[i]^2 <=0.5) {angles[1,i]=asin(S[i])}
-  }
-  angles=t(angles)
-  
-  ##OUTPPUT
-  out=list(angles=angles)
-}
-
-TPR <- function(A,B){
-  # This is a function that compares the structure of two matrixes A and B                    
-  # It outputs the number of entries that A and B have in common that are different from zero 
-  # A and B need to have the same number of rows and columns                                  
-  out <- sum(A!=0&B!=0)/sum(A!=0)
-}
-
-TNR <- function(A,B){
-  # This is a function that compares the structure of two matrixes A and B                    
-  # It outputs the number of entries that A and B have in common that are zero #
-  # A and B need to have the same number of rows and columns                                  
-  out <- sum(A==0&B==0)/sum(A==0)
-}
-
-
-
-
-
-
-
-

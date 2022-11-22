@@ -10,6 +10,7 @@ library(mvtnorm)
 library(glmnet)
 library(CCA)
 library(pls)
+library(igraph)
 
 # LOAD Functions
 
@@ -24,10 +25,10 @@ source('experiments/alternative_methods/Waaijenborg.R')
 ###########################################################################
 
 # Design
-Nsim<-1000
-p<-25
-q<-40
-n<-50
+Nsim <- 1000
+p <- 25
+q <- 40
+n <- 50
 rank<-2
 
 # Covariance matrices
@@ -38,8 +39,9 @@ for (i in 1:q){
     SIGMA_YY[i,j]<-0.3^(abs(i-j))
   }
 }
-SIGMA_YY[4:40,]<-SIGMA_YY[,4:40]<-0
+#SIGMA_YY[4:40,]<-SIGMA_YY[,4:40]<-0
 diag(SIGMA_YY)<-1
+heatmap(SIGMA_YY, Rowv = NA, Colv=NA)
 SIGMA_XY<-matrix(0,nrow=p,ncol=q)
 SIGMA_XY[1,1]<-7/10
 SIGMA_XY[2,2]<-7/10
