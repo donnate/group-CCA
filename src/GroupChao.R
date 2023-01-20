@@ -251,12 +251,12 @@ genCCA_Chao<- function(D, X, Y, k, lambda1, lambda2, lambda3,
   }
   
   if (penalty_type =="GEN"){
-    res =  gen_lasso(Da, Sigma_x, Sigma_xy, svd_A$v,
+    res =  gen_lasso(D, Sigma_x, Sigma_xy, svd_A$v,
                      lambdaA1, lambdaA2, max.iter=5000,
                      max_k = 10, verbose = FALSE,
                      ZERO_THRESHOLD=1e-5)
   }else{
-    res =  smooth_lasso(Da, Sigma_x, Sigma_xy, svd_A$v,
+    res =  smooth_lasso(D, Sigma_x, Sigma_xy, svd_A$v,
                      lambdaA1, lambdaA2, max.iter=5000,
                      max_k = 10, verbose = FALSE,
                      ZERO_THRESHOLD=1e-5)
