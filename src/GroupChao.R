@@ -206,13 +206,13 @@ sparse_lasso <- function(D, Sigma_x, Sigma_xy, V,
     criterion = result$value)
 }
 
-genCCA_Chao<- function(X, Y, k, lambda1, lambda2, lambda3,  
+genCCA_Chao<- function(D, X, Y, k, lambda1, lambda2, lambda3,  
                        penalty_type = "GEN",
-                          eta=1, 
-                          max_k=30, zero_threshold = 1e-6, 
-                          epsilon=0.1,
-                          max.iter = 5000,
-                          verbose=TRUE){
+                       eta=1, 
+                       max_k=30, zero_threshold = 1e-6, 
+                       epsilon=0.01,
+                       max.iter = 5000,
+                       verbose=TRUE){
   Sigma_x = t(X) %*% X
   
   Sigma_y = t(Y) %*% Y
@@ -224,7 +224,7 @@ genCCA_Chao<- function(X, Y, k, lambda1, lambda2, lambda3,
   converged = FALSE
   it <- 0
   while(converged == FALSE){
-    lasso_sol <- convex_formulation( D, Sigma_x, Sigma_y, Sigma_xy, old.H,
+    lasso_sol <- convex_formulation(D, Sigma_x, Sigma_y, Sigma_xy, old.H,
                                    old.G, lambda1, eta = eta,
                                    max_k = max_k, max.iter=max.iter,
                                    ZERO_THRESHOLD= zero_threshold, 

@@ -59,9 +59,12 @@ genCCA2<-function(X, Y,
   ##### We'll add CV later
   df.x <- data.frame(X) %>% mutate_all(~(scale(.) %>% as.vector))
   df.y <- data.frame(Y) %>% mutate_all(~(scale(.) %>% as.vector))
+  print("here")
+  print(rank)
 
   X = as.matrix(df.x)
   Y = as.matrix(df.y)
+  print(c(ncol(X), ncol(Y), rank, max.iter))
   ALPHA_ALL<-matrix(NA,ncol=rank,nrow=ncol(X))
   BETA_ALL<-matrix(NA,ncol=rank,nrow=ncol(Y))
   U_ALL<-matrix(NA,ncol=rank,nrow=nrow(X))
@@ -83,7 +86,7 @@ genCCA2<-function(X, Y,
   n = dim(Y)[1]
   q = dim(Y)[2]
 
-
+  print("here2")
 
   ### START CODE
   # Starting Values: Canonical Ridge Solution

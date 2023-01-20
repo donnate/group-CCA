@@ -441,24 +441,40 @@ simple_experiment <- function(n, p, q, sigma, k, effect_size = 2,
 
   
   ### Should probably time this
+  Fit.genCCA <- genCCA2(X=X_train,Y=Y_train, Da = D, Db=NULL, 
+                        A.initial =RCCA$xcoef[, 1:k],
+                        B.initial =RCCA$ycoef[, 1:k],
+                        rank=rank, 
+                        lambdaA1=0.1, 
+                        lambdaA2=0.1,
+                        lambdaB1 =0,
+                        lambdaB2 =0,
+                        max.iter=max.iter, 
+                        conv=conv, 
+                        solver= solver)
+  
   genCCA.results <-  genCCA.CV(X_train, Y_train, D, k, n.cv=2,
                             lambda1seq=seq(from=0.1, 10, by=10),
                             lambda2seq=seq(from=0.1, 10, by=10),
                             lambdaB1seq=c(0),
                             lambdaB2seq=c(0))
-  res = sort_cancors(X_test %*% genCCA.results$fit.gcc$xcoef, Y_test %*% genCCA.results$fit.gcc$ycoef, rank)
-  MSEa[1,10]<-principal_angles(trueA,genCCA.results$fit.gcc$xcoef)$angles[1,1]
-  MSEb[1,10]<-principal_angles(trueB,genCCA.results$fit.gcc$ycoef)$angles[1,1]
-  cancors = diag(t(X %*% genCCA.results$fit.gcc$xcoef) %*% (Y %*% genCCA.results$fit.gcc$ycoef))
-  TPRa[1,10]<-TPR(trueA, genCCA.results$fit.gcc$xcoef)
-  TPRb[1,10]<-TPR(trueB, genCCA.results$fit.gcc$ycoef)
-  TNRa[1,10]<-TNR(trueA, genCCA.results$fit.gcc$xcoef)
-  TNRb[1,10]<-TNR(trueB, genCCA.results$fit.gcc$ycoef)
-  l2loss[1,10] <- sqrt(mean((X_train %*% genCCA.results$fit.gcc$xcoef - Y_train %*%genCCA.results$fit.gcc$ycoef) ^2))
-  l2loss_test[1,10] <- sqrt(mean((X_test %*%  genCCA.results$fit.gcc$xcoef - Y_test %*% genCCA.results$fit.gcc$ycoef)^2))
-  results.x[['genCCA']] <- genCCA.results$fit.gcc$xcoef
-  results.y[['genCCA']] <- genCCA.results$fit.gcc$ycoef
-  recovered_corr [['genCCA']] <- genCCA.results$fit.gcc$cancors
+  svd_sol = svd(t(Fit.genCCA$xcoef[, 1:k]) %*% Sigma_x %*%Fit.genCCA$xcoef[, 1:k] )
+  inv_sqrt_sol = svd_sol$u %*% diag(sapply(svd_sol$d, function(x){ifelse(x<1e-5, 0, 1/sqrt(x))})) %*% t(svd_sol$v)
+  svd_sol2 = svd(t(Fit.genCCA$ycoef[, 1:k]) %*% Sigma_y %*%Fit.genCCA$ycoef[, 1:k] )
+  inv_sqrt_sol2 = svd_sol2$u %*% diag(sapply(svd_sol2$d, function(x){ifelse(x<1e-5, 0, 1/sqrt(x))})) %*% t(svd_sol2$v)
+  results.x[['genCCA']] <- Fit.genCCA$xcoef %*% inv_sqrt_sol
+  results.y[['genCCA']] <- Fit.genCCA$ycoef %*% inv_sqrt_sol2
+  #recovered_corr [['genCCA']] <- genCCA.results$cancors
+  MSEa[1,10]<-principal_angles(trueA,Fit.genCCA$xcoef)$angles[1,1]
+  MSEb[1,10]<-principal_angles(trueB,Fit.genCCA$ycoef)$angles[1,1]
+  #cancors = diag(t(X %*% genCCA.results$fit.gcc$xcoef) %*% (Y %*% genCCA.results$fit.gcc$ycoef))
+  TPRa[1,10]<-TPR(trueA, Fit.genCCA$xcoef)
+  TPRb[1,10]<-TPR(trueB, Fit.genCCA$ycoef)
+  TNRa[1,10]<-TNR(trueA, Fit.genCCA$xcoef)
+  TNRb[1,10]<-TNR(trueB, Fit.genCCA$ycoef)
+  l2loss[1,10] <- sqrt(mean((X_train %*%  results.x[['genCCA']] - Y_train %*% results.y[['genCCA']]) ^2))
+  l2loss_test[1,10] <- sqrt(mean((X_test %*%   results.x[['genCCA']] - Y_test %*%  results.y[['genCCA']])^2))
+  
   
   ###
   if(plot){
@@ -607,8 +623,3 @@ process_results <- function(gencca_results.final, source){
   ggplot(coefs_long %>% filter(name %in% c("X1", "X2", "X3", "X4")))+
     geom_point(aes(x=index, y=value, shape= name))
 }
-
-
-
-
-
