@@ -31,6 +31,10 @@ q <- 40
 n <- 50
 rank<-2
 
+
+vfn <- function(x){
+  ifelse(x=="x", 1, -1)
+}
 # Covariance matrices
 SIGMA_XX<-diag(1,p)
 SIGMA_YY<-matrix(0,ncol=q,nrow=q)
@@ -42,11 +46,23 @@ for (i in 1:q){
 #SIGMA_YY[4:40,]<-SIGMA_YY[,4:40]<-0
 diag(SIGMA_YY)<-1
 heatmap(SIGMA_YY, Rowv = NA, Colv=NA)
+
+G = make_ring(q, directed = FALSE, mutual = FALSE, circular = TRUE)
+E = data.frame(as_edgelist(G))
+colnames(E)  = c("x", "y")
+E["e"] = 1:nrow(E)
+E = pivot_longer(E, cols=-c("e"))
+E["fill_value"] = sapply(E$name, vfn)
+D = pivot_wider(E, id_cols =c("e"), names_from = "value", values_from  =  fill_value)
+D[is.na(D)] <- 0
+D = as.matrix(D[, 2:(q+1)])
+
+
 SIGMA_XY<-matrix(0,nrow=p,ncol=q)
 SIGMA_XY[1,1]<-7/10
 SIGMA_XY[2,2]<-7/10
 SIGMA_BIG<-rbind(cbind(SIGMA_XX,SIGMA_XY),cbind(t(SIGMA_XY),SIGMA_YY))
-
+heatmap(SIGMA_BIG, Rowv = NA, Colv=NA)
 # Calculare true canonical vectors
 SigmaXX_decomp<-eigen(SIGMA_XX)
 SigmaXX_negsqrt<-SigmaXX_decomp$vectors%*%diag(1/sqrt(SigmaXX_decomp$values),length(SigmaXX_decomp$values))%*%t(SigmaXX_decomp$vectors)
@@ -59,10 +75,14 @@ true_b<-SigmaYY_negsqrt%*%trueCCA$v[,1:rank]
 
 
 # Store results Estimation Accuracy
-MSEa<-matrix(NA,ncol=9,nrow=Nsim)
-colnames(MSEa)<-c("SAR-Author","SAR-CV","Witten-Author","Witten-CV","Waaijenborg-Author","Waaijenborg-CV","Parkhomenko-Author","Canonical Ridge-Author","CCA")
-MSEb<-matrix(NA,ncol=9,nrow=Nsim)
-colnames(MSEb)<-c("SAR-Author","SAR-CV","Witten-Author","Witten-CV","Waaijenborg-Author","Waaijenborg-CV","Parkhomenko-Author","Canonical Ridge-Author","CCA")
+MSEa<-matrix(NA,ncol=11,nrow=Nsim)
+colnames(MSEa)<-c("SAR-Author","SAR-CV","Witten-Author","Witten-CV","Waaijenborg-Author","Waaijenborg-CV","Parkhomenko-Author","Canonical Ridge-Author",
+                  "CCA", "regular CCA",
+                  "group CCA")
+MSEb<-matrix(NA,ncol=11,nrow=Nsim)
+colnames(MSEb)<-c("SAR-Author","SAR-CV","Witten-Author","Witten-CV","Waaijenborg-Author","Waaijenborg-CV","Parkhomenko-Author","Canonical Ridge-Author","CCA",
+                  "regular CCA",
+                  "group CCA")
 
 # Store results Sparsity Recognition Performance
 TPRa<-matrix(NA,ncol=7,nrow=Nsim)
@@ -91,8 +111,16 @@ for (isim in 1:Nsim){
   X<-(X-matrix(apply(X,2,mean),byrow=TRUE,ncol=ncol(X),nrow=nrow(X)))
   Y<-(Y-matrix(apply(Y,2,mean),byrow=TRUE,ncol=ncol(Y),nrow=nrow(Y)))
   
+  
+  ### Regular CCA
+  cc_results <- cancor(X,Y)
+  MSEa[isim,10]<-principal_angles(true_a, cc_results$xcoef[,1:rank])$angles[1,1]
+  MSEb[isim,10]<-principal_angles(true_b, cc_results$ycoef[,1:rank])$angles[1,1]
+  
   ### SAR - BIC
-  FIT_SAR_BIC<-SparseCCA(X=X,Y=Y,rank=rank,lambdaAseq=seq(from=0.2,to=0.02,length=10),lambdaBseq=seq(from=0.2,to=0.02,length=10),max.iter=100,conv=10^-2,selection.criterion=1,n.cv=5)
+  FIT_SAR_BIC<-SparseCCA(X=X,Y=Y,rank=rank,
+                         lambdaAseq=seq(from=0.2,to=0.02,length=10),
+                         lambdaBseq=seq(from=0.2,to=0.02,length=10),max.iter=100,conv=10^-2,selection.criterion=1,n.cv=5)
   
   MSEa[isim,1]<-principal_angles(true_a,FIT_SAR_BIC$ALPHA)$angles[1,1]
   MSEb[isim,1]<-principal_angles(true_b,FIT_SAR_BIC$BETA)$angles[1,1]
@@ -105,7 +133,10 @@ for (isim in 1:Nsim){
   
   
   ### SAR - CV
-  FIT_SAR_CV<-SparseCCA(X=X,Y=Y,rank=rank,lambdaAseq=seq(from=0.2,to=0.02,length=10),lambdaBseq=seq(from=0.2,to=0.02,length=10),max.iter=100,conv=10^-2,selection.criterion=2,n.cv=5)
+  FIT_SAR_CV<-SparseCCA(X=X,Y=Y,rank=rank,
+                        lambdaAseq=seq(from=0.2,to=0.02,length=10),
+                        lambdaBseq=seq(from=0.2,to=0.02,length=10),
+                        max.iter=100,conv=10^-2, selection.criterion=2, n.cv=5)
   
   MSEa[isim,2]<-principal_angles(true_a,FIT_SAR_CV$ALPHA)$angles[1,1]
   MSEb[isim,2]<-principal_angles(true_b,FIT_SAR_CV$BETA)$angles[1,1]
