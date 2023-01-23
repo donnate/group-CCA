@@ -19,12 +19,11 @@ args = commandArgs(trailingOnly=TRUE)
 name_experiment  = args[1]
 type_experiment = args[2]
 mysavedir = 'experiments/data/'
-rank =as.numeric(args[3])
-lambda1 = as.numeric(args[4])
-lambda2 = as.numeric(args[5])
-lambda3 = as.numeric(args[6])
-max.iter = as.numeric(args[7])
-penalty_type_chao = args[8]
+lambda1 = as.numeric(args[3])
+lambda2 = as.numeric(args[4])
+lambda3 = as.numeric(args[5])
+max.iter = as.numeric(args[6])
+penalty_type_chao = args[7]
 
 
 

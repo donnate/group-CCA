@@ -14,7 +14,11 @@ p = as.numeric(args[2])
 type_graph=args[3]
 rank = as.numeric(args[4])
 id_exp = args[5]
-namefile = paste0(type_graph, '-', n, '-', p, '-',  rank, '-', id_exp )
+seed = as.numeric(args[6])
+
+set.seed(seed)
+
+namefile = paste0(type_graph, '-', n, '-', p, '-',  rank, '-', id_exp, '-', seed)
 q=10 
 sigma=0.1 
 k=3
