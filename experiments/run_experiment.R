@@ -18,7 +18,7 @@ args = commandArgs(trailingOnly=TRUE)
 #### load(data)
 name_experiment  = args[1]
 type_experiment = args[2]
-mysavedir = 'experiments/data/'
+mysavedir = 'experiments/results/'
 lambda1 = as.numeric(args[3])
 lambda2 = as.numeric(args[4])
 lambda3 = as.numeric(args[5])

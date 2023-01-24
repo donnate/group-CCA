@@ -15,7 +15,7 @@ echo "My SLURM_ARRAY_TASK_ID: " $SLURM_ARRAY_TASK_ID
 echo "My SLURM_ARRAY_JOB_ID: " $SLURM_ARRAY_JOB_ID
 # Add lines here to run your computations
 job_id=$SLURM_ARRAY_JOB_ID
-module load R
+module load R/4.2.0
 echo $1
 echo $2
 METH=$2
