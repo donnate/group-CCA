@@ -28,7 +28,7 @@ penalty_type_chao = args[7]
 
 
 
-load(paste0(mysavedir, name_experiment, '-environment.RData'))
+load(paste0(mydatadir, name_experiment, '-environment.RData'))
 print("yolo")
 print(type_experiment)
 
