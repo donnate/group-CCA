@@ -170,7 +170,7 @@ genCCA<-function(X, Y,
       #lambdaB_ALL[it,i.r]<-FIT.B$lambda2
       
       # Check convergence
-      obj.new<-mean((X_data%*%matrix(AHAT_FINAL,ncol=1)-Y_data%*%matrix(BHAT_FINAL,ncol=1))^2)
+      obj.new<-mean((X_data %*% matrix(AHAT_FINAL,ncol=1)-Y_data%*%matrix(BHAT_FINAL,ncol=1))^2)
       obj.it[it+1,i.r]<-obj.new
       diff.obj<-abs(obj.new-obj.initial)/obj.initial
       

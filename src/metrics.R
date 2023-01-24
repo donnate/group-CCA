@@ -77,9 +77,12 @@ evaluate_method <- function(xcoef, ycoef,
   l2_smooth <- l2_smoothness(xcoef, D)
   l2loss  <- sqrt(mean((X_train %*% results.x - Y_train %*% results.y )^2))
   l2loss_test <- sqrt(mean((X_test %*% results.x - Y_test %*% results.y )^2))
+  correl = cor(trueA[,1], xcoef[,1])
+  
   return(list(MSEa =MSEa , MSEb= MSEb, TPRa=TPRa, TPRb=TPRb,
               TNRa=TNRa, TNRb=TNRb, l2loss=l2loss, l2loss_test=l2loss_test,
-              l1_smooth=l1_smooth, l2_smooth=l2_smooth
+              l1_smooth=l1_smooth, l2_smooth=l2_smooth,
+              correl=correl
               ))
 
 }
