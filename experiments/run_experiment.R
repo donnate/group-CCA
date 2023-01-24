@@ -9,7 +9,6 @@ source("src/CCA_alaChao.R")
 source("src/GroupChao.R")
 
 source('src/metrics.R')
-source('src/metrics.R')
 
 library(tidyverse)
 library(PMA)
@@ -269,6 +268,7 @@ if(type_experiment == "genChaoCCA"){
                               normalize=FALSE))
   result["method"] = paste0("CCA-Chao-", penalty_type_chao)
   result["fold"] = 0
+  write_csv(result, paste0(mysavedir, id_exp,'-all-results.csv'))
 
   for (i in 1:n.cv.sample){
     validation.sample<- train[c(cv.sets[[i]])]
@@ -296,6 +296,7 @@ if(type_experiment == "genChaoCCA"){
     temp_result["method"] = paste0("CCA-Chao-", penalty_type_chao)
     temp_result["fold"] = i
     result = rbind(result, temp_result)
+    write_csv(result, paste0(mysavedir, id_exp,'-all-results.csv'))
   }
   result["l1"] = lambda1
   result["l2"] = lambda2
@@ -341,6 +342,7 @@ if(type_experiment == "genCCA"){
                               normalize=TRUE))
   result["method"] = "genCCA"
   result["fold"] = 0
+  write_csv(result, paste0(mysavedir, id_exp,'-all-results.csv'))
   
   for (i in 1:n.cv){
     print(i)
@@ -373,6 +375,7 @@ if(type_experiment == "genCCA"){
     result_temp["method"] = "genCCA"
     result_temp["fold"] = i
     result= rbind(result, result_temp)
+    write_csv(result, paste0(mysavedir, id_exp,'-all-results.csv'))
   }
 
   result["l1"] = lambda1
