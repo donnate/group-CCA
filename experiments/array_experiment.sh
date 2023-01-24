@@ -25,11 +25,10 @@ cd $SCRATCH/$USER/group-CCA
 
 
 # Run one experiment  to create the dataset
-Rscript experiments/main_experiment.R $1 $2 $3 $4 $id_experiment $5
+Rscript experiments/main_experiment.R $1 $2 $3 $4 ${id_experiment} ${SLURM_ARRAY_TASK_ID}
 
 #### Launch the analysis with the different methods
 sbatch experiments/single_exp.sh $name_experiment others 
-
 #### Launch the loop for genCCA
 
 for lambda1 in 0.001 0.005 0.01 0.05 0.1 0.5 1 10
