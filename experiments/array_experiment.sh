@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #SBATCH --job-name=array
-#SBATCH --output=logs/array_%A_%a.out
-#SBATCH --error=logs/array_%A_%a.err
-#SBATCH --array=1-29
+#SBATCH --output=experiments/logs/array_%A_%a.out
+#SBATCH --error=experiments/logs/array_%A_%a.err
+#SBATCH --array=1-20
 #SBATCH --time=35:00:00
 #SBATCH --partition=broadwl
 #SBATCH --ntasks=1
@@ -21,7 +21,7 @@ echo $2
 id_experiment="${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
 name_experiment="$3-$1-$2-$4-${id_experiment}-$6"
 echo "result file is ${result_file}"
-cd $SCRATCH/$USER/group-CCA
+cd $SCRATCH/group-CCA
 
 
 # Run one experiment  to create the dataset
