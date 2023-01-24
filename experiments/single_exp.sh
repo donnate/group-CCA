@@ -1,9 +1,8 @@
 #!/bin/bash
 
-#SBATCH --job-name=array
-#SBATCH --output=logs/array_%A_%a.out
-#SBATCH --error=logs/array_%A_%a.err
-#SBATCH --array=1-5
+#SBATCH --job-name=single_experiment
+#SBATCH --output=experiments/logs/single_array_%A_%a.out
+#SBATCH --error=experiments/logs/array_%A_%a.err
 #SBATCH --time=35:00:00
 #SBATCH --partition=broadwl
 #SBATCH --ntasks=1
