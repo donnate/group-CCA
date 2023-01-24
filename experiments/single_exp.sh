@@ -1,5 +1,4 @@
 #!/bin/bash
-
 #SBATCH --job-name=single_experiment
 #SBATCH --output=experiments/logs/single_experiment.out
 #SBATCH --error=experiments/logs/single_experiment.err

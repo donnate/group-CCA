@@ -2,7 +2,8 @@ setwd(getwd())
 
 library(tidyverse)
 library(igraph)
-
+library(pls)
+library(CCA)
 
 
 #### parameters
