@@ -21,7 +21,7 @@ echo $2
 METH=$2
 result_file="${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
 echo "result file is ${result_file}"
-cd $SCRATCH/$USER/gnumap/experiments
+cd $SCRATCH/group-CCA
 
 
 if [[ "$METH" == "others" ]]; then
