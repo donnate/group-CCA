@@ -1,12 +1,10 @@
 #!/bin/bash
-
 #SBATCH --job-name=single_experiment
 #SBATCH --output=experiments/logs/single_experiment.out
 #SBATCH --error=experiments/logs/single_experiment.err
-#SBATCH --time=35:00:00
+#SBATCH --time=2:00:00
 #SBATCH --partition=broadwl
-#SBATCH --ntasks=1
-#SBATCH --mem=10G
+#SBATCH --mem=1G
 #SBATCH --account=pi-cdonnat
 
 # Print the task id.
@@ -21,7 +19,6 @@ METH=$2
 result_file="${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
 echo "result file is ${result_file}"
 cd $SCRATCH/group-CCA
-
 
 if [[ "$METH" == "others" ]]; then
   Rscript experiments/run_experiment.R $1 "others" 
