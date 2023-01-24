@@ -5,7 +5,7 @@
 #SBATCH --error=logs/array_%A_%a.err
 #SBATCH --array=1-5
 #SBATCH --time=35:00:00
-#SBATCH --partition=caslake
+#SBATCH --partition=broadwl
 #SBATCH --ntasks=1
 #SBATCH --mem=10G
 #SBATCH --account=pi-cdonnat
@@ -15,7 +15,7 @@ echo "My SLURM_ARRAY_TASK_ID: " $SLURM_ARRAY_TASK_ID
 echo "My SLURM_ARRAY_JOB_ID: " $SLURM_ARRAY_JOB_ID
 # Add lines here to run your computations
 job_id=$SLURM_ARRAY_JOB_ID
-module load R
+module load R/4.2.0
 echo $1
 echo $2
 id_experiment="${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
@@ -25,7 +25,7 @@ cd $SCRATCH/$USER/group-CCA
 
 
 # Run one experiment  to create the dataset
-Rscript experiments/run_experiment.R $1 $2 $3 $4 $5 $6
+Rscript experiments/main_experiment.R $1 $2 $3 $4 $5 $6
 
 #### Launch the analysis with the different methods
 sh experiments/single_exp.sh $name_experiment others 

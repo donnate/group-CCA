@@ -1,7 +1,6 @@
-setwd("~/Documents/group-CCA/")
+setwd(getwd())
 
 library(tidyverse)
-library(CCA)
 library(igraph)
 
 

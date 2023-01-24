@@ -5,7 +5,7 @@
 #SBATCH --error=logs/array_%A_%a.err
 #SBATCH --array=1-5
 #SBATCH --time=35:00:00
-#SBATCH --partition=caslake
+#SBATCH --partition=broadwl
 #SBATCH --ntasks=1
 #SBATCH --mem=10G
 #SBATCH --account=pi-cdonnat

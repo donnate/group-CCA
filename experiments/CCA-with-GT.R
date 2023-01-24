@@ -241,16 +241,15 @@ simple_experiment <- function(n, p, q, sigma, k, effect_size = 2,
   ycoef = inv_sqrt_Sigma_y %*% svd_for_cca$v[, 1:rank]
   cancor <- svd_for_cca$d
   
-  res = sort_cancors(X_test %*% xcoef, Y_test %*% ycoef, rank)
-  MSEa[1,1]<-principal_angles(trueA[,res$perm], xcoef)$angles[1,1]
-  MSEb[1,1]<-principal_angles(trueB[,res$perm], ycoef[, 1:rank])$angles[1,1]
-  TPRa[1,1]<-TPR(trueA[,res$perm],xcoef)
-  TPRb[1,1]<-TPR(trueB[,res$perm],ycoef)
-  TNRa[1,1]<-TNR(trueA[,res$perm],xcoef)
-  TNRb[1,1]<-TNR(trueB[,res$perm],ycoef)
-  l2loss[1,1] <- sqrt(mean((X_train %*% xcoef- Y_train %*% ycoef[,res$perm])^2))
-  l2loss_test[1, 1] <- sqrt(mean((X_test %*% xcoef- Y_test %*% ycoef[,res$perm])^2))
-  results.x[['Regular-CCA']] <- xcoef %*% s
+  MSEa[1,1]<-principal_angles(trueA, xcoef)$angles[1,1]
+  MSEb[1,1]<-principal_angles(trueB, ycoef[, 1:rank])$angles[1,1]
+  TPRa[1,1]<-TPR(trueA,xcoef)
+  TPRb[1,1]<-TPR(trueB,ycoef)
+  TNRa[1,1]<-TNR(trueA,xcoef)
+  TNRb[1,1]<-TNR(trueB,ycoef)
+  l2loss[1,1] <- sqrt(mean((X_train %*% xcoef- Y_train %*% ycoef)^2))
+  l2loss_test[1, 1] <- sqrt(mean((X_test %*% xcoef- Y_test %*% ycoef)^2))
+  results.x[['Regular-CCA']] <- xcoef 
   results.y[['Regular-CCA']] <- ycoef
   recovered_corr [['Regular-CCA']] <- cancor
   

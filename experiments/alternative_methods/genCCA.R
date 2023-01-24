@@ -1,11 +1,9 @@
 # LIBRARIES
 library(glmnet)
 library(MASS)
-library(pls)
-library(CCA)
 library(pracma)
-library(ParallelLogger)
-library(rsample)
+#library(ParallelLogger)
+#library(rsample)
 
 
 source("/Users/cdonnat/Documents/group-CCA/src/glmgen.R")

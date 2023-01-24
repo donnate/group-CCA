@@ -1,13 +1,8 @@
 # LIBRARIES
 library(glmnet)
 library(MASS)
-library(pls)
-library(CCA)
 library(pracma)
-library(ParallelLogger)
-library(rsample)
 library(CVXR)
-library(tictoc)
 
 source("src/cd_solver.R")
 source("src/penalties.R")
