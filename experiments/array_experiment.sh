@@ -40,7 +40,7 @@ do
     do 
        sh experiments/single_exp.sh $name_experiment genCCA $lambda1 $lambda2 $lambda3
        sh experiments/single_exp.sh $name_experiment genChaoCCA $lambda1 $lambda2 $lambda3 smooth
-       sh experiments/single_exp.sh $name_experiment genChaoCCA $lambda1 $lambda2 $lambda3 gen
+       sh experiments/single_exp.sh $name_experiment genChaoCCA $lambda1 $lambda2 $lambda3 GEN
        sh experiments/single_exp.sh $name_experiment original-ChaoCCA $lambda1 $lambda2 $lambda3 
     done
   done
