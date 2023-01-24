@@ -1,8 +1,8 @@
 #!/bin/bash
 
 #SBATCH --job-name=single_experiment
-#SBATCH --output=experiments/logs/single_array_%A_%a.out
-#SBATCH --error=experiments/logs/array_%A_%a.err
+#SBATCH --output=experiments/logs/single_experiment.out
+#SBATCH --error=experiments/logs/single_experiment.err
 #SBATCH --time=35:00:00
 #SBATCH --partition=broadwl
 #SBATCH --ntasks=1
