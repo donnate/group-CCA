@@ -1,5 +1,3 @@
-setwd("~/Documents/group-CCA/")
-
 library(tidyverse)
 library(CCA)
 library(VGAM)
