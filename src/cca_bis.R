@@ -54,6 +54,7 @@ genCCA2<-function(X, Y,
   ### STORE RESULTS
   ##### We'll add CV later
   df.x <- data.frame(X) %>% mutate_all(~(scale(.) %>% as.vector))
+
   df.y <- data.frame(Y) %>% mutate_all(~(scale(.) %>% as.vector))
   print("here")
   print(rank)
@@ -121,6 +122,7 @@ genCCA2<-function(X, Y,
 
     # FROM i until convergence: canonical vectors
     while( (it<max.iter) & (diff.obj>conv) ){
+      
       # Estimating A conditional on B
       print(it)
       
@@ -288,7 +290,7 @@ alternating.optimization <- function(X, y, D, lambda1, lambda2,
       res = genglm(X, y, D, family = "gaussian",
                   lambda1,
                   lambda2=lambda2,
-                  standardize = TRUE,
+                  standardize = FALSE,
                   solver = solver,
                   intercept = FALSE,
                   eps=eps,
