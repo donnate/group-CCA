@@ -124,7 +124,7 @@ genCCA2<-function(X, Y,
     while( (it<max.iter) & (diff.obj>conv) ){
 
       # Estimating A conditional on B
-      if verbose: print(it)
+      if(verbose){print(it)}
       
       FIT.A <- alternating.optimization(X=X_data, y=Y_data%*%B.STARTING,
                                         D=Da,
@@ -161,7 +161,8 @@ genCCA2<-function(X, Y,
       obj.new<-mean((X_data%*%matrix(AHAT_FINAL,ncol=1)-Y_data%*%matrix(BHAT_FINAL,ncol=1))^2)
       obj.it[it+1,i.r]<-obj.new
       diff.obj<-abs(obj.new-obj.initial)/obj.initial
-      if (verbose) { print(c(it, diff.obj))}
+      if (verbose) { 
+        print(c(it, diff.obj))}
 
       # Updated starting values
       #B.STARTING<-BHAT_FINAL

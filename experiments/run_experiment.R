@@ -17,20 +17,17 @@ args = commandArgs(trailingOnly=TRUE)
 #### load(data)
 name_experiment  = args[1]
 type_experiment = args[2]
-mysavedir = 'experiments/results/'
-mydatadir = 'experiments/data/'
+load(paste0(mydatadir, name_experiment, '-environment.RData'))
+print("yolo")
+print(type_experiment)
+
 lambda1 = as.numeric(args[3])
 lambda2 = as.numeric(args[4])
 lambda3 = as.numeric(args[5])
 max.iter = as.numeric(args[6])
 penalty_type_chao = args[7]
-
-
-
-load(paste0(mydatadir, name_experiment, '-environment.RData'))
-print("yolo")
-print(type_experiment)
-
+mysavedir = 'experiments/results/'
+mydatadir = 'experiments/data/'
 
 Sigma_x = t(X_train)%*% X_train
 Sigma_y = t(Y_train)%*% Y_train
