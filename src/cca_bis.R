@@ -222,7 +222,7 @@ genCCA2<-function(X, Y,
         BETAhat <- FIT.Borig
         #BETAhat <- BHAT_FINAL
       }else{
-        ALPHAhat <- AHAT_FINA
+        ALPHAhat <- AHAT_FINAL
         BETAhat <- BHAT_FINAL
       }
 
