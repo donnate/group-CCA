@@ -153,6 +153,7 @@ genCCA2<-function(X, Y,
         print("Regularization too strong!!!")
         break();
       }
+      print("here")
       #print(AHAT_FINAL)
 
       #lambdaB_ALL[it,i.r]<-FIT.B$lambda2
@@ -176,6 +177,7 @@ genCCA2<-function(X, Y,
 
     # Number of ITERATIONS
     iterations[1,i.r]<-it
+    print("ir")
 
     # CANONICAL VARIATES after convergence
     Uhat<-X_data%*%AHAT_FINAL
@@ -194,6 +196,7 @@ genCCA2<-function(X, Y,
       # Deflated data matrices
       X_data <-  round(X_data  - Uhat%*%solve(t(Uhat)%*%Uhat)%*%t(Uhat)%*%X_data, 10)
       Y_data <-  round(Y_data - Vhat%*%solve(t(Vhat)%*%Vhat)%*%t(Vhat)%*%Y_data, 10)
+      print(i.r)
 
 
 
