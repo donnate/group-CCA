@@ -198,6 +198,7 @@ if(type_experiment == "original-ChaoCCA"){
   
   result = data.frame(evaluate_method(CCAChao.resultsfull$xcoef,
                               CCAChao.resultsfull$ycoef, 
+                              trueA, trueB,
                               Sigma_x, Sigma_y,
                               X_train, Y_train,
                               X_test, Y_test,
@@ -222,6 +223,7 @@ if(type_experiment == "original-ChaoCCA"){
                                      verbose=TRUE)
     temp_result = evaluate_method(CCAChao.results_temp$xcoef,
                               CCAChao.results_temp$ycoef, 
+                              trueA, trueB,
                               Sigma_x, Sigma_y,
                               Xcv, Ycv,
                               Xval, Yval,
@@ -270,6 +272,7 @@ if(type_experiment == "genChaoCCA"){
   
   result = data.frame(evaluate_method(CCAChao.resultsfull$xcoef,
                               CCAChao.resultsfull$ycoef, 
+                              trueA, trueB,
                               Sigma_x, Sigma_y,
                               X_train, Y_train,
                               X_test, Y_test,
@@ -296,6 +299,7 @@ if(type_experiment == "genChaoCCA"){
                                       verbose=TRUE)
     temp_result = evaluate_method(CCAChao.results_temp$xcoef,
                               CCAChao.results_temp$ycoef, 
+                              trueA, trueB,
                               Sigma_x, Sigma_y,
                               Xcv, Ycv,
                               Xval, Yval,
@@ -345,7 +349,8 @@ if(type_experiment == "genCCA"){
 
   print(dim(genCCA.results$xcoef))
   result = data.frame(evaluate_method(genCCA.results$xcoef,
-                              genCCA.results$ycoef, 
+                              genCCA.results$ycoef,
+                              trueA, trueB, 
                               Sigma_x, Sigma_y,
                               X_train, Y_train,
                               X_test, Y_test,
@@ -379,6 +384,7 @@ if(type_experiment == "genCCA"){
                                      verbose=FALSE)
     result_temp = data.frame(evaluate_method(genCCA.results_temp$xcoef,
                                   genCCA.results_temp$ycoef, 
+                                  trueA, trueB,
                                   Sigma_x, Sigma_y,
                                   XvaXcvl, Ycv,
                                   Xval, Yval,
