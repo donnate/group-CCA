@@ -400,7 +400,7 @@ if(type_experiment == "genCCA"){
   result["l2"] = lambda2
   result["l3"] = lambda3
   result["max.iter"] = max.iter
-  result["eta"] = eta
+  result["eta"] = NULL
 
 
   write_csv(result, paste0(mysavedir, id_exp,'-all-results.csv'))

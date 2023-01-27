@@ -122,9 +122,9 @@ genCCA2<-function(X, Y,
 
     # FROM i until convergence: canonical vectors
     while( (it<max.iter) & (diff.obj>conv) ){
-      
+
       # Estimating A conditional on B
-      print(it)
+      if verbose: print(it)
       
       FIT.A <- alternating.optimization(X=X_data, y=Y_data%*%B.STARTING,
                                         D=Da,
