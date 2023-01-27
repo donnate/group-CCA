@@ -22,7 +22,8 @@ genCCA2<-function(X, Y,
                  solver = c("glmnet", "ECOS", "CGD"),
                  standardize=TRUE,
                  verbose=FALSE,
-                 reexpress=FALSE){
+                 reexpress=FALSE,
+                 threshold=1e-5){
   ### Function to perform Sparse Canonical Correlation Analysis using alternating regressions
 
   ### INPUT
