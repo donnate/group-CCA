@@ -33,6 +33,7 @@ mysavedir = 'experiments/results/'
 Sigma_x = t(X_train)%*% X_train
 Sigma_y = t(Y_train)%*% Y_train
 Sigma_xy = t(X_train)%*% Y_train
+max.iter = 50
 
 if (type_experiment == "others"){
   
@@ -337,7 +338,7 @@ if(type_experiment == "genCCA"){
                               lambdaB2=0,
                               rank,
                               A.initial=NULL,B.initial=NULL,
-                              max.iter=max.iter,
+                              max.iter=50,
                               conv=conv,
                               solver =  "CGD",
                               standardize=TRUE,
@@ -375,7 +376,7 @@ if(type_experiment == "genCCA"){
                                      lambdaB2=0,
                                      rank,
                                      A.initial=NULL,B.initial=NULL,
-                                     max.iter=max.iter,
+                                     max.iter=50,
                                      conv=conv,
                                      solver =  "CGD",
                                      standardize=TRUE,
