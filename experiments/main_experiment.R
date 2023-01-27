@@ -25,9 +25,9 @@ k=3
 sigma_noise=0.1
 power=1.6
 delta=2
-probs = list('11'= 0.6, '12'=0.02, '13'=0.02, 
-             '22'= 0.6, '23' = 0.02,
-             '33' = 0.5)
+probs = list('11'= 0.1, '12'=0.001, '13'=0.001, 
+             '22'= 0.1, '23' = 0.001,
+             '33' = 0.1)
 conv=10^(-2) 
 egonet_size= 2
 n.cv= 5
@@ -65,20 +65,20 @@ vfn <- function(x){
   
   X = matrix(rnorm(p * n, mean=0, sd=sigma_noise), n, p)
   Y = matrix(rnorm(q*n,  mean=0, sd=sigma_noise), n, q)
-  source = matrix(0, k, p)
-  colors = matrix(0, k, p)
+  source = matrix(0, rank, p)
+  colors = matrix(0, rank, p)
   colors_l = rep(0, p)
-  trueA = matrix(0, p, k)
-  trueB = matrix(0, q, k)
-  true_corr = rep(0, k)
+  trueA = matrix(0, p, rank)
+  trueB = matrix(0, q, rank)
+  true_corr = rep(0, rank)
   
   if ( type_graph  %in% c("pa")){
     indices <- sample(1:p, 1)
     #### Make sure the selected clusters are independent
-    not_all_indices = TRUE
+    not_all_indices = ifelse(rank>1, TRUE, FALSE)
     while(not_all_indices){
       print("here")
-      for (j in 2:k){
+      for (j in 2:rank){
         found_vertex = FALSE
         iter = 1
         while(found_vertex==FALSE){
@@ -98,7 +98,7 @@ vfn <- function(x){
       not_all_indices = (length(indices) < k)
     }
     print(indices)
-    for (i in 1:k){
+    for (i in 1:rank){
       print(i)
       idx = indices[i]
       subg <- ego(G, order=egonet_size, nodes = idx, 
@@ -115,7 +115,7 @@ vfn <- function(x){
       trueB[i,i] = 1/ sqrt(sum(Y[,i]^2))
     }
   }else{
-    for (i in 1:k){
+    for (i in 1:rank){
       print(i)
       nodes_in_network = which(Z==i)
       colors_l[nodes_in_network] = i
@@ -136,15 +136,19 @@ vfn <- function(x){
 
 if(plot.result==TRUE){
   source_df = data.frame(source)
-  source_df["component"] = 1:k
+  source_df["component"] = 1:rank
   ggplot(pivot_longer(source_df, cols=-c("component"))) +
     geom_tile(aes(x=name,y=component, fill=as.factor(value)))
   #### we can also simply plot the graph
   g <- simplify(G)
   V(g)$color= "black"
   V(g)$color[which(source[1,]>0)] =  "lightblue"
-  V(g)$color[which(source[2,]>0)] =   "orange"
-  V(g)$color[which(source[3,]>0)] =  "red"
+  if (rank >1){
+    V(g)$color[which(source[2,]>0)] =   "orange"
+    if (rank >2){
+      V(g)$color[which(source[3,]>0)] =  "red"
+    }
+  }
   plot(g)
   
 }

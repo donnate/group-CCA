@@ -51,18 +51,24 @@ l2_smoothness  <-  function(A, D){
 
 
 evaluate_method <- function(xcoef, ycoef, 
+                            trueA, trueB,
                             Sigma_x, Sigma_y,
                             X_train, Y_train,
                             X_test, Y_test,
                             D,
                             normalize=TRUE){
   if (normalize){
-    svd_sol = svd(t(xcoef) %*% Sigma_x %*% xcoef )
-    inv_sqrt_sol = svd_sol$u %*% diag(sapply(svd_sol$d, function(x){ifelse(x<1e-5, 0, 1/sqrt(x))})) %*% t(svd_sol$v)
-    svd_sol2 = svd(t(ycoef) %*% Sigma_y %*% ycoef )
-    inv_sqrt_sol2 = svd_sol2$u %*% diag(sapply(svd_sol2$d, function(x){ifelse(x<1e-5, 0, 1/sqrt(x))})) %*% t(svd_sol2$v)
-    results.x <- xcoef %*%  inv_sqrt_sol
-    results.y <- ycoef %*% inv_sqrt_sol2
+    if (dim(trueA)[2]>1){
+          svd_sol = svd(t(xcoef) %*% Sigma_x %*% xcoef )
+          inv_sqrt_sol = svd_sol$u %*% diag(sapply(svd_sol$d, function(x){ifelse(x<1e-5, 0, 1/sqrt(x))})) %*% t(svd_sol$v)
+          svd_sol2 = svd(t(ycoef) %*% Sigma_y %*% ycoef )
+          inv_sqrt_sol2 = svd_sol2$u %*% diag(sapply(svd_sol2$d, function(x){ifelse(x<1e-5, 0, 1/sqrt(x))})) %*% t(svd_sol2$v)
+          results.x <- xcoef %*%  inv_sqrt_sol
+          results.y <- ycoef %*% inv_sqrt_sol2
+    }else{
+      results.x  <- xcoef /  as.numeric(sqrt(t(xcoef) %*% Sigma_x %*% xcoef))
+      results.y  <- ycoef /  as.numeric(sqrt(t(ycoef) %*% Sigma_y %*% ycoef))
+    }
   }else{
     results.x <- xcoef 
     results.y <- ycoef

@@ -70,7 +70,7 @@ convex_formulation <- function(D = NULL,Sigma_x, Sigma_y, Sigma_xy, H,
   objective <- eta / 2 * sum_squares(b - y_hat) + lambda  * penalty_term1
   ## Define_and_Solve_Problem
   prob <- Problem(Minimize(objective))
-  result <- solve(prob, verbose = TRUE, num_iters = max.iter)
+  result <- psolve(prob, verbose = TRUE, num_iter = max.iter)
   ## Return_Values
   Fhat <- result$getValue(Fhat)
   
@@ -109,7 +109,7 @@ gen_lasso <- function(D, Sigma_x, Sigma_xy, V,
   objective <- 1 / 2 * sum_squares(y_hat - b) + lambda  * penalty_term1 + lambda2  * penalty_term2
   ## Define_and_Solve_Problem
   prob <- Problem(Minimize(objective))
-  result <- solve(prob, verbose = TRUE, max.iter=max.iter)
+  result <- psolve(prob, verbose = TRUE, num_iter =max.iter)
   ## Return_Values
   Uhat <- result$getValue(Uhat)
   
@@ -152,7 +152,7 @@ smooth_lasso <- function(D, Sigma_x, Sigma_xy, V,
   } 
   ## Define_and_Solve_Problem
   prob <- Problem(Minimize(objective))
-  result <- solve(prob, verbose = TRUE, max.iter=max.iter)
+  result <- psolve(prob, verbose = TRUE, num_iter =max.iter)
   ## Return_Values
   Uhat <- result$getValue(Uhat)
   
@@ -195,7 +195,7 @@ sparse_lasso <- function(D, Sigma_x, Sigma_xy, V,
   } 
   ## Define_and_Solve_Problem
   prob <- Problem(Minimize(objective))
-  result <- solve(prob, verbose = TRUE, max.iter=max.iter)
+  result <- psolve(prob, verbose = TRUE, num_iter=max.iter)
   ## Return_Values
   Uhat <- result$getValue(Uhat)
   

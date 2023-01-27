@@ -29,11 +29,11 @@ cgd_solver = function(X,y, D, lambda1, lambda2,
 
   u = matrix(0, m, 1)
   n_iter = 0
-  prev_u = 0
+  prev_u = matrix(0, m, 1)
   #print("starting")
 
   while(TRUE){
-    #tic(paste0("Iteration ", n_iter))
+    tic(paste0("Iteration ", n_iter))
     n_iter %+=% 1
     if(n_iter > max_it){
       if (verbose){print("Iterations exceed max_it")}
@@ -49,7 +49,7 @@ cgd_solver = function(X,y, D, lambda1, lambda2,
       break
     }
     prev_u <- u
-    #toc()
+    toc()
   }
   beta = X_til_pinv %*% (y_v - t(D_v) %*% u)
   return (beta)

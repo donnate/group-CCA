@@ -41,6 +41,7 @@ if (type_experiment == "others"){
   reg.CCA<-regular_cca(X=X_train,Y=Y_train,rank=rank)
   result = evaluate_method(reg.CCA$xcoef,
                             reg.CCA$ycoef, 
+                            trueA, trueB,
                             Sigma_x, Sigma_y,
                             X_train, Y_train,
                             X_test, Y_test,
@@ -56,7 +57,8 @@ if (type_experiment == "others"){
                          max.iter=100,conv=10^-2,
                          selection.criterion=1,n.cv=5)
   result_temp = evaluate_method(FIT_SAR_BIC$ALPHA,
-                            FIT_SAR_BIC$BETA, 
+                            FIT_SAR_BIC$BETA,
+                            trueA, trueB,
                             Sigma_x, Sigma_y,
                             X_train, Y_train,
                             X_test, Y_test,
@@ -74,6 +76,7 @@ if (type_experiment == "others"){
                         max.iter=100,conv=10^-2, selection.criterion=2, n.cv=5)
   result_temp = data.frame(evaluate_method(FIT_SAR_CV$ALPHA,
                             FIT_SAR_CV$BETA, 
+                            trueA, trueB,
                             Sigma_x, Sigma_y,
                             X_train, Y_train,
                             X_test, Y_test,
@@ -87,6 +90,7 @@ if (type_experiment == "others"){
   WittenSCCA_Perm<-CCA(x=X,z=Y,typex="standard",typez="standard",K=rank,penaltyx=Witten_Perm$bestpenaltyx,penaltyz=Witten_Perm$bestpenaltyz,trace=F)
   result_temp = data.frame(evaluate_method(WittenSCCA_Perm$u,
                             WittenSCCA_Perm$v, 
+                            trueA, trueB,
                             Sigma_x, Sigma_y,
                             X_train, Y_train,
                             X_test, Y_test,
@@ -99,7 +103,8 @@ if (type_experiment == "others"){
   Witten_CV<-Witten.CV(X=X,Y=Y,n.cv=5,lambdax=matrix(seq(from=0,to=1,length=20),nrow=1),lambday=matrix(seq(from=0,to=1,length=20),nrow=1))
   WittenSCCA_CV<-CCA(x=X,z=Y,typex="standard",typez="standard",K=rank,penaltyx=Witten_CV$lambdax.opt,penaltyz=Witten_CV$lambday.opt,trace=F)
   result_temp = data.frame(evaluate_method(WittenSCCA_Perm$u,
-                            WittenSCCA_Perm$v, 
+                            WittenSCCA_Perm$v,
+                            trueA, trueB,
                             Sigma_x, Sigma_y,
                             X_train, Y_train,
                             X_test, Y_test,
@@ -113,6 +118,7 @@ if (type_experiment == "others"){
   Waaijenborg_Delta<-Waaijenborg(X=X,Y=Y,lambdaxseq=matrix(seq(from=0.1,to=5,length=50),nrow=1),lambdayseq=matrix(seq(from=0.1,to=5,length=50),nrow=1),rank=rank,selection.criterion=1)
   result_temp = data.frame(evaluate_method(Waaijenborg_Delta$vhat,
                             Waaijenborg_Delta$uhat, 
+                            trueA, trueB,
                             Sigma_x, Sigma_y,
                             X_train, Y_train,
                             X_test, Y_test,
@@ -126,6 +132,7 @@ if (type_experiment == "others"){
                                 rank=rank, selection.criterion=2)
   result_temp = data.frame(evaluate_method(Waaijenborg_Test$vhat,
                             Waaijenborg_Test$uhat, 
+                            trueA, trueB,
                             Sigma_x, Sigma_y,
                             X_train, Y_train,
                             X_test, Y_test,
@@ -138,6 +145,7 @@ if (type_experiment == "others"){
   Parkhomenko_SCCA<-SCCA_Parkhomenko(x.data=X,y.data=Y, Krank=rank)
   result_temp = data.frame(evaluate_method(Parkhomenko_SCCA$a,
                             Parkhomenko_SCCA$b, 
+                            trueA, trueB,
                             Sigma_x, Sigma_y,
                             X_train, Y_train,
                             X_test, Y_test,
@@ -149,8 +157,9 @@ if (type_experiment == "others"){
   
   RCC_cv<-estim.regul_crossvalidation(X,Y,n.cv=5)
   RCCA<-rcc(X,Y,RCC_cv$lambda1.optim,RCC_cv$lambda2.optim)
-  result_temp = data.frame(evaluate_method(RCCA$xcoef[,1:k],
-                            RCCA$ycoef[,1:k],
+  result_temp = data.frame(evaluate_method(as.matrix(RCCA$xcoef[,1:rank], ncol=1),
+                            as.matrix(RCCA$ycoef[,1:rank], ncol=1),
+                            trueA, trueB,
                             Sigma_x, Sigma_y,
                             X_train, Y_train,
                             X_test, Y_test,
