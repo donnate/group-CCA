@@ -134,7 +134,7 @@ genCCA2<-function(X, Y,
                                         lambda2=lambdaA2,
                                         solver=solver,
                                         eps = conv,
-                                        max_it = 50)
+                                        max_it = 30)
 
       AHAT_FINAL <- FIT.A/ (1e-8 +  norm(X_data %*% FIT.A, type="F"))
       A.STARTING <-  AHAT_FINAL
@@ -147,7 +147,7 @@ genCCA2<-function(X, Y,
                                         lambda2=lambdaB2,
                                         solver=solver,
                                         eps = conv,
-                                        max_it = 50)
+                                        max_it = 30)
 
       BHAT_FINAL<- FIT.B/ (1e-8 + norm(Y_data %*% FIT.B, type="F"))
       B.STARTING <-  BHAT_FINAL
