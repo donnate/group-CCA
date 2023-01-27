@@ -21,7 +21,8 @@ genCCA2<-function(X, Y,
                  max.iter=20,conv=10^-2,
                  solver = c("glmnet", "ECOS", "CGD"),
                  standardize=TRUE,
-                 verbose=FALSE){
+                 verbose=FALSE,
+                 reexpress=FALSE){
   ### Function to perform Sparse Canonical Correlation Analysis using alternating regressions
 
   ### INPUT
@@ -88,7 +89,7 @@ genCCA2<-function(X, Y,
   if(is.null(A.initial)){
     #cancor_regpar<-estim.regul_crossvalidation(X,Y,n.cv=n.cv)
     #cancor_regul<-rcc(X,Y,cancor_regpar$lambda1.optim,cancor_regpar$lambda2.optim)
-    A.initial_ridge<- matrix(rnorm(rank *ncol(X)),nrow=ncol(X),ncol=rank)
+    A.initial_ridge<- matrix(rnorm(rank * ncol(X)),nrow=ncol(X),ncol=rank)
     #cancor_regul <- cancor(X,Y)
     #A.initial_ridge<-matrix(cancor_regul$xcoef[,1:rank],ncol=rank,nrow=ncol(X))
     #B.initial_ridge<-matrix(cancor_regul$ycoef[,1:rank],ncol=rank,nrow=ncol(Y))
@@ -121,6 +122,7 @@ genCCA2<-function(X, Y,
     # FROM i until convergence: canonical vectors
     while( (it<max.iter) & (diff.obj>conv) ){
       # Estimating A conditional on B
+      print(it)
       
       FIT.A <- alternating.optimization(X=X_data, y=Y_data%*%B.STARTING,
                                         D=Da,
@@ -128,7 +130,7 @@ genCCA2<-function(X, Y,
                                         lambda2=lambdaA2,
                                         solver=solver,
                                         eps = conv,
-                                        max_it = max.iter)
+                                        max_it = 50)
 
       AHAT_FINAL <- FIT.A/ (1e-8 +  norm(X_data %*% FIT.A, type="F"))
       A.STARTING <-  AHAT_FINAL
@@ -141,7 +143,7 @@ genCCA2<-function(X, Y,
                                         lambda2=lambdaB2,
                                         solver=solver,
                                         eps = conv,
-                                        max_it = max.iter)
+                                        max_it = 50)
 
       BHAT_FINAL<- FIT.B/ (1e-8 + norm(Y_data %*% FIT.B, type="F"))
       B.STARTING <-  BHAT_FINAL
@@ -195,26 +197,31 @@ genCCA2<-function(X, Y,
     } else {# HIGHER ORDER DIMENSIONS
 
       # # A expressed in terms of original data set X
-       FIT.Aorig <- alternating.optimization(X=X, y=Uhat,
-                                         D=Da,
-                                         lambda1=lambdaA1,
-                                         lambda2=lambdaA2,
-                                         solver=solver,
-                                         eps = conv,
-                                         max_it = max.iter)
-       ALPHAhat <- FIT.Aorig
-      # ALPHAhat <- AHAT_FINAL
+      if (reexpress){
+        FIT.Aorig <- alternating.optimization(X=X, y=Uhat,
+                                          D=Da,
+                                          lambda1=lambdaA1,
+                                          lambda2=lambdaA2,
+                                          solver=solver,
+                                          eps = conv,
+                                          max_it = max.iter)
+        ALPHAhat <- FIT.Aorig
+        # ALPHAhat <- AHAT_FINAL
 
-      # B expressed in terms of original data set Y
-      FIT.Borig <- alternating.optimization(X=Y, y=Vhat,
-                                         D=Db,
-                                         lambda1=lambdaB1,
-                                         lambda2=lambdaB2,
-                                         solver=solver,
-                                         eps = conv,
-                                         max_it = max.iter)
-      BETAhat <- FIT.Borig
-      #BETAhat <- BHAT_FINAL
+        # B expressed in terms of original data set Y
+        FIT.Borig <- alternating.optimization(X=Y, y=Vhat,
+                                          D=Db,
+                                          lambda1=lambdaB1,
+                                          lambda2=lambdaB2,
+                                          solver=solver,
+                                          eps = conv,
+                                          max_it = max.iter)
+        BETAhat <- FIT.Borig
+        #BETAhat <- BHAT_FINAL
+      }else{
+        ALPHAhat <- AHAT_FINA
+        BETAhat <- BHAT_FINAL
+      }
 
       # Final estimates of canonical vectors,  variates and canonical correlation
       ALPHA_ALL[, i.r] <- ALPHAhat

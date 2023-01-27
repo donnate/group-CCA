@@ -27,7 +27,6 @@ SVCST <- function(W, k, max_singval=5){
   }else{
     svd_W = svds(W, index)
   }
-
   return(svd_W$u %*% diag(svd_W$d) %*% t(svd_W$v))
 }
 
@@ -56,6 +55,7 @@ lasso_formulation <- function(Sigma_x, Sigma_y, Sigma_xy, H,
   p <- ncol(sqrt_Sigma_x)
   m <- nrow(sqrt_Sigma_y)
   b = G - 1/eta *H + 1/eta * inv_sqrt_Sigma_x %*% Sigma_xy %*% inv_sqrt_Sigma_y
+
   ## Define_Parameters
   Fhat <- Variable(p, m)
   ## Build_Penalty_Terms
@@ -69,7 +69,7 @@ lasso_formulation <- function(Sigma_x, Sigma_y, Sigma_xy, H,
   objective <- eta / 2 * sum_squares(b - y_hat) + lambda  * penalty_term1
   ## Define_and_Solve_Problem
   prob <- Problem(Minimize(objective))
-  result <- solve(prob, verbose = TRUE, num_iters = max.iter)
+  result <- psolve(prob, verbose = TRUE, num_iter = max.iter)
   ## Return_Values
   Fhat <- result$getValue(Fhat)
   
@@ -107,7 +107,7 @@ group_lasso <- function(Sigma_x, Sigma_xy, V,
   objective <- 1 / 2 * sum_squares(y_hat - b) + lambda  * penalty_term2
   ## Define_and_Solve_Problem
   prob <- Problem(Minimize(objective))
-  result <- solve(prob, verbose = TRUE, max.iter=max.iter)
+  result <- psolve(prob, verbose = TRUE, num_iter =max.iter)
   ## Return_Values
   Uhat <- result$getValue(Uhat)
   
