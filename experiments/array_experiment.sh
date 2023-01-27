@@ -20,7 +20,7 @@ echo $1
 echo $2
 id_experiment="${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
 name_experiment="$3-$1-$2-$4-${id_experiment}"
-echo "result file is ${result_file}"
+echo "name experiment is ${name_experiment}"
 cd $SCRATCH/group-CCA
 
 
