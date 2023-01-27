@@ -341,7 +341,9 @@ if(type_experiment == "genCCA"){
                               standardize=TRUE,
                               verbose=TRUE)
   
-  
+  print("Solved once")
+
+  print(dim(genCCA.results$xcoef))
   result = data.frame(evaluate_method(genCCA.results$xcoef,
                               genCCA.results$ycoef, 
                               Sigma_x, Sigma_y,
@@ -349,6 +351,7 @@ if(type_experiment == "genCCA"){
                               X_test, Y_test,
                               D,
                               normalize=TRUE))
+    
   result["method"] = "genCCA"
   result["fold"] = 0
   write_csv(result, paste0(mysavedir, id_exp,'-all-results.csv'))
