@@ -386,7 +386,7 @@ if(type_experiment == "genCCA"){
                                   genCCA.results_temp$ycoef, 
                                   trueA, trueB,
                                   Sigma_x, Sigma_y,
-                                  XvaXcvl, Ycv,
+                                  Xcv, Ycv,
                                   Xval, Yval,
                                   D,
                                   normalize=TRUE))
