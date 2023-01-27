@@ -19,16 +19,16 @@ module load R/4.2.0
 echo $1
 echo $2
 id_experiment="${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
-name_experiment="$3-$1-$2-$4-${id_experiment}-$6"
+name_experiment="$3-$1-$2-$4-${id_experiment}"
 echo "result file is ${result_file}"
 cd $SCRATCH/group-CCA
 
 
 # Run one experiment  to create the dataset
 Rscript experiments/main_experiment.R $1 $2 $3 $4 ${id_experiment} ${SLURM_ARRAY_TASK_ID}
-
+wait
 #### Launch the analysis with the different methods
-sbatch experiments/single_exp.sh $name_experiment others 
+sbatch -e "others_${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}" experiments/single_exp.sh $name_experiment others 
 #### Launch the loop for genCCA
 
 for lambda1 in 0.001 0.005 0.01 0.05 0.1 0.5 1 10
@@ -37,10 +37,10 @@ do
   do 
     for lambda3 in 0
     do 
-       sbatch experiments/single_exp.sh $name_experiment genCCA $lambda1 $lambda2 $lambda3
-       sbatch experiments/single_exp.sh $name_experiment genChaoCCA $lambda1 $lambda2 $lambda3 smooth
-       sbatch experiments/single_exp.sh $name_experiment genChaoCCA $lambda1 $lambda2 $lambda3 GEN
-       sbatch experiments/single_exp.sh $name_experiment original-ChaoCCA $lambda1 $lambda2 $lambda3 
+       sbatch -e "genCCA_${lambda1}_${lambda2}_${lambda3}_${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}" experiments/single_exp.sh $name_experiment genCCA $lambda1 $lambda2 $lambda3
+       sbatch -e "genChao_smooth_${lambda1}_${lambda2}_${lambda3}_${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}" experiments/single_exp.sh $name_experiment genChaoCCA $lambda1 $lambda2 $lambda3 smooth
+       sbatch -e "genChao_sparse_${lambda1}_${lambda2}_${lambda3}_${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}" experiments/single_exp.sh $name_experiment genChaoCCA $lambda1 $lambda2 $lambda3 GEN
+       sbatch -e "Chao_${lambda1}_${lambda2}_${lambda3}_${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}" experiments/single_exp.sh $name_experiment original-ChaoCCA $lambda1 $lambda2 $lambda3 
     done
   done
 done
