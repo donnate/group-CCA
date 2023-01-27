@@ -83,7 +83,6 @@ genCCA2<-function(X, Y,
   n = dim(Y)[1]
   q = dim(Y)[2]
 
-  print("here2")
 
   ### START CODE
   # Starting Values: Canonical Ridge Solution
@@ -119,12 +118,15 @@ genCCA2<-function(X, Y,
     # INITIALIZE CONVERGENCE PARAMETERS
     it<-1
     diff.obj<-conv * 10
+  
 
     # FROM i until convergence: canonical vectors
-    while( (it<max.iter) & (diff.obj>conv) ){
+    print(paste0("max.iter is", max.iter))
+    while( (it<max.iter) & (diff.obj>conv)  ){
 
       # Estimating A conditional on B
       if(verbose){print(it)}
+      print(it)
       
       FIT.A <- alternating.optimization(X=X_data, y=Y_data%*%B.STARTING,
                                         D=Da,
@@ -177,7 +179,6 @@ genCCA2<-function(X, Y,
 
     # Number of ITERATIONS
     iterations[1,i.r]<-it
-    print("ir")
 
     # CANONICAL VARIATES after convergence
     Uhat<-X_data%*%AHAT_FINAL
@@ -185,7 +186,6 @@ genCCA2<-function(X, Y,
     
      # Express canonical vectors in terms of ORIGINAL DATA MATRICES
     if (i.r==1){# FIRST DIMENSION
-
       # Final estimates of canonical vectors,  variates and canonical correlation
       ALPHA_ALL[, i.r] <- AHAT_FINAL
       BETA_ALL[, i.r] <- BHAT_FINAL
@@ -201,6 +201,7 @@ genCCA2<-function(X, Y,
 
 
     } else {# HIGHER ORDER DIMENSIONS
+       print("higher d")
 
       # # A expressed in terms of original data set X
       if (reexpress){
