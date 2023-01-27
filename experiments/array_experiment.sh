@@ -35,9 +35,12 @@ for lambda1 in 0.001 0.005 0.01 0.05 0.1 0.5 1 10
 do 
   for lambda2 in 0.001 0.01 0.1 1 10
   do 
+    for lambda3 in 0
+    do 
        sbatch experiments/single_exp.sh $name_experiment genCCA $lambda1 $lambda2 $lambda3
        sbatch experiments/single_exp.sh $name_experiment genChaoCCA $lambda1 $lambda2 $lambda3 smooth
        sbatch experiments/single_exp.sh $name_experiment genChaoCCA $lambda1 $lambda2 $lambda3 GEN
        sbatch experiments/single_exp.sh $name_experiment original-ChaoCCA $lambda1 $lambda2 $lambda3 
+    done
   done
 done
