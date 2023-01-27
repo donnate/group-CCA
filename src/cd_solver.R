@@ -8,7 +8,7 @@ library(tictoc)
 cgd_solver = function(X,y, D, lambda1, lambda2, 
                       eps = 1e-4, max_it = 10000,
                       threshold = 1e-5,
-                      verbose=FALSE){
+                      verbose=TRUE){
   m = dim(D)[1]
   p = dim(D)[2]
   X_til = rbind(X, sqrt(2*lambda2)*D)
@@ -47,12 +47,15 @@ cgd_solver = function(X,y, D, lambda1, lambda2,
       u[i] = sign(t)*min(abs(t), lambda1)
     }
     u[which(abs(u) < threshold )] = 0
+    print(norm(u - prev_u, "2"))
+    print(norm(u, '2'))
     if ((norm(u - prev_u, '2')/(threshold + norm(prev_u, '2')) <= eps) | (norm(u, '2') < threshold) ){
       break
     }
     prev_u <- u
     if(verbose){
-       toc()}
+       toc()
+       }
   }
   beta = X_til_pinv %*% (y_v - t(D_v) %*% u)
   return (beta)
