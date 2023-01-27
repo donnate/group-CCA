@@ -22,8 +22,7 @@ genCCA2<-function(X, Y,
                  solver = c("glmnet", "ECOS", "CGD"),
                  standardize=TRUE,
                  verbose=FALSE,
-                 reexpress=FALSE,
-                 threshold=1e-5){
+                 reexpress=FALSE){
   ### Function to perform Sparse Canonical Correlation Analysis using alternating regressions
 
   ### INPUT
@@ -241,8 +240,14 @@ genCCA2<-function(X, Y,
       cancors[1, i.r] <- cor(Uhat, Vhat)
 
       # Deflated data matrices: regress original data sets on all previously found canonical variates
+      if (mean((U_ALL[, 1:i.r])^2 > 1e-7)){
       X_data <-  X  - U_ALL[, 1:i.r]%*%solve(t(U_ALL[, 1:i.r])%*%U_ALL[, 1:i.r])%*%t(U_ALL[, 1:i.r])%*%X
       Y_data <-  Y -  V_ALL[, 1:i.r]%*%solve(t(V_ALL[, 1:i.r])%*%V_ALL[, 1:i.r])%*%t(V_ALL[, 1:i.r])%*%Y
+      }else{
+        X_data<-  X  
+        Y_data<-  Y
+        break
+      }
       
     }
     # ALPHA_ALL[,i.r]<-AHAT_FINAL
