@@ -13,7 +13,8 @@ source('src/metrics.R')
 library(tidyverse)
 library(PMA)
 args = commandArgs(trailingOnly=TRUE)
-
+print("all args")
+print(args)
 #### load(data)
 name_experiment  = args[1]
 type_experiment = args[2]

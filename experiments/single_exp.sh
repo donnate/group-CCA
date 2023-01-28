@@ -23,9 +23,9 @@ cd $SCRATCH/group-CCA
 if [[ "$METH" == "others" ]]; then
   Rscript experiments/run_experiment.R $1 "others" 
 elif [[ "$METH" == "original-ChaoCCA" ]]; then
-  Rscript experiments/run_experiment.R $1 $METH $3 $4 $5 20 
+  Rscript experiments/run_experiment.R $1 $METH $3 $4 $5 50 
 elif [[ "$METH" == "genChaoCCA" ]]; then
-  Rscript experiments/run_experiment.R $1 $METH $3 $4 $5 20 $6
+  Rscript experiments/run_experiment.R $1 $METH $3 $4 $5 50 $6
 elif [[ "$METH" == "genCCA" ]]; then
   Rscript experiments/run_experiment.R $1 $METH $3 $4 $5 100 
 fi;
