@@ -30,9 +30,9 @@ cgd_solver = function(X,y, D, lambda1, lambda2,
   u = matrix(0, m, 1)
   n_iter = 0
   prev_u = matrix(runif(m), m, 1)/m
-  print("starting")
-  print(paste0("lambda1 is ", lambda1, " lambda2 is ", lambda2))
-  print(u)
+  #print("starting")
+  #print(paste0("lambda1 is ", lambda1, " lambda2 is ", lambda2))
+  #print(u)
 
   while(TRUE){
     if(verbose){
@@ -49,9 +49,9 @@ cgd_solver = function(X,y, D, lambda1, lambda2,
       u[i] = sign(t)*min(abs(t), lambda1)
     }
     u[which(abs(u) < threshold )] = 0
-    print(c(max(u), min(u)))
-    print(norm(u - prev_u, "2"))
-    print(norm(u, '2'))
+    #print(c(max(u), min(u)))
+    #print(norm(u - prev_u, "2"))
+    #print(norm(u, '2'))
     if (norm(u) < threshold){
       break;
     }
