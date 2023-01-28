@@ -31,9 +31,9 @@ wait
 sbatch -e "experiments/logs/others_${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}.err" experiments/single_exp.sh $name_experiment others 
 #### Launch the loop for genCCA
 
-for lambda1 in 0.001 0.005 0.01 0.05 0.1 0.5 1 10
+for lambda1 in "0.001" "0.005" "0.01" "0.05" "0.1" "0.5" "1" "10"
 do 
-  for lambda2 in 0.001 0.01 0.1 1 10
+  for lambda2 in "0.001" "0.01" "0.1" "1" "10"
   do 
     for lambda3 in 0
     do 
