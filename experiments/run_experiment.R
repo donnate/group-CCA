@@ -19,9 +19,6 @@ print(args)
 name_experiment  = args[1]
 type_experiment = args[2]
 mydatadir = 'experiments/data/'
-load(paste0(mydatadir, name_experiment, '-environment.RData'))
-print("yolo")
-print(type_experiment)
 
 lambda1 = as.numeric(args[3])
 lambda2 = as.numeric(args[4])
@@ -30,10 +27,13 @@ max.iter = as.numeric(args[6])
 #penalty_type_chao = args[7]
 mysavedir = 'experiments/results/'
 print(paste0("in runexp, lambda 1=", lambda1, " lambda2=", lambda2, "lambda3=", lambda3))
-
+print(paste0("in runexp_args, lambda 1=", args[3], " lambda2=", lambda2, "lambda3=", lambda3))
 Sigma_x = t(X_train)%*% X_train
 Sigma_y = t(Y_train)%*% Y_train
 Sigma_xy = t(X_train)%*% Y_train
+load(paste0(mydatadir, name_experiment, '-environment.RData'))
+print("yolo")
+print(type_experiment)
 max.iter = 50
 
 if (type_experiment == "others"){
