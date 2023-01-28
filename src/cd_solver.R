@@ -30,7 +30,8 @@ cgd_solver = function(X,y, D, lambda1, lambda2,
   u = matrix(0, m, 1)
   n_iter = 0
   prev_u = matrix(runif(m), m, 1)/m
-  #print("starting")
+  print("starting")
+  print(paste0("lambda1 is ", lambda1, " lambda2 is ", lambda2))
 
   while(TRUE){
     if(verbose){
