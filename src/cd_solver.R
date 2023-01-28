@@ -29,7 +29,7 @@ cgd_solver = function(X,y, D, lambda1, lambda2,
 
   u = matrix(0, m, 1)
   n_iter = 0
-  prev_u = matrix(runif(m), m, 1)
+  prev_u = matrix(runif(m), m, 1)/m
   #print("starting")
 
   while(TRUE){
