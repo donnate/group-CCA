@@ -27,7 +27,7 @@ lambda1 = as.numeric(args[3])
 lambda2 = as.numeric(args[4])
 lambda3 = as.numeric(args[5])
 max.iter = as.numeric(args[6])
-penalty_type_chao = args[7]
+#penalty_type_chao = args[7]
 mysavedir = 'experiments/results/'
 print(paste0("in runexp, lambda 1=", lambda1, " lambda2=", lambda2, "lambda3=", lambda3))
 
