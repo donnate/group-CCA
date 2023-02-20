@@ -48,18 +48,25 @@ genglm <- function(x, y, D, family = c("gaussian", "binomial", "poisson"),
         return(list("xcoef"=hat_beta,"lambda1"=lambda1,
                     "lambda2"=lambda2))
       }else{
-         if (solver =="GLMNET"){
-         X_tilde = x %*% pinv(D)
-         glm.model = glmnet(X_tilde, y,
-                       lambda = lambda1,
-                       intercept = FALSE)
-         hat_beta <- pinv(D) %*% as.matrix(glm.model$beta)
-         return(list("xcoef"=hat_beta, "lambda1"=lambda1,
-                     "lambda2"=lambda2))
-         }else{
-           print("Not implemented yet")
-           return(NA)
-         }
+            if (solver == "XCGD"){
+        hat_beta  = xcgd_solver(x ,y, D, lambda1, lambda2,
+                               eps = eps,  max.it)
+        return(list("xcoef"=hat_beta,"lambda1"=lambda1,
+                    "lambda2"=lambda2))
+            }else{
+              if (solver =="GLMNET"){
+                X_tilde = x %*% pinv(D)
+                glm.model = glmnet(X_tilde, y,
+                              lambda = lambda1,
+                              intercept = FALSE)
+                hat_beta <- pinv(D) %*% as.matrix(glm.model$beta)
+                return(list("xcoef"=hat_beta, "lambda1"=lambda1,
+                            "lambda2"=lambda2))
+                }else{
+                  print("Not implemented yet")
+                  return(NA)
+                }
+            }
       }
     }
   }

@@ -1,7 +1,7 @@
 
-
-n= 100
-p= 100
+setwd("~/Documents/group-CCA")
+n= 200
+p= 253
 q=10 
 sigma=0.1 
 k=3
@@ -15,7 +15,9 @@ egonet_size= 2
 n.cv=5
 power=1
 rank=k
-lambdaA1=0.5
-lambdaA2=1
+lambda1=0.5
+lambda2=1
+lambda3=0
 effect_size =2
+type_graph="sbm"
 

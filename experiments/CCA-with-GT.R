@@ -51,8 +51,8 @@ registerDoParallel(makeCluster(4)) # Use 4 cores for parallel CV
 simple_experiment <- function(n, p, q, sigma, k, effect_size = 2,
                               sigma_noise=0.1, power=1,
                               probs = list('11'= 0.8, '12'=0.05, '13'=0.05, 
-                                           '22'= 0.7, '23' = 0.05,
-                                           '33' = 0.8),
+                                           '22'= 0.7, '23' = 0.01,
+                                           '33' = 0.2),
                               lambdaA1seq= c(0.0001, 0.001, 0.01, 0.1, 1),
                               lambdaA2seq= c(0.0001, 0.001, 0.01, 0.1, 1),
                               conv=10^{-3}, max.iter=200,
@@ -583,6 +583,20 @@ plot_results_on_graph <- function(xcoef, i, G){
 plot_results<- function(xcoef, trueA){
   res_df = data.frame(cor(trueA, xcoef))
   res_df["component"] = 1:k
+  ggplot(pivot_longer(res_df, cols=-c("component"))) +
+    geom_tile(aes(x=name,y=component, fill=abs(value)))
+}
+
+
+plot_results<- function(xcoef, trueA){
+  res_df = data.frame(xcoef)
+  res_df["type"] = "estimated"
+  res_df["component"] = 1:ncol(xcoef)
+  res_df2 = data.frame(trueA)
+  res_df2["type"] = "GT"
+  res_df2["component"] = 1:ncol(xcoef)
+  res_df = rbind( res_def, 
+                  res_def2)
   ggplot(pivot_longer(res_df, cols=-c("component"))) +
     geom_tile(aes(x=name,y=component, fill=abs(value)))
 }

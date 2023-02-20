@@ -175,3 +175,4 @@ print(paste0(namefile, '-environment.RData'))
 
 # system(paste0("Rscript group-CCA/experiments/run_experiment.R  ",namefile, 'environment', "   ", 'genCCA', '   ', mysavedir, '  ', rank,
 #               ' ', 0.01, ' ', 0.01, ' ', 0.0,  ' ', 200 ))
+

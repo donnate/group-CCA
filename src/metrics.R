@@ -66,6 +66,8 @@ evaluate_method <- function(xcoef, ycoef,
           results.x <- xcoef %*%  inv_sqrt_sol
           results.y <- ycoef %*% inv_sqrt_sol2
     }else{
+      
+      print(dim(Sigma_x))
       results.x  <- xcoef /  as.numeric(sqrt(t(xcoef) %*% Sigma_x %*% xcoef))
       results.y  <- ycoef /  as.numeric(sqrt(t(ycoef) %*% Sigma_y %*% ycoef))
     }

@@ -1,7 +1,7 @@
 # LIBRARIES
 library(glmnet)
 library(MASS)
-library(pls)
+#library(pls)
 library(CCA)
 
 source("src/metrics.R")
