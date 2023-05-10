@@ -70,7 +70,7 @@ for (n in c(60, 100, 500, 1000)){
       
       res_tg <- pipeline_thresholded_gradient(example$Data, example$Mask, example$sigma0hat, 
                                               r=2, nu=1,Sigmax=example$Sigmax, 
-                                              Sigmay=example$Sigmay, maxiter.init=30, lambda=NULL,k=NULL,
+                                              Sigmay=example$Sigmay, maxiter.init=100, lambda=NULL,k=NULL,
                                               kfolds=5,maxiter=2000, convergence=1e-3, eta=1e-3,
                                               param1=10^(seq(-5, 1, by = 0.5)),
                                               param2=c(10, 20, 30, 50, 100, 250, 500, 700, 1000))
