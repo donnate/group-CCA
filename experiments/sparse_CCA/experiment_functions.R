@@ -21,26 +21,24 @@ library(caret)
 #Example of TGD on Sparse CCA
 #n = 500, p1 = p2 = 100, s_u = s_v = 5
 #k = 20, eta = 0.0025, lambda =0.01, T = 12000
-setwd("~/Documents/Sparse-Generalized-Correlation-Analysis/src/R Code/")
+wd = getwd()
+setwd("experiments/GCA")
 source("utils.R")
 source("gca_to_cca.R")
 source("init_process.R")
 source("sgca_init.R")
 source("sgca_tgd.R")
 source("subdistance.R")
-print('--------------------------------------');
-print('SCCA Example: Toeplitz covariance matrix'); 
-print('n = 500, p1 = p2 = 100, s_u = s_v = 5');
-print('lambda1 = 0.9, lambda2 = 0.8');
+source("adaptive_lasso.R")
 
-setwd("~/Documents/group-CCA/")
-source('~/Documents/group-CCA/experiments/alternative_methods/SAR.R')
-source('~/Documents/group-CCA/experiments/alternative_methods/Parkhomenko.R')
-source('~/Documents/group-CCA/experiments/alternative_methods/Witten_CrossValidation.R')
-source('~/Documents/group-CCA/experiments/alternative_methods/Waaijenborg.R')
-source("~/Documents/group-CCA/src/cca_bis.R")
-setwd("~/Documents/Sparse-Generalized-Correlation-Analysis/src/R Code/")
+setwd(wd)
+source('experiments/alternative_methods/SAR.R')
+source('experiments/alternative_methods/Parkhomenko.R')
+source('experiments/alternative_methods/Witten_CrossValidation.R')
+source('experiments/alternative_methods/Waaijenborg.R')
+source("src/cca_bis.R")
 
+setwd(wd)
 generate_example <- function(n, p1, p2,   nnzeros = 5,
                              theta = diag( c(0.9,  0.8)),
                              a = 0, r=2){
@@ -106,12 +104,12 @@ generate_example <- function(n, p1, p2,   nnzeros = 5,
   evectors <-result$vectors
   evectors <- evectors[,p:1]
   a <- evectors[,1:r]
-  scale <- a %*% sqrtm(diag(r)+t(a) %*% Sigma %*% a/lambda)$B;
+  #scale <- a %*% sqrtm(diag(r)+t(a) %*% Sigma %*% a/lambda)$B;
   return(list(Sigma=Sigma, Sigma0=Sigma0,
          S = S, sigma0hat =  sigma0hat, Mask= Mask,
          X=X, Y = Y, Data=Data,u=u, v=v, 
          Sigmax=Sigmax, Sigmay=Sigmay,
-         a=a, scale=scale
+         a=a
         ))
 }
 
@@ -129,7 +127,7 @@ cv_function <- function(X, Y, kfolds=5, initu, initv,
     Y_val <- Y[folds[[i]], ]
     
     # fit model on training data with hyperparameters
-    model <- group_lasso(X_val, Y_val %*% initv, initu, adaptive=adaptive, 
+    model <- adaptive_lasso(X_val, Y_val %*% initv, initu, adaptive=adaptive, 
                          lambdax, 
                          max.iter=5000, 
                          max_k = 10, verbose = FALSE, ZERO_THRESHOLD=1e-5)
@@ -245,10 +243,10 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
     lambday = max(results$param1[which_lambday])
   }
   
-  ufinal = group_lasso(X, Y %*% initv, initu, adaptive=adaptive, lambdax, max.iter=5000, 
+  ufinal = adaptive_lasso(X, Y %*% initv, initu, adaptive=adaptive, lambdax, max.iter=5000, 
                        max_k = 10, verbose = FALSE, ZERO_THRESHOLD=1e-5)
   
-  vfinal = group_lasso(Y, X %*% initu, initv, adaptive=adaptive, lambday, max.iter=5000, 
+  vfinal = adaptive_lasso(Y, X %*% initu, initv, adaptive=adaptive, lambday, max.iter=5000, 
                        max_k = 10, verbose = FALSE, ZERO_THRESHOLD=1e-5)
   a_estimate = rbind(ufinal$Uhat, vfinal$Uhat)
   a_estimate <- gca_to_cca(a_estimate, S3, pp)

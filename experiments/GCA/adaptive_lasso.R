@@ -3,7 +3,7 @@ library(CVXR)
 
 ####
 
-group_lasso <- function(X, Z, beta0, adaptive=TRUE,
+adaptive_lasso <- function(X, Z, beta0, adaptive=TRUE,
                          lambda, lambda2, max.iter=5000,
                          max_k = 10, verbose = FALSE,
                          ZERO_THRESHOLD=1e-5){
