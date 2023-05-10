@@ -7,6 +7,7 @@ results <- c()
 
 args = commandArgs(trailingOnly=TRUE)
 seed = as.numeric(args[1])
+print(seed)
 name_exp = args[2]
 set.seed(seed)
 
