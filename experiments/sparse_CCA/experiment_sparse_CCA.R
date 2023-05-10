@@ -5,10 +5,10 @@ source("experiments/sparse_CCA/experiment_functions.R")
 results <- c()
 
 
-args = commandArgs(trailingOnly=TRUE)
-seed = as.numeric(args[1])
+args <- commandArgs(trailingOnly=TRUE)
+seed <- as.numeric(args[1])
 print(seed)
-name_exp = args[2]
+name_exp <- args[2]
 set.seed(seed)
 it = seed
 for (n in c(60, 100, 500, 1000)){
@@ -22,7 +22,7 @@ for (n in c(60, 100, 500, 1000)){
       res = pipeline_adaptive_lasso(example$Data, example$Mask, example$sigma0hat, r=2, 
                                     nu=1, example$Sigmax, 
                                     example$Sigmay, maxiter=100, lambdax=NULL,
-                                    adaptive=TRUE, kfolds=5,  param1=10^(seq(-5, 1, by = 0.25)),
+                                    adaptive=TRUE, kfolds=5,  param1=10^(seq(-5, 1, by = 0.5)),
                                     create_folds=FALSE)
       Uhat = rbind(res$Uhat, res$Vhat)
       temp <- data.frame("method" = "adaptive_lasso",
@@ -47,7 +47,7 @@ for (n in c(60, 100, 500, 1000)){
       res = pipeline_adaptive_lasso(example$Data, example$Mask, example$sigma0hat, r=2, 
                                     nu=1, example$Sigmax, 
                                     example$Sigmay, maxiter=100, lambdax=NULL,
-                                    adaptive=TRUE, kfolds=5,  param1=10^(seq(-5, 1, by = 0.25)),
+                                    adaptive=TRUE, kfolds=5,  param1=10^(seq(-5, 1, by = 0.5)),
                                     create_folds=TRUE)
       Uhat = rbind(res$Uhat, res$Vhat)
       #plot(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum) )
@@ -68,10 +68,10 @@ for (n in c(60, 100, 500, 1000)){
       results <-rbind(results, temp )
       
       res_tg <- pipeline_thresholded_gradient(example$Data, example$Mask, example$sigma0hat, 
-                                              r=2, nu=1,example$Sigmax, 
-                                              example$Sigmay, maxiter.init=30, lambda=NULL,k=NULL,
+                                              r=2, nu=1,Sigmax=example$Sigmax, 
+                                              Sigmay=example$Sigmay, maxiter.init=30, lambda=NULL,k=NULL,
                                               kfolds=5,maxiter=2000, convergence=1e-3, eta=1e-3,
-                                              param1=10^(seq(-5, 1, by = 0.25)),
+                                              param1=10^(seq(-5, 1, by = 0.5)),
                                               param2=c(10, 20, 30, 50, 100, 250, 500, 700, 1000))
       Uhat = rbind(res_tg$ufinal, res_tg$vfinal)
       temp <- data.frame("method" = "TG",
@@ -88,7 +88,7 @@ for (n in c(60, 100, 500, 1000)){
                          "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
                          "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum)))
       
-      results <-rbind(results, temp )
+      results <- rbind(results, temp)
       
       for (method in c("FIT_SAR_CV", "FIT_SAR_BIC", "Witten_Perm",
                        "Witten.CV", "Waaijenborg-Author", "Waaijenborg-CV",

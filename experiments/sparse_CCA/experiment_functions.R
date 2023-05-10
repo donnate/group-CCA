@@ -163,7 +163,7 @@ cv_function_tgd <- function(X, Y, Mask, kfolds=5, ainit,
     
     # fit model on training data with hyperparameters
     final = sgca_tgd(A=S, B=sigma0hat,
-             r,ainit, k, lambda = lambda, eta=eta,
+             r=r,ainit, k, lambda = lambda, eta=eta,
              convergence=convergence,
              maxiter=maxiter, plot = FALSE, 
              scale=NULL)
@@ -220,6 +220,7 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
     resultsx <- expand.grid(param1 = param1) %>%
       mutate(rmse = map_dbl(param1, ~ cv_function(X, Y, kfolds, initu, initv,
                                                   lambdax = .x, adaptive=adaptive)))
+
     #  
     # print best hyperparameters and corresponding RMSE
     best_hyperparams <- resultsx[which.min(resultsx$rmse), ]
@@ -282,6 +283,7 @@ pipeline_thresholded_gradient <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax
                                                           Mask, kfolds=5, ainit, r=r,
                                                           lambda = .x, 
                                                           k = .y)))
+
     #print(resultsx)
     ###### (X, Y, Mask, kfolds=5, ainit, lambda, k=20)
   
