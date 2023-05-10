@@ -3,13 +3,17 @@ print(wd)
 setwd(wd)
 source("experiments/sparse_CCA/experiment_functions.R")
 results <- c()
-it <- 1
+
+
+args = commandArgs(trailingOnly=TRUE)
+seed = as.numeric(args[1])
+name_exp = args[2]
+set.seed(seed)
 
 for (n in c(60, 100, 500, 1000)){
   for (psize in c(0.25*n, 0.5*n, 0.75*n,  n, 1.1 *n, 1.25 * n, 1.5 * n, 2 * n, 3*n, 10 *n)){
     p1=as.integer(psize); p2=as.integer(psize)
-    for (it in 1:20){
-      example <- generate_example(n=n, p1=p1, p2=p2,   nnzeros = 5,
+    example <- generate_example(n=n, p1=p1, p2=p2,   nnzeros = 5,
                                   theta = diag( c(0.9,  0.8)),
                                   a = 0, r=2)
       
@@ -104,9 +108,9 @@ for (n in c(60, 100, 500, 1000)){
         results <- rbind(results, temp )
         
       }
-      write_excel_csv(results, "experiments/sparse_CCA/results/results_exp_sparse_cca_test.csv")
+      write_excel_csv(results, paste0("experiments/sparse_CCA/results/results_exp_sparse_cca_test", name_exp, ".csv"))
       
-    }
+    
   }
 }
 

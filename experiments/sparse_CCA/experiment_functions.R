@@ -136,7 +136,7 @@ cv_function <- function(X, Y, kfolds=5, initu, initv,
 
 
 cv_function_tgd <- function(X, Y, Mask, kfolds=5, ainit,
-                        lambda, k=20, maxiter=1000, eta=0.001,
+                        lambda, r=2, k=20,  maxiter=1000, eta=0.001,
                         convergence=1e-3) {
   # define empty vector to store results
   folds <- createFolds(1:nrow(Y), k = kfolds, list = TRUE, returnTrain = FALSE)
@@ -163,7 +163,7 @@ cv_function_tgd <- function(X, Y, Mask, kfolds=5, ainit,
     
     # fit model on training data with hyperparameters
     final = sgca_tgd(A=S, B=sigma0hat,
-             r,ainit, k, lambda = lambda, eta=eta,
+             r,ainit k, lambda = lambda, eta=eta,
              convergence=convergence,
              maxiter=maxiter, plot = FALSE, 
              scale=NULL)
@@ -279,7 +279,7 @@ pipeline_thresholded_gradient <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax
     
     resultsx <- expand.grid(lambda = param1, k = param2) %>%
       mutate(rmse = map2_dbl(lambda, k, ~ cv_function_tgd(Data[, 1:p1], Data[, (p1+1):p], 
-                                                          Mask, kfolds=5, ainit,
+                                                          Mask, kfolds=5, ainit, r=r,
                                                           lambda = .x, 
                                                           k = .y)))
     #print(resultsx)
