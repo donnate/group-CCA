@@ -339,8 +339,8 @@ additional_checks <- function(X_train, Y_train, S=NULL,
     
   }
   if (method.type=="Witten_Perm"){
-    Witten_Perm <- CCA.permute(x=X,z=Y,typex="standard",typez="standard", nperms=50)
-    method<-CCA(x=X, z=Y, typex="standard",typez="standard",K=rank,
+    Witten_Perm <- CCA.permute(x=X_train,z=Y_train,typex="standard",typez="standard", nperms=50)
+    method<-CCA(x=X_train, z=Y_train, typex="standard",typez="standard",K=rank,
                          penaltyx=Witten_Perm$bestpenaltyx,penaltyz=Witten_Perm$bestpenaltyz,trace=F)
     a_estimate = rbind(method$u, method$v)
   }
