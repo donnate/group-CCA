@@ -62,7 +62,7 @@ SCCA_Parkhomenko<-function(x.data,y.data,n.cv=5,lambda.v.seq=seq(0, 0.2, by=0.02
     }
     
     ##OUTPUT
-    out <- list(a=a_vectors,b=b_vectors,cancor=c(diag(D)),lambda.uopt=SCCA_FIT_K1$best.lambda.u,lambda.vopt=SCCA_FIT_K1$best.lambda.v)
+    out <- list(uhat=a_vectors,vhat=b_vectors,cancor=c(diag(D)),lambda.uopt=SCCA_FIT_K1$best.lambda.u,lambda.vopt=SCCA_FIT_K1$best.lambda.v)
   } 
 }
 

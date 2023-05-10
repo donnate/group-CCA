@@ -36,7 +36,7 @@ Sigma_xy = t(X_train)%*% Y_train
 print("yolo")
 print(type_experiment)
 mysavedir = 'experiments/results/'
-max.iter = 50
+
 
 if (type_experiment == "others"){
   
@@ -325,7 +325,6 @@ if(type_experiment == "genChaoCCA"){
 
 
 if(type_experiment == "genCCA"){
-  
   id_exp = paste0(name_experiment, '-', type_experiment, '-',  lambda2, '-',
                   lambda3)
   print(id_exp)
@@ -371,6 +370,7 @@ if(type_experiment == "genCCA"){
     Ycv = Y_train[training.sample, ]
     Xval=X_train[validation.sample,]
     Yval=Y_train[validation.sample,]
+    tic()
     genCCA.results_temp <-  genCCA2(Xcv, Ycv,
                                      Da=D, Db=NULL,
                                      lambdaA1=lambda1,
@@ -379,11 +379,13 @@ if(type_experiment == "genCCA"){
                                      lambdaB2=0,
                                      rank,
                                      A.initial=NULL,B.initial=NULL,
-                                     max.iter=50,
+                                     max.iter=30,
+                                     max.iter.cgd = 100,
                                      conv=conv,
                                      solver =  "CGD",
                                      standardize=TRUE,
                                      verbose=FALSE)
+    toc()
     result_temp = data.frame(evaluate_method(genCCA.results_temp$xcoef,
                                   genCCA.results_temp$ycoef, 
                                   trueA, trueB,

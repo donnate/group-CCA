@@ -12,6 +12,7 @@ library(glmnet)
 library(CCA)
 library(pls)
 library(igraph)
+library(pracma)
 
 # LOAD Functions
 
@@ -50,9 +51,9 @@ registerDoParallel(makeCluster(4)) # Use 4 cores for parallel CV
 
 simple_experiment <- function(n, p, q, sigma, k, effect_size = 2,
                               sigma_noise=0.1, power=1,
-                              probs = list('11'= 0.8, '12'=0.05, '13'=0.05, 
-                                           '22'= 0.7, '23' = 0.05,
-                                           '33' = 0.8),
+                              probs = list('11'= 0.08, '12'=0.005, '13'=0.005, 
+                                           '22'= 0.07, '23' = 0.001,
+                                           '33' = 0.02),
                               lambdaA1seq= c(0.0001, 0.001, 0.01, 0.1, 1),
                               lambdaA2seq= c(0.0001, 0.001, 0.01, 0.1, 1),
                               conv=10^{-3}, max.iter=200,
@@ -69,27 +70,51 @@ simple_experiment <- function(n, p, q, sigma, k, effect_size = 2,
   
   ### set 
   # lambdaA2 = lambdaA1/(8 * 12) 
+  #### Notion of smoothnes 
+  library(bc3net)
   if (type_graph == "pa"){
     G <- sample_pa(p, power = power)
+    G <- make_lattice(length = 10, dim = 3)
   }else{
    if (type_graph == "SBM"){
     pref.matrix = rbind(c(probs$`11`, probs$`12`, probs$`13`),
                         c(probs$`12`, probs$`22`, probs$`23`),
                         c(probs$`13`, probs$`23`, probs$`33`))
-    G <- sample_sbm(p, pref.matrix = pref.matrix,
+    G.sbm <- sample_sbm(p, pref.matrix = pref.matrix,
                     block.sizes = c(floor(p/3), floor(p/3), p - 2*floor(p/3)))
+    comp = components(G.sbm)
+    G.sbm <- delete_vertices(G.sbm, which(comp$membership!=1))
     Z = c(rep(1, floor(p/3)), rep(2, floor(p/3)), rep(3,  p - 2*floor(p/3)))
+    Z = Z[which(comp$membership==1)]
     }
   }
-  E = data.frame(as_edgelist(G))
+  #plot(F, layout=layout_with_fr, vertex.size=4, vertex.label.dist=0.5, vertex.color="red", edge.arrow.size=0.5)
+  E = data.frame(as_edgelist(G.sbm))
   colnames(E)  = c("x", "y")
   E["e"] = 1:nrow(E)
   E = pivot_longer(E, cols=-c("e"))
   E["fill_value"] = sapply(E$name, vfn)
-  D = pivot_wider(E, id_cols =c("e"), names_from = "value", values_from  =  fill_value)
+  D = tidyr::pivot_wider(E, id_cols =c("e"), names_from = "value", values_from  =  "fill_value")
   D[is.na(D)] <- 0
-  D = as.matrix(D[, 2:(p+1)])
+  D = as.matrix(D %>% dplyr::select(-e))
+  Gamma_dagger = pinv(D)
+
+  L = laplacian_matrix(G, sparse=FALSE)
+  eigen_decomp = eigen(L)
+  Shat = eigen_decomp$vectors %*% signal
+  signal = matrix(0, nrow= length(eigen_decomp$values), ncol=r)
+  signal[length(eigen_decomp$values)-2,1]=1
+  signal[length(eigen_decomp$values)-3,2]=1
+  signal[length(eigen_decomp$values)-5000,3]=10
+  ##### We need a notion of community structure... 
+  ##### more links towards the clusters
+  Shat = t(eigen_decomp$vectors) %*% (trueA_norm)
   
+  A = as_adjacency_matrix(G, sparse=FALSE) 
+  #### 
+  p = vcount(G.sbm)
+  U = matrix(0, nrow=p, ncol=k)
+  V = matrix(0, nrow=q, ncol=k)
   X = matrix(rnorm(p * n, mean=0, sd=sigma_noise), n, p)
   Y = matrix(rnorm(q*n,  mean=0, sd=sigma_noise), n, q)
   source = matrix(0, k, p)
@@ -97,9 +122,46 @@ simple_experiment <- function(n, p, q, sigma, k, effect_size = 2,
   colors_l = rep(0, p)
   trueA = matrix(0, p, k)
   trueB = matrix(0, q, k)
-  true_corr = rep(0, k)
+  # true_corr = rep(0, k)
+  nb_jumps = 1
+  E = E %>%
+    mutate(G = Z[value])
+  candidate_jumps =  (E %>% group_by(e) %>% summarise(between_edge = (n_distinct(G) >1))) %>% filter(between_edge == TRUE) ### has to be an edge between groups
+  candidate_y = 1:q
+  for(i in 1:k){
+    selected_y  = sample(candidate_y,3)
+    trueB[selected_y,i] = 1/sqrt(3 * sigma_noise^2)
+    beta = matrix(0, nrow=gsize(G.sbm), ncol=1)
+    jumps = sample(candidate_jumps$e, nb_jumps)
+    print(jumps)
+    beta[jumps] = (rnorm(nb_jumps, mean=2, sd=1))
+    trueA[,i] = Gamma_dagger %*% beta #- median(Gamma_dagger %*% beta)
+    trueA[which(abs(trueA[,i])<1e-6),i]=0
+    candidate_jumps = candidate_jumps %>% filter( !e %in% jumps)
+    candidate_y = setdiff(candidate_y, selected_y)
+    #X[, nodes_in_network] <-  X[, nodes_in_network] 
+    #Y[, i] =Y[, i] + X[, nodes_in_network] %*% matrix(rep(1, length(nodes_in_network)), nrow=length(nodes_in_network), ncol=1)
+  }
   
-  if ( type_graph  %in% c("pa")){
+
+  b = sqrtm( t(trueA) %*% trueA)
+  trueA_norm = trueA %*% b$Binv
+  for(i in 1:k){
+    source[i, which(abs(trueA[,i]) >0)] = 1
+    Y[, which(trueB[,i]>0)] = 0.9 *  X %*% trueA[,i] * 1/sqrt(3)
+  }
+
+  
+  # X = matrix(rnorm(p * n, mean=0, sd=sigma_noise), n, p)
+  # Y = matrix(rnorm(q*n,  mean=0, sd=sigma_noise), n, q)
+  # source = matrix(0, k, p)
+  # colors = matrix(0, k, p)
+  # colors_l = rep(0, p)
+  # trueA = matrix(0, p, k)
+  # trueB = matrix(0, q, k)
+  # true_corr = rep(0, k)
+  # 
+  # if ( type_graph  %in% c("pa")){
     indices <- sample(1:p, 1)
     #### Make sure the selected clusters are independent
     not_all_indices = TRUE
@@ -128,53 +190,84 @@ simple_experiment <- function(n, p, q, sigma, k, effect_size = 2,
     for (i in 1:k){
       print(i)
       idx = indices[i]
-      subg <- ego(G, order=egonet_size, nodes = idx, 
+      subg <- ego(G, order=egonet_size, nodes = idx,
                   mode = "all", mindist = 0)[[1]]
       nodes_in_network <- as.numeric(subg)
       colors_l[nodes_in_network] = i
       colors[i, nodes_in_network]  = i
-      source[i, nodes_in_network] = 1
+      source[i,nodes_in_network] = 1
       #mean_value <- sapply(1:n, function(i){rnorm(1, mean=effect_size, sd=sigma)})
-      #X[, nodes_in_network] <- mean_value + X[, nodes_in_network] 
+      #X[, nodes_in_network] <- mean_value + X[, nodes_in_network]
       Y[, i] =Y[, i] + X[, nodes_in_network] %*% matrix(rep(1, length(nodes_in_network)), nrow=length(nodes_in_network), ncol=1)
-      true_corr[i] = cor(Y[, i], X[, nodes_in_network] %*% matrix(rep(1, length(nodes_in_network)), nrow=length(nodes_in_network), ncol=1))
+      #true_corr[i] = cor(Y[, i], X[, nodes_in_network] %*% matrix(rep(1, length(nodes_in_network)), nrow=length(nodes_in_network), ncol=1))
       trueA[nodes_in_network, i] =  1/sqrt(sum(X[, source[i,]]^2))
       trueB[i,i] = 1/ sqrt(sum(Y[,i]^2))
     }
-  }else{
-    for (i in 1:k){
-      print(i)
-      nodes_in_network = which(Z==i)
-      colors_l[nodes_in_network] = i
-      colors[i, nodes_in_network]  = i
-      source[i, nodes_in_network] = 1
-      #mean_value <- sapply(1:n, function(i){rnorm(1, mean=effect_size, sd=sigma)})
-      X[, nodes_in_network] <- delta + X[, nodes_in_network] 
-      Y[, i] =Y[, i] + X[, nodes_in_network] %*% matrix(rep(2, length(nodes_in_network)), nrow=length(nodes_in_network), ncol=1)
-      true_corr[i] = cor(Y[, i], X[, nodes_in_network] %*% matrix(rep(1, length(nodes_in_network)), nrow=length(nodes_in_network), ncol=1))
-      trueA[nodes_in_network, i] =  1/sqrt(sum(X[, source[i,]]^2))
-      trueB[i,i] = 1/ sqrt(sum(Y[,i]^2))
-    }
-    
-  }
+  # }else{
+  #   for (i in 1:k){
+  #     print(i)
+  #     nodes_in_network = which(Z==i)
+  #     colors_l[nodes_in_network] = i
+  #     colors[i, nodes_in_network]  = i
+  #     source[i, nodes_in_network] = 1
+  #     #mean_value <- sapply(1:n, function(i){rnorm(1, mean=effect_size, sd=sigma)})
+  #     X[, nodes_in_network] <- delta + X[, nodes_in_network] 
+  #     Y[, i] =Y[, i] + X[, nodes_in_network] %*% matrix(rep(2, length(nodes_in_network)), nrow=length(nodes_in_network), ncol=1)
+  #     true_corr[i] = cor(Y[, i], X[, nodes_in_network] %*% matrix(rep(1, length(nodes_in_network)), nrow=length(nodes_in_network), ncol=1))
+  #     trueA[nodes_in_network, i] =  1/sqrt(sum(X[, source[i,]]^2))
+  #     trueB[i,i] = 1/ sqrt(sum(Y[,i]^2))
+  #   }
+  #   
+  # }
   
   
+  L  = laplacian_matrix(G, sparse = FALSE)
+  Shat = 
+  A = as_adjacency_matrix(G, sparse=FALSE)  + diag(rep(1, p))
+  X
+  XtY = log(abs(t(X %*% A/6)%*% Y/n))
+  df = data.frame(XtY)
+  df["var"] = 1:p
+  df["GT_1"] = source[1,]
+  df["GT_2"] = source[2,]
+  df["GT_3"] = source[3,]
+  df["GT_all"] = apply(source, 2, sum)
+  ggplot(pivot_longer(df, cols=-c("var"))) +
+    geom_tile(aes(x=name, y=var, fill=value))
   
+  Xtilde = X %*% A
+  df = data.frame(Xtilde)
+  df["var"] = 1:n
+  df["GT_1"] = source[1,]
+  df["GT_2"] = source[2,]
+  df["GT_3"] = source[3,]
+  df["GT_all"] = apply(source, 2, sum)
+  ggplot(pivot_longer(df, cols=-c("var"))) +
+    geom_tile(aes(x=name, y=var, fill=value))
   
-  
+  heatmap(XtY)
+  heatmap(XtY)
   
   
   if(plot){
-    source_df = data.frame(source)
+    gamma_source_df = data.frame(t(Gamma %*% t(source)))
+    gamma_source_df["component"] = 1:k
+    
+    source_df = data.frame(t(trueA))
     source_df["component"] = 1:k
     ggplot(pivot_longer(source_df, cols=-c("component"))) +
-      geom_tile(aes(x=name,y=component, fill=as.factor(value)))
+      geom_tile(aes(x=name,y=component, fill=(value)))
     #### we can also simply plot the graph
-    g <- simplify(G)
+    g <- simplify(G.sbm)
+    plot(g, vertex.color = cut(trueA[,1], breaks = 10))
+    V(g)$value <-  trueA[,1]
+    plot(g, vertex.color = V(g)$value)
     V(g)$color= "black"
-    V(g)$color[which(source[1,]>0)] =  "lightblue"
-    V(g)$color[which(source[2,]>0)] =   "orange"
-    V(g)$color[which(source[3,]>0)] =  "red"
+    #V(g)$color[which(source[1,]>0)] =  "lightblue"
+    #V(g)$color[which(source[2,]>0)] =   "orange"
+    V(g)$color[which(source[1,]>0)] =  "red"
+    library(colourvalues)
+    V(g)$color <- colour_values(trueA[,1],palette = "viridis")
     plot(g)
     
   }
@@ -182,6 +275,8 @@ simple_experiment <- function(n, p, q, sigma, k, effect_size = 2,
   df.y <- data.frame(Y) %>% mutate_all(~(scale(.) %>% as.vector))
   X <- as.matrix(df.x)
   Y <- as.matrix(df.y)
+  
+  #####
   
   
   # Store results Estimation Accuracy
@@ -300,7 +395,7 @@ simple_experiment <- function(n, p, q, sigma, k, effect_size = 2,
   inv_sqrt_sol2 = svd_sol2$u %*% diag(sapply(svd_sol2$d, function(x){ifelse(x<1e-5, 0, 1/sqrt(x))})) %*% t(svd_sol2$v)
   results.x[['SAR-CV']] <- FIT_SAR_CV$ALPHA %*% inv_sqrt_sol 
   results.y[['SAR-CV']] <- FIT_SAR_CV$BETA %*% inv_sqrt_sol2
-  recovered_corr [['SAR-CV']] <- cancors_SAR_CV
+  recovered_corr [['SAR-CV']] <- FIT_SAR_CV$cancors
   
   MSEa[1,3]<-principal_angles(trueA, FIT_SAR_CV$ALPHA)$angles[1,1]
   MSEb[1,3]<-principal_angles(trueB, FIT_SAR_CV$BETA)$angles[1,1]
@@ -322,11 +417,12 @@ simple_experiment <- function(n, p, q, sigma, k, effect_size = 2,
   inv_sqrt_sol2 = svd_sol2$u %*% diag(sapply(svd_sol2$d, function(x){ifelse(x<1e-5, 0, 1/sqrt(x))})) %*% t(svd_sol2$v)
   results.x[['Witten-Author']] <- WittenSCCA_Perm$u%*% inv_sqrt_sol
   results.y[['Witten-Author']] <- WittenSCCA_Perm$v%*% inv_sqrt_sol2
+  cancors_witten <- WittenSCCA_Perm$cors
   recovered_corr [['Witten-Author']] <- cancors_witten
   
   MSEa[1,4]<-principal_angles(trueA,WittenSCCA_Perm$u)$angles[1,1]
   MSEb[1,4]<-principal_angles(trueB,WittenSCCA_Perm$v)$angles[1,1]
-  cancors_witten <- WittenSCCA_Perm$cors
+
   TPRa[1,4]<-TPR(trueA, WittenSCCA_Perm$u)
   TPRb[1,4]<-TPR(trueB, WittenSCCA_Perm$v)
   TNRa[1,4]<-TNR(trueA, WittenSCCA_Perm$u)
@@ -342,11 +438,10 @@ simple_experiment <- function(n, p, q, sigma, k, effect_size = 2,
   inv_sqrt_sol2 = svd_sol2$u %*% diag(sapply(svd_sol2$d, function(x){ifelse(x<1e-5, 0, 1/sqrt(x))})) %*% t(svd_sol2$v)
   results.x[['Witten-CV']] <-WittenSCCA_CV$u %*% inv_sqrt_sol
   results.y[['Witten-CV']] <- WittenSCCA_CV$v%*% inv_sqrt_sol2
-  recovered_corr [['Witten-CV']] <- cancors_witten
-  
+  recovered_corr [['Witten-CV']] <-  WittenSCCA_CV$cors
   MSEa[1,5]<-principal_angles(trueA,WittenSCCA_CV$u)$angles[1,1]
   MSEb[1,5]<-principal_angles(trueB,WittenSCCA_CV$v)$angles[1,1]
-  cancors_witten <- WittenSCCA_CV$cors
+  
   TPRa[1,5]<-TPR(trueA,WittenSCCA_CV$u)
   TPRb[1,5]<-TPR(trueB,WittenSCCA_CV$v)
   TNRa[1,5]<-TNR(trueA,WittenSCCA_CV$u)
@@ -385,10 +480,9 @@ simple_experiment <- function(n, p, q, sigma, k, effect_size = 2,
   inv_sqrt_sol2 = svd_sol2$u %*% diag(sapply(svd_sol2$d, function(x){ifelse(x<1e-5, 0, 1/sqrt(x))})) %*% t(svd_sol2$v)
   results.x[['Waaijenborg-CV']] <- Waaijenborg_Test$vhat %*% inv_sqrt_sol
   results.y[['Waaijenborg-CV']] <- Waaijenborg_Test$uhat %*% inv_sqrt_sol2
-  recovered_corr [['Waaijenborg-CV']] <- cancors_Waaijenborg
+  recovered_corr [['Waaijenborg-CV']] <- Waaijenborg_Test$cancors
   MSEa[1,7]<-principal_angles(trueA,Waaijenborg_Test$vhat)$angles[1,1]
   MSEb[1,7]<-principal_angles(trueB,Waaijenborg_Test$uhat)$angles[1,1]
-  cancors_Waaijenborg <- Waaijenborg_Test$cancors
   TPRa[1,7]<-TPR(trueA, Waaijenborg_Test$vhat)
   TPRb[1,7]<-TPR(trueB, Waaijenborg_Test$uhat)
   TNRa[1,7]<-TNR(trueA, Waaijenborg_Test$vhat)
@@ -405,7 +499,7 @@ simple_experiment <- function(n, p, q, sigma, k, effect_size = 2,
   inv_sqrt_sol2 = svd_sol2$u %*% diag(sapply(svd_sol2$d, function(x){ifelse(x<1e-5, 0, 1/sqrt(x))})) %*% t(svd_sol2$v)
   results.x[['Parkhomenko-Author']] <- Parkhomenko_SCCA$a %*% inv_sqrt_sol
   results.y[['Parkhomenko-Author']] <- Parkhomenko_SCCA$b %*% inv_sqrt_sol2
-  recovered_corr [['Parkhomenko-Author']] <- cancors_Parkhomenko
+  recovered_corr [['Parkhomenko-Author']] <- Parkhomenko_SCCA$cancor
   MSEa[1,8]<-principal_angles(trueA,Parkhomenko_SCCA$a)$angles[1,1]
   MSEb[1,8]<-principal_angles(trueB,Parkhomenko_SCCA$b)$angles[1,1]
   cancors_Parkhomenko <- Parkhomenko_SCCA$cancor
@@ -425,7 +519,7 @@ simple_experiment <- function(n, p, q, sigma, k, effect_size = 2,
   inv_sqrt_sol2 = svd_sol2$u %*% diag(sapply(svd_sol2$d, function(x){ifelse(x<1e-5, 0, 1/sqrt(x))})) %*% t(svd_sol2$v)
   results.x[['Canonical Ridge-Author']] <- RCCA$xcoef[, 1:k] %*% inv_sqrt_sol
   results.y[['Canonical Ridge-Author']] <- RCCA$ycoef[, 1:k] %*% inv_sqrt_sol2
-  recovered_corr [['Canonical Ridge-Author']] <- cancors_RCCA
+  recovered_corr [['Canonical Ridge-Author']] <- RCCA$cor
   MSEa[1,9]<-principal_angles(trueA,RCCA$xcoef[, 1:k])$angles[1,1]
   MSEb[1,9]<-principal_angles(trueB,RCCA$ycoef[, 1:k])$angles[1,1]
   cancors_RCCA<- RCCA$cor
@@ -587,6 +681,20 @@ plot_results<- function(xcoef, trueA){
     geom_tile(aes(x=name,y=component, fill=abs(value)))
 }
 
+
+plot_results<- function(xcoef, trueA){
+  res_df = data.frame(xcoef)
+  res_df["type"] = "estimated"
+  res_df["component"] = 1:ncol(xcoef)
+  res_df2 = data.frame(trueA)
+  res_df2["type"] = "GT"
+  res_df2["component"] = 1:ncol(xcoef)
+  res_df = rbind( res_def, 
+                  res_def2)
+  ggplot(pivot_longer(res_df, cols=-c("component"))) +
+    geom_tile(aes(x=name,y=component, fill=abs(value)))
+}
+
 process_results <- function(gencca_results.final, source){
   
   ### postprocessing: 
@@ -620,3 +728,28 @@ process_results <- function(gencca_results.final, source){
   ggplot(coefs_long %>% filter(name %in% c("X1", "X2", "X3", "X4")))+
     geom_point(aes(x=index, y=value, shape= name))
 }
+
+
+##### How are we going to set up our experiments?
+##### Just solve very simply the problem.
+##### Convert if
+
+##### Thresholding strategy
+####
+XtY = t(X) %*% Y
+##### We want to essentially threshold the values taken on by the 
+
+XtX = t(X) %*% X
+library(CVglasso)
+test = CVglasso(X = X, S = NULL, nlam = 20, lam.min.ratio = 0.01)
+test.y = CVglasso(X = Y, S = NULL, nlam = 20, lam.min.ratio = 0.01)
+###
+G_XY = D %*% XtY
+### What if we simply threshold 
+### XtY is a large matrix of observations. What if we splitted it in XtY %*% (xtY)^T to get the support of the row?
+XtY1 = t(X[1:100,]) %*% Y[1:100,]/100
+XtY2 = t(X[101:200,]) %*% Y[101:200,]/100
+A = (XtY1) %*% t(XtY2)
+
+mean(A[(source ==0) %*% (source ==0)])
+mean(A[which(source==0)])

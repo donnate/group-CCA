@@ -21,7 +21,7 @@ set.seed(seed)
 namefile = paste0(type_graph, '-', n, '-', p, '-',  rank, '-', id_exp)
 q=10 
 sigma=0.1 
-k=3
+k=1
 sigma_noise=0.1
 power=1.6
 delta=2
@@ -175,3 +175,4 @@ print(paste0(namefile, '-environment.RData'))
 
 # system(paste0("Rscript group-CCA/experiments/run_experiment.R  ",namefile, 'environment', "   ", 'genCCA', '   ', mysavedir, '  ', rank,
 #               ' ', 0.01, ' ', 0.01, ' ', 0.0,  ' ', 200 ))
+

@@ -4,6 +4,7 @@ library(MASS)
 library(pracma)
 library(CVXR)
 
+
 source("src/cd_solver.R")
 source("src/penalties.R")
 source("src/losses.R")
@@ -18,8 +19,10 @@ genCCA2<-function(X, Y,
                  lambdaB2=1.,
                  rank,
                  A.initial=NULL,B.initial=NULL,
-                 max.iter=20,conv=10^-2,
-                 solver = c("glmnet", "ECOS", "CGD"),
+                 max.iter=20,
+                 max.iter.cgd=200,
+                 conv=10^-2,
+                 solver = c("glmnet", "ECOS", "CGD", "XCGD"),
                  standardize=TRUE,
                  verbose=FALSE,
                  reexpress=FALSE){
@@ -134,7 +137,7 @@ genCCA2<-function(X, Y,
                                         lambda2=lambdaA2,
                                         solver=solver,
                                         eps = conv,
-                                        max_it = 30)
+                                        max_it = max.iter.cgd)
 
       AHAT_FINAL <- FIT.A/ (1e-8 +  norm(X_data %*% FIT.A, type="F"))
       A.STARTING <-  AHAT_FINAL
@@ -147,7 +150,7 @@ genCCA2<-function(X, Y,
                                         lambda2=lambdaB2,
                                         solver=solver,
                                         eps = conv,
-                                        max_it = 30)
+                                        max_it = max.iter.cgd)
 
       BHAT_FINAL<- FIT.B/ (1e-8 + norm(Y_data %*% FIT.B, type="F"))
       B.STARTING <-  BHAT_FINAL
