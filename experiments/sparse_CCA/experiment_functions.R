@@ -281,7 +281,7 @@ pipeline_thresholded_gradient <- function(Data, Mask, sigma0hat, r=2, nu=1, Sigm
       mutate(rmse = map2_dbl(lambda, k, ~ cv_function_tgd(Data[, 1:p1], Data[, (p1+1):p], 
                                                           Mask, kfolds=5, ainit,
                                                           lambda = .x,
-                                                          k = .y, r=r, k=20,  
+                                                          k = .y, r=r,
                                                           maxiter=maxiter, eta=eta, convergence=convergence)))
                                                           #X, Y, Mask, kfolds=5, ainit,lambda, r=2, k=20,  
                                                           #maxiter=1000, eta=0.001, convergence=1e-
