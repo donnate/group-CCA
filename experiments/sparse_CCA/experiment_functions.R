@@ -163,7 +163,7 @@ cv_function_tgd <- function(X, Y, Mask, kfolds=5, ainit,
     
     # fit model on training data with hyperparameters
     final = sgca_tgd(A=S, B=sigma0hat,
-             r,ainit k, lambda = lambda, eta=eta,
+             r,ainit, k, lambda = lambda, eta=eta,
              convergence=convergence,
              maxiter=maxiter, plot = FALSE, 
              scale=NULL)
