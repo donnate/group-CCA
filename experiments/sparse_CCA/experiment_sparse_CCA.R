@@ -31,10 +31,10 @@ for (n in c(60, 100, 500, 1000)){
                          "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
                          "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
                          "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum)))
-      if (it ==1){
+      if (it == 1 && n == 60) {
         results <-  temp 
-      }else{
-        results <-rbind(results, temp )
+      }else {
+        results <- rbind(results, temp )
       }
       
       res = pipeline_adaptive_lasso(example$Data, example$Mask, example$sigma0hat, r=2, 
