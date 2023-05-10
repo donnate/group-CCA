@@ -1,5 +1,6 @@
 
 library(RSpectra)
+library(CVXR)
 #### We have to turn this into a pipeline.
 
 
@@ -17,7 +18,7 @@ SVCST <- function(W, k, max_singval=5){
                             if(length(which(lambdas>x))>0){
                               sum(sapply( lambdas[which(lambdas >x)] -x, FUN=function(y){min(1, y)}))}
                             else{
-                              0
+                              0gor
                             }
                              })
   indices = which(res<=k)
@@ -62,6 +63,7 @@ lasso_formulation <- function(Sigma_x, Sigma_y, Sigma_xy, H,
   #penalty_term1 <- sum(cvxr_norm(hstack(beta, theta), 2, axis = 1))
   #penalty_term2 <- sum(cvxr_norm(theta, 2, axis = 1))
   penalty_term1 <- sum(cvxr_norm(Fhat, 1))
+  #penalty_term2 <- sum(cvxr_norm(Fhat, 2))
   
   ## Compute_Fitted_Value
   y_hat <- sqrt_Sigma_x %*% Fhat %*% sqrt_Sigma_y
@@ -69,7 +71,9 @@ lasso_formulation <- function(Sigma_x, Sigma_y, Sigma_xy, H,
   objective <- eta / 2 * sum_squares(b - y_hat) + lambda  * penalty_term1
   ## Define_and_Solve_Problem
   prob <- Problem(Minimize(objective))
-  result <- psolve(prob, verbose = TRUE, num_iter = max.iter)
+  result <- psolve(prob, verbose = TRUE, num_iter = max.iter, 
+                   warm_start = TRUE, feastol=1e-3
+                   )
   ## Return_Values
   Fhat <- result$getValue(Fhat)
   

@@ -104,7 +104,7 @@ SparseCCA <- function(X, Y, lambdaAseq=seq(from=1, to=0.01, by=-0.01),
       # Check convergence
       obj.new <- mean((X_data%*%matrix(AHAT_FINAL, ncol=1)-Y_data%*%matrix(BHAT_FINAL, ncol=1))^2)
       obj.it[it+1, i.r] <- obj.new
-      diff.obj <- abs(obj.new-obj.initial)/obj.initial
+      diff.obj <- abs(obj.new-obj.initial)/max(obj.initial, 1e-4)
 
       # Updated starting values
       B.STARTING <- BHAT_FINAL
@@ -174,7 +174,7 @@ SparseCCA <- function(X, Y, lambdaAseq=seq(from=1, to=0.01, by=-0.01),
   } # END FOR-LOOP
 
   ##OUTPUT
-  out <- list(ALPHA=ALPHA_ALL, BETA=BETA_ALL, cancors=cancors, U_ALL=U_ALL, V_ALL=V_ALL, lambdaA=lambdaA_FINAL, lambdaB=lambdaB_FINAL, it=iterations)
+  out <- list(uhat=ALPHA_ALL, vhat=BETA_ALL, cancors=cancors, U_ALL=U_ALL, V_ALL=V_ALL, lambdaA=lambdaA_FINAL, lambdaB=lambdaB_FINAL, it=iterations)
 
 }
 
