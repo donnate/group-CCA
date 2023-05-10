@@ -258,7 +258,7 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
 ## Running initialization using convex relaxation
 
 #(Sigma,Sigma0, lambda, rho, eta=0.001, nu=1,epsilon=5e-3,maxiter=1000,trace=FALSE)
-pipeline_thresholded_gradient <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax, 
+pipeline_thresholded_gradient <- function(Data, Mask, sigma0hat, r=2, nu=1, Sigmax, 
                                           Sigmay, maxiter.init=30, 
                                           lambda=NULL, k=NULL, kfolds=5,
                                           maxiter=2000, convergence=1e-3, eta=1e-3,
@@ -277,12 +277,14 @@ pipeline_thresholded_gradient <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax
   init <- gca_to_cca(ainit, S, pp)
   
   if (is.null(lambda) | is.null(k)){
-    
     resultsx <- expand.grid(lambda = param1, k = param2) %>%
       mutate(rmse = map2_dbl(lambda, k, ~ cv_function_tgd(Data[, 1:p1], Data[, (p1+1):p], 
-                                                          Mask, kfolds=5, ainit, r=r,
-                                                          lambda = .x, 
-                                                          k = .y)))
+                                                          Mask, kfolds=5, ainit,
+                                                          lambda = .x,
+                                                          k = .y, r=r, k=20,  
+                                                          maxiter=maxiter, eta=eta, convergence=convergence)))
+                                                          #X, Y, Mask, kfolds=5, ainit,lambda, r=2, k=20,  
+                                                          #maxiter=1000, eta=0.001, convergence=1e-
 
     #print(resultsx)
     ###### (X, Y, Mask, kfolds=5, ainit, lambda, k=20)
@@ -295,7 +297,7 @@ pipeline_thresholded_gradient <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax
     #print(c("selected", k, lambda))
   }
   final <- sgca_tgd(A=S, B=sigma0hat,
-                    r,ainit,k=k, lambda = lambda, eta=eta,convergence=convergence,
+                    r=r,ainit=ainit,k=k, lambda = lambda, eta=eta,convergence=convergence,
                     maxiter=maxiter, plot=FALSE)
   a_estimate <- gca_to_cca(final, S, pp)
   return(list( ufinal = a_estimate$u, vfinal = a_estimate$v,
