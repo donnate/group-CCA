@@ -19,53 +19,53 @@ for (n in c(60, 100, 500, 1000)){
                                   theta = diag( c(0.9,  0.8)),
                                   a = 0, r=2)
       
-      # res = pipeline_adaptive_lasso(example$Data, example$Mask, example$sigma0hat, r=2, 
-      #                               nu=1, example$Sigmax, 
-      #                               example$Sigmay, maxiter=100, lambdax=NULL,
-      #                               adaptive=TRUE, kfolds=5,  param1=10^(seq(-5, 1, by = 0.5)),
-      #                               create_folds=FALSE)
-      # Uhat = rbind(res$Uhat, res$Vhat)
-      # temp <- data.frame("method" = "adaptive_lasso",
-      #                    "exp" = it,
-      #                    "n" = n,
-      #                    "nnz" = nnz,
-      #                    "p1" = p1,
-      #                    "p2" = p2,
-      #                    "param1" = res$lambdax,
-      #                    "param2" = res$lambday,
-      #                    "distance" = subdistance(Uhat, example$a),
-      #                    "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-      #                    "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-      #                    "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-      #                    "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum)))
-      # if (it == 1 && n == 60) {
-      #   results <-  temp 
-      # }else {
-      #   results <- rbind(results, temp )
-      # }
+      res = pipeline_adaptive_lasso(example$Data, example$Mask, example$sigma0hat, r=2, 
+                                    nu=1, example$Sigmax, 
+                                    example$Sigmay, maxiter=100, lambdax=NULL,
+                                    adaptive=TRUE, kfolds=5,  param1=10^(seq(-5, 1, by = 0.5)),
+                                    create_folds=FALSE)
+      Uhat = rbind(res$Uhat, res$Vhat)
+      temp <- data.frame("method" = "adaptive_lasso",
+                         "exp" = it,
+                         "n" = n,
+                         "nnz" = nnz,
+                         "p1" = p1,
+                         "p2" = p2,
+                         "param1" = res$lambdax,
+                         "param2" = res$lambday,
+                         "distance" = subdistance(Uhat, example$a),
+                         "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
+                         "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
+                         "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
+                         "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum)))
+      if (it == 1 && n == 60) {
+        results <-  temp 
+      }else {
+        results <- rbind(results, temp )
+      }
       
-      # res = pipeline_adaptive_lasso(example$Data, example$Mask, example$sigma0hat, r=2, 
-      #                               nu=1, example$Sigmax, 
-      #                               example$Sigmay, maxiter=100, lambdax=NULL,
-      #                               adaptive=TRUE, kfolds=5,  param1=10^(seq(-5, 1, by = 0.5)),
-      #                               create_folds=TRUE)
-      # Uhat = rbind(res$Uhat, res$Vhat)
-      # #plot(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum) )
-      # temp <- data.frame("method" = "adaptive_lasso_with_folds",
-      #                    "exp" = it,
-      #                    "n" = n,
-      #                    "nnz" = nnz,
-      #                    "p1" = p1,
-      #                    "p2" = p2,
-      #                    "param1" = res$lambdax,
-      #                    "param2" = res$lambday,
-      #                    "distance" = subdistance(Uhat, example$a),
-      #                    "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-      #                    "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-      #                    "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-      #                    "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum)))
+      res = pipeline_adaptive_lasso(example$Data, example$Mask, example$sigma0hat, r=2, 
+                                    nu=1, example$Sigmax, 
+                                    example$Sigmay, maxiter=100, lambdax=NULL,
+                                    adaptive=TRUE, kfolds=5,  param1=10^(seq(-5, 1, by = 0.5)),
+                                    create_folds=TRUE)
+      Uhat = rbind(res$Uhat, res$Vhat)
+      #plot(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum) )
+      temp <- data.frame("method" = "adaptive_lasso_with_folds",
+                         "exp" = it,
+                         "n" = n,
+                         "nnz" = nnz,
+                         "p1" = p1,
+                         "p2" = p2,
+                         "param1" = res$lambdax,
+                         "param2" = res$lambday,
+                         "distance" = subdistance(Uhat, example$a),
+                         "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
+                         "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
+                         "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
+                         "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum)))
       
-      # results <-rbind(results, temp )
+      results <-rbind(results, temp )
       
       res_tg <- pipeline_thresholded_gradient(example$Data, example$Mask, example$sigma0hat, 
                                               r=2, nu=1,Sigmax=example$Sigmax, 
