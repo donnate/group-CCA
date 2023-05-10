@@ -297,7 +297,7 @@ pipeline_thresholded_gradient <- function(Data, Mask, sigma0hat, r=2, nu=1, Sigm
     #print(c("selected", k, lambda))
   }
   final <- sgca_tgd(A=S, B=sigma0hat,
-                    r=r,ainit=ainit,k=k, lambda = lambda, eta=eta,convergence=convergence,
+                    r=r, ainit,k=k, lambda = lambda, eta=eta,convergence=convergence,
                     maxiter=maxiter, plot=FALSE)
   a_estimate <- gca_to_cca(final, S, pp)
   return(list( ufinal = a_estimate$u, vfinal = a_estimate$v,
