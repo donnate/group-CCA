@@ -3,7 +3,7 @@
 #SBATCH --job-name=array
 #SBATCH --output=experiments/sparse_CCA/logs/array_%A_%a.out
 #SBATCH --error=experiments/sparse_CCA/logs/array_%A_%a.err
-#SBATCH --array=1-10
+#SBATCH --array=1-50
 #SBATCH --time=35:00:00
 #SBATCH --partition=caslake
 #SBATCH --ntasks=1
