@@ -10,23 +10,25 @@ seed = as.numeric(args[1])
 print(seed)
 name_exp = args[2]
 set.seed(seed)
-
+it = seed
 for (n in c(60, 100, 500, 1000)){
   for (psize in c(0.25*n, 0.5*n, 0.75*n,  n, 1.1 *n, 1.25 * n, 1.5 * n, 2 * n, 3*n, 10 *n)){
+    for (nnz in c(5,  15)){
     p1=as.integer(psize); p2=as.integer(psize)
-    example <- generate_example(n=n, p1=p1, p2=p2,   nnzeros = 5,
+    example <- generate_example(n=n, p1=p1, p2=p2,   nnzeros = nnz,
                                   theta = diag( c(0.9,  0.8)),
                                   a = 0, r=2)
       
       res = pipeline_adaptive_lasso(example$Data, example$Mask, example$sigma0hat, r=2, 
                                     nu=1, example$Sigmax, 
-                                    example$Sigmay, maxiter=30, lambdax=NULL,
-                                    adaptive=TRUE, kfolds=5,  param1=10^(seq(-5, 1, by = 0.5)),
+                                    example$Sigmay, maxiter=100, lambdax=NULL,
+                                    adaptive=TRUE, kfolds=5,  param1=10^(seq(-5, 1, by = 0.25)),
                                     create_folds=FALSE)
       Uhat = rbind(res$Uhat, res$Vhat)
       temp <- data.frame("method" = "adaptive_lasso",
                          "exp" = it,
                          "n" = n,
+                         "nnz" = nnz,
                          "p1" = p1,
                          "p2" = p2,
                          "param1" = res$lambdax,
@@ -44,14 +46,15 @@ for (n in c(60, 100, 500, 1000)){
       
       res = pipeline_adaptive_lasso(example$Data, example$Mask, example$sigma0hat, r=2, 
                                     nu=1, example$Sigmax, 
-                                    example$Sigmay, maxiter=30, lambdax=NULL,
-                                    adaptive=TRUE, kfolds=5,  param1=10^(seq(-5, 1, by = 0.5)),
+                                    example$Sigmay, maxiter=100, lambdax=NULL,
+                                    adaptive=TRUE, kfolds=5,  param1=10^(seq(-5, 1, by = 0.25)),
                                     create_folds=TRUE)
       Uhat = rbind(res$Uhat, res$Vhat)
       #plot(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum) )
       temp <- data.frame("method" = "adaptive_lasso_with_folds",
                          "exp" = it,
                          "n" = n,
+                         "nnz" = nnz,
                          "p1" = p1,
                          "p2" = p2,
                          "param1" = res$lambdax,
@@ -68,12 +71,13 @@ for (n in c(60, 100, 500, 1000)){
                                               r=2, nu=1,example$Sigmax, 
                                               example$Sigmay, maxiter.init=30, lambda=NULL,k=NULL,
                                               kfolds=5,maxiter=2000, convergence=1e-3, eta=1e-3,
-                                              param1=10^(seq(-5, 1, by = 0.5)),
-                                              param2=c(20, 30, 50, 100, 500, 1000))
+                                              param1=10^(seq(-5, 1, by = 0.25)),
+                                              param2=c(10, 20, 30, 50, 100, 250, 500, 700, 1000))
       Uhat = rbind(res_tg$ufinal, res_tg$vfinal)
       temp <- data.frame("method" = "TG",
                          "exp" = it,
                          "n" = n,
+                         "nnz" = nnz,
                          "p1" = p1,
                          "p2" = p2,
                          "param1" = res_tg$lambda,
@@ -97,6 +101,7 @@ for (n in c(60, 100, 500, 1000)){
         temp <- data.frame("method" = method,
                            "exp" = it,
                            "n" = n,
+                           "nnz" = nnz,
                            "p1" = p1,
                            "p2" = p2,
                            "param1" = NA,
@@ -111,7 +116,7 @@ for (n in c(60, 100, 500, 1000)){
       }
       write_excel_csv(results, paste0("experiments/sparse_CCA/results/results_exp_sparse_cca_test", name_exp, ".csv"))
       
-    
+    }
   }
 }
 
