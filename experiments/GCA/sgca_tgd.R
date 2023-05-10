@@ -17,7 +17,7 @@ library(pracma)
 sgca_tgd <-
   function(A, B, r, init, k, lambda = 0.01, eta=0.01, convergence=1e-3, maxiter=10000, plot = FALSE, scale=NULL){
     #perform hard thresholding
-    init <- hard(init, k)
+    init <- hard(init, k, r)
     u <- init
     criteria <- 1e10
     iter <- 0
@@ -32,7 +32,7 @@ sgca_tgd <-
       
       
       # Perform truncation
-      vt <- hard(vt, k)
+      vt <- hard(vt, k, r)
       
       criteria <- sqrt(sum((ut-vt)^2))
       
