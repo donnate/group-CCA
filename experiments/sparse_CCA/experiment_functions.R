@@ -34,7 +34,7 @@ source("src/cca_bis.R")
 setwd(wd)
 generate_example <- function(n, p1, p2,   nnzeros = 5,
                              theta = diag( c(0.9,  0.8)),
-                             a = 0, r=2){
+                             a = 0, r=2, signal_strength="normal"){
   #n  <- 200;
   #p1 <- 100;
   #p2 <- 100;
@@ -54,14 +54,14 @@ generate_example <- function(n, p1, p2,   nnzeros = 5,
   #T1 = Sigma[1:p1, 1:p1]
   Tss = T1[s,s];
   u = matrix(0, pp[1], r)
-  u[s,1:r] <- randi(c(5), n = length(s), m = r) - 3
+  u[s,1:r] <- as.matrix(runif( nnzeros * r,max = 5, min=3), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r, replace=TRUE), nrow=nnzeros)
   u <- u %*%(sqrtm(t(u[s,1:r]) %*% Tss %*% u[s,1:r])$Binv)
   
   T2 = toeplitz(a^(0:(pp[2]-1)));
   Sigma[(p1+1):(p1+p2), (p1+1):(p1+p2)] = T2;
   Tss = Sigma[(p1+1):(p1+p2), (p1+1):(p1+p2)][s, s];
   v = matrix(0, pp[2], r)
-  v[s,1:r] <- randi(c(5), n = length(s), m = r) - 3
+  v[s,1:r] <- as.matrix(runif( nnzeros * r,max = 5, min=3), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r, replace=TRUE), nrow=nnzeros)
   v <- v %*%(sqrtm(t(v[s,1:r]) %*% Tss %*% v[s,1:r])$Binv)
   
   Sigma[(p1+1):(p1+p2), 1:p1] = T2 %*%  v  %*% theta %*% t(u) %*% T1;
@@ -120,6 +120,8 @@ cv_function <- function(X, Y, kfolds=5, initu, initv,
     Y_val <- Y[folds[[i]], ]
     
     # fit model on training data with hyperparameters
+    tryCatch(
+    {
     model <- adaptive_lasso(X_val, Y_val %*% initv, initu, adaptive=adaptive, 
                          lambdax, 
                          max.iter=5000, 
@@ -128,6 +130,11 @@ cv_function <- function(X, Y, kfolds=5, initu, initv,
     # make predictions on validation data
     # compute RMSE on validation data
     rmse[i] <- sum((X_val %*% model$Uhat - Y_val%*% initv)^2)
+    },
+    error = function(e) {
+      # If an error occurs, assign NA to the result
+      rmse[i] <- NA
+    })
   }
   
   # return mean RMSE across folds
@@ -162,6 +169,8 @@ cv_function_tgd <- function(X, Y, Mask, kfolds=5, ainit,
     sigma0hat = S * Mask
     
     # fit model on training data with hyperparameters
+    tryCatch(
+    {
     final = sgca_tgd(A=S, B=sigma0hat,
              r=r,ainit, k, lambda = lambda, eta=eta,
              convergence=convergence,
@@ -172,6 +181,11 @@ cv_function_tgd <- function(X, Y, Mask, kfolds=5, ainit,
     # make predictions on validation data
     # compute RMSE on validation data
     rmse[i] <- sum((X_val %*% final$u - Y_val%*% final$v)^2)
+    },
+    error = function(e) {
+      # If an error occurs, assign NA to the result
+      rmse[i] <- sum((X_val %*% final$u - Y_val%*% final$v)^2)
+    })
   }
   
   # return mean RMSE across folds
@@ -184,7 +198,11 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
                                     create_folds=TRUE){
   
   ### data splitting procedure 3 folds
-  #Data=example$Data; Mask= example$Mask; sigma0hat=example$sigma0hat; r=2; nu=1; Sigmax=example$Sigmax; Sigmay=example$Sigmay; maxiter=30; lambdax=NULL; adaptive=TRUE; kfolds=5
+  Data=example$Data;Mask = example$Mask; sigma0hat=example$sigma0hat; r=2; 
+  nu=1; Sigmax = example$Sigmax;  Sigmay = example$Sigmay; maxiter=maxiter=100;  lambdax=NULL;
+  adaptive=TRUE; kfolds=5;  param1=10^(seq(-5, 1, by = 0.5));
+  create_folds=FALSE
+  
   p1 <- dim(Sigmax)[1]
   p2 <- dim(Sigmay)[1]
   p <- p1 + p2;
@@ -205,9 +223,11 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
   sigma0hat1 <- S1 * Mask
   sqx <- sqrtm(Sigmax)$B
   sqy <- sqrtm(Sigmay)$B
+  apply(S1[1:p1, (p1+1):p], 1, max)
+  ag <- sgca_init(A=S1, B=sigma0hat1, rho=0.5 * sqrt(log(p)/dim(X)[1]),
+                  K=r ,nu=nu,trace=FALSE, maxiter = maxiter) ###needs to be changed to be a little more scalable
   
-  ag <- sgca_init(A=S1, B=sigma0hat1, rho=0.5 * sqrt(log(p)/(n/3)),
-                  K=r ,nu=nu,trace=FALSE, maxiter = maxiter) ###needs to be changed
+  
   ainit <- init_process(ag$Pi, r) 
   init <- gca_to_cca(ainit, S3, pp)
   print("Init done")
@@ -221,7 +241,7 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
       mutate(rmse = map_dbl(param1, ~ cv_function(X, Y, kfolds, initu, initv,
                                                   lambdax = .x, adaptive=adaptive)))
 
-    #  
+    
     # print best hyperparameters and corresponding RMSE
     best_hyperparams <- resultsx[which.min(resultsx$rmse), ]
     which_lambdax = which(abs(resultsx$rmse-min(resultsx$rmse))/(1e-6 + min(resultsx$rmse)) <0.05)
@@ -229,7 +249,7 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
   }
   if (is.null(lambday)){
     ### do CV
-    results <- expand.grid(param1 = 10^(seq(-4, 2, by = 0.25))) %>%
+    results <- expand.grid(param1 = param1) %>%
       mutate(rmse = map_dbl(param1, ~ cv_function(Y, X, kfolds, initv, initu,
                                                   lambdax = .x, adaptive=adaptive)))
     best_hyperparams <- results[which.min(results$rmse), ]
@@ -237,7 +257,8 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
     lambday = max(results$param1[which_lambday])
   }
   
-  ufinal = adaptive_lasso(X, Y %*% initv, initu, adaptive=adaptive, lambdax, max.iter=5000, 
+  ufinal = adaptive_lasso(X, Y %*% initv, initu, adaptive=adaptive, lambdax, 
+                          max.iter=5000, 
                        max_k = 10, verbose = FALSE, ZERO_THRESHOLD=1e-5)
   
   vfinal = adaptive_lasso(Y, X %*% initu, initv, adaptive=adaptive, lambday, max.iter=5000, 
