@@ -14,8 +14,8 @@ it = seed
 for (n in c(60, 100, 500, 1000)){
   for (psize in c(0.25 * n, 0.5 * n, 0.75 *n, n, 1.5 *n , 2 *n, 5 *n)){
     for (sparsity in c(0.1,  0.2, 0.3)){
-    nnz = ceil(sparsity * n)
     p1=as.integer(psize); p2=as.integer(psize)
+    nnz = ceil(sparsity * p1)
     example <- generate_example(n=n, p1=p1, p2=p2,   nnzeros = nnz,
                                   theta = diag( c(0.9,  0.8)),
                                   a = 0, r=2)
