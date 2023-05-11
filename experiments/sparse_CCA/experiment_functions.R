@@ -191,9 +191,9 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
   n <- nrow(Data)
   pp <- c(p1,p2);
   if(create_folds){
-    folds <- createFolds(1:nrow(Data), k = 3, list = TRUE, returnTrain = FALSE)
+    folds <- createFolds(1:nrow(Data), k = 2, list = TRUE, returnTrain = FALSE)
     S1 <- cov(Data[folds[[1]],])
-    S3 <- cov(Data[folds[[3]],])
+    S3 <- cov(Data[folds[[1]],])
     X = Data[folds[[2]],1:p1]
     Y = Data[folds[[2]],(p2+1):p]
   }else{
@@ -224,7 +224,7 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
     #  
     # print best hyperparameters and corresponding RMSE
     best_hyperparams <- resultsx[which.min(resultsx$rmse), ]
-    which_lambdax = which(abs(resultsx$rmse-min(resultsx$rmse))/min(resultsx$rmse) <0.05)
+    which_lambdax = which(abs(resultsx$rmse-min(resultsx$rmse))/(1e-6 + min(resultsx$rmse)) <0.05)
     lambdax = max(resultsx$param1[which_lambdax])
   }
   if (is.null(lambday)){
@@ -233,7 +233,7 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
       mutate(rmse = map_dbl(param1, ~ cv_function(Y, X, kfolds, initv, initu,
                                                   lambdax = .x, adaptive=adaptive)))
     best_hyperparams <- results[which.min(results$rmse), ]
-    which_lambday = which(abs(results$rmse-min(results$rmse))/min(results$rmse) <0.05)
+    which_lambday = which(abs(results$rmse-min(results$rmse))/(1e-6 + min(results$rmse)) <0.05)
     lambday = max(results$param1[which_lambday])
   }
   
@@ -291,7 +291,7 @@ pipeline_thresholded_gradient <- function(Data, Mask, sigma0hat, r=2, nu=1, Sigm
   
     # print best hyperparameters and corresponding RMSE
     best_hyperparams <- resultsx[which.min(resultsx$rmse), ]
-    which_lambdax = which(abs(resultsx$rmse-min(resultsx$rmse))/min(resultsx$rmse) <0.05)
+    which_lambdax = which(abs(resultsx$rmse-min(resultsx$rmse))/(1e-6  + min(resultsx$rmse)) <0.05)
     lambda = max(resultsx$lambda[which_lambdax])
     k = max(resultsx$k[which_lambdax])
     #print(c("selected", k, lambda))
