@@ -1,7 +1,25 @@
 
 setwd("~/Documents/group-CCA")
+
+library(tidyverse)
+library(CCA)
+library(VGAM)
+library(matlib)
+library(igraph)
+library(recipes)
+library(parallel)
+library(tictoc)
+library(PMA)
+library(mvtnorm)
+library(glmnet)
+library(CCA)
+library(pls)
+library(igraph)
+library(pracma)
+
+
 n= 200
-p= 253
+p= 317
 q=10 
 sigma=0.1 
 k=3
@@ -19,5 +37,12 @@ lambda1=0.5
 lambda2=1
 lambda3=0
 effect_size =2
-type_graph="sbm"
+type_graph="pa"
+probs = list('11'= 0.08, '12'=0.001, '13'=0.001, 
+             '22'= 0.07, '23' = 0.001,
+             '33' = 0.02)
+
+vfn <- function(x){
+  ifelse(x=="x", 1, -1)
+}
 

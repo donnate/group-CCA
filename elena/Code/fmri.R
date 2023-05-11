@@ -2,7 +2,7 @@ library(dplyr)
 library(plotly)
 source("CCCA_reweighting.R")
 
-dir = '../Data/HCP Disordered Emotional States/'
+dir = '../fMRI-data/data'
 X = read.csv(paste0(dir, 'activation_avg.csv'), header = FALSE, row.names = 1)
 Y = read.csv(paste0(dir, 'behavior.csv'), header = TRUE, row.names = 1) %>% 
   dplyr::select(-demo_age, -bio_sex)
@@ -12,7 +12,8 @@ subs = intersect(rownames(X), rownames(Y))
 X = as.matrix(X[subs,])
 Y = as.matrix(Y[subs,])
 p = ncol(X)
-
+Y = Y %>% 
+  filter(record_id %in% sapply(unique(X$id), function(x){str_split(x, "_")[[1]][1]}))
 
 perf_paths <- function(Xtrain, Ytrain, Xtest, Ytest, type = "CCCA", lambdas, gammas = NULL, A = 1, cluster = 1){
   p = ncol(X)
