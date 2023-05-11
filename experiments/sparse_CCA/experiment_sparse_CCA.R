@@ -12,13 +12,14 @@ name_exp <- args[2]
 set.seed(seed)
 it = seed
 for (n in c(60, 100, 500, 1000)){
-  for (psize in c(0.25*n, 0.5*n, 0.75*n,  n, 1.1 *n, 1.25 * n, 1.5 * n, 2 * n, 3*n, 10 *n)){
-    for (nnz in c(5,  15)){
+  for (psize in c(0.25 * n, 0.5 * n, 0.75 *n, n, 1.5 *n , 2 *n, 5 *n)){
+    for (sparsity in c(0.1,  0.2, 0.3)){
+    nnz = ceil(sparsity * n)
     p1=as.integer(psize); p2=as.integer(psize)
     example <- generate_example(n=n, p1=p1, p2=p2,   nnzeros = nnz,
                                   theta = diag( c(0.9,  0.8)),
                                   a = 0, r=2)
-      
+      print("here")
       res = pipeline_adaptive_lasso(example$Data, example$Mask, example$sigma0hat, r=2, 
                                     nu=1, example$Sigmax, 
                                     example$Sigmay, maxiter=100, lambdax=NULL,
@@ -44,6 +45,7 @@ for (n in c(60, 100, 500, 1000)){
            results <- rbind(results, temp )
 
         }
+      print("there")
       
       res = pipeline_adaptive_lasso(example$Data, example$Mask, example$sigma0hat, r=2, 
                                     nu=1, example$Sigmax, 
