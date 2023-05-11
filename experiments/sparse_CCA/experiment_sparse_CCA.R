@@ -34,7 +34,7 @@ for (n in c(60, 100, 500, 1000)){
                          "param1" = res$lambdax,
                          "param2" = res$lambday,
                          "distance" = subdistance(Uhat, example$a),
-                         "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
+                          "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
                          "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
                          "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
                          "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum)))
