@@ -205,10 +205,6 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
                                     create_folds=TRUE, init ="Fantope"){
   
   ### data splitting procedure 3 folds
-  Data=example$Data;Mask = example$Mask; sigma0hat=example$sigma0hat; r=2; 
-  nu=1; Sigmax = example$Sigmax;  Sigmay = example$Sigmay; maxiter=maxiter=100;  lambdax=NULL;
-  adaptive=TRUE; kfolds=5;  param1=10^(seq(-5, 1, by = 0.5));
-  create_folds=FALSE
   
   p1 <- dim(Sigmax)[1]
   p2 <- dim(Sigmay)[1]
