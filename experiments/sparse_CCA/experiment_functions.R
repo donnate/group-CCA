@@ -139,7 +139,11 @@ cv_function <- function(X, Y, kfolds=5, initu, initv,
   }
   
   # return mean RMSE across folds
-  return(median(rmse))
+  if (mean(is.na(rmse)) == 1){
+      return(1e8)
+   }else{
+  return(median(rmse, na.rm=TRUE))
+   }
 }
 
 
@@ -154,8 +158,7 @@ cv_function_tgd <- function(X, Y, Mask, kfolds=5, ainit,
   p <- p1 + p2;
   n <- nrow(X)
   pp <- c(p1,p2);
-  S0 = cov(cbind(X, Y)
-           )
+  S0 = cov(cbind(X, Y))
   
   #init <- gca_to_cca(ainit, S0, pp)
   # loop over folds
@@ -190,7 +193,11 @@ cv_function_tgd <- function(X, Y, Mask, kfolds=5, ainit,
   }
   
   # return mean RMSE across folds
-  return(median(rmse))
+  if (mean(is.na(rmse)) == 1){
+      return(1e8)
+   }else{
+  return(median(rmse, na.rm=TRUE))
+   }
 }
 
 pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax, 

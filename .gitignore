@@ -1,5 +1,9 @@
 experiments/.DS_Store
 .DS_Store
 experiments/data/
+experiments/sparse_CCA/logs/
+experiments/sparse_CCA/results
+.RData
+.Rhistory
 experiments/sparse_CCA/results/results/
 fMRI-data/
