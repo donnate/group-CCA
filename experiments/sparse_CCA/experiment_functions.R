@@ -106,6 +106,7 @@ generate_example <- function(n, p1, p2,   nnzeros = 5,
         ))
 }
 
+
 cv_function <- function(X, Y, kfolds=5, initu, initv,
                         lambdax, adaptive=TRUE) {
   # define empty vector to store results
@@ -184,7 +185,7 @@ cv_function_tgd <- function(X, Y, Mask, kfolds=5, ainit,
     },
     error = function(e) {
       # If an error occurs, assign NA to the result
-      rmse[i] <- sum((X_val %*% final$u - Y_val%*% final$v)^2)
+      rmse[i] <- NA
     })
   }
   
@@ -225,8 +226,8 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
     Y1 = Data[,(p2+1):p]
   }
   sigma0hat1 <- S1 * Mask
-  sqx <- sqrtm(Sigmax)$B
-  sqy <- sqrtm(Sigmay)$B
+  # sqx <- sqrtm(Sigmax)$B
+  # sqy <- sqrtm(Sigmay)$B
   apply(S1[1:p1, (p1+1):p], 1, max)
   if (init == "Fantope"){
       ag <- sgca_init(A=S1, B=sigma0hat1, rho=0.5 * sqrt(log(p)/dim(X)[1]),
@@ -302,8 +303,9 @@ pipeline_thresholded_gradient <- function(Data, Mask, sigma0hat, r=2, nu=1, Sigm
   n <- nrow(Data)
   pp <- c(p1,p2);
   S = cov(Data)
+
   if (init == "Fantope"){
-      ag <- sgca_init(A=S1, B=sigma0hat1, rho=0.5 * sqrt(log(p)/n),
+      ag <- sgca_init(A=S, B=sigma0hat, rho=0.5 * sqrt(log(p)/n),
                   K=r ,nu=nu,trace=FALSE, maxiter = maxiter) ###needs to be changed to be a little more scalable
       ainit <- init_process(ag$Pi, r) 
   
@@ -314,6 +316,7 @@ pipeline_thresholded_gradient <- function(Data, Mask, sigma0hat, r=2, nu=1, Sigm
                     RCC_cv$lambda1.optim, RCC_cv$lambda2.optim)
       ainit= rbind(method$xcoef[,1:r], method$ycoef[,1:r])
   }
+
   init <- gca_to_cca(ainit, S, pp)
   
   if (is.null(lambda) | is.null(k)){
