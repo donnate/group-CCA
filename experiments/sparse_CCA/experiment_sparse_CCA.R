@@ -9,7 +9,7 @@ args <- commandArgs(trailingOnly=TRUE)
 seed <- as.numeric(args[1])
 print(seed)
 name_exp <- args[2]
-N <- as.numeric(args[3])
+N <- as.integer(as.numeric(args[3]))
 set.seed(seed)
 it = seed
 for (n in c(N)){
