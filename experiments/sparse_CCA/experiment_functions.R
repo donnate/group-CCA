@@ -195,7 +195,7 @@ cv_function_tgd <- function(X, Y, Mask, kfolds=5, ainit,
 pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax, 
                                     Sigmay, maxiter=30, lambdax=NULL, lambday=NULL,
                                     adaptive=TRUE, kfolds=5, param1=10^(seq(-4, 2, by = 0.25)),
-                                    create_folds=TRUE){
+                                    create_folds=TRUE, init ="Fantope"){
   
   ### data splitting procedure 3 folds
   Data=example$Data;Mask = example$Mask; sigma0hat=example$sigma0hat; r=2; 
@@ -214,21 +214,32 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
     S3 <- cov(Data[folds[[1]],])
     X = Data[folds[[2]],1:p1]
     Y = Data[folds[[2]],(p2+1):p]
+    X1 = Data[folds[[2]],1:p1]
+    Y1= Data[folds[[2]],(p2+1):p]
   }else{
     S1 <- cov(Data)
     S3 <- cov(Data)
     X = Data[,1:p1]
     Y = Data[,(p2+1):p]
+    X1 = Data[,1:p1]
+    Y1 = Data[,(p2+1):p]
   }
   sigma0hat1 <- S1 * Mask
   sqx <- sqrtm(Sigmax)$B
   sqy <- sqrtm(Sigmay)$B
   apply(S1[1:p1, (p1+1):p], 1, max)
-  ag <- sgca_init(A=S1, B=sigma0hat1, rho=0.5 * sqrt(log(p)/dim(X)[1]),
+  if (init == "Fantope"){
+      ag <- sgca_init(A=S1, B=sigma0hat1, rho=0.5 * sqrt(log(p)/dim(X)[1]),
                   K=r ,nu=nu,trace=FALSE, maxiter = maxiter) ###needs to be changed to be a little more scalable
+      ainit <- init_process(ag$Pi, r) 
   
-  
-  ainit <- init_process(ag$Pi, r) 
+  }else{
+      RCC_cv<-estim.regul_crossvalidation(X1, Y1,
+                                          n.cv=5)
+      method<-rcc(X1, Y1, RCC_cv$lambda1.optim, RCC_cv$lambda2.optim)
+      ainit= rbind(method$xcoef[,1:r], method$ycoef[,1:r])
+  }
+
   init <- gca_to_cca(ainit, S3, pp)
   print("Init done")
   initu<- init$u
@@ -284,17 +295,25 @@ pipeline_thresholded_gradient <- function(Data, Mask, sigma0hat, r=2, nu=1, Sigm
                                           lambda=NULL, k=NULL, kfolds=5,
                                           maxiter=2000, convergence=1e-3, eta=1e-3,
                                           param1=10^(seq(-4, 1, by = 1)),
-                                          param2=c(20, 1000)){
+                                          param2=c(20, 1000), init="Fantope"){
   p1 <- dim(Sigmax)[1]
   p2 <- dim(Sigmay)[1]
   p <- p1 + p2;
   n <- nrow(Data)
   pp <- c(p1,p2);
   S = cov(Data)
-  ag <- sgca_init(A=S, B=sigma0hat, rho=0.5 * sqrt(log(p)/n),
-                  K=r ,nu=1,trace=FALSE, maxiter = maxiter.init) ###needs to be changed
-  print("Done with initialization")
-  ainit <- init_process(ag$Pi, r) 
+  if (init == "Fantope"){
+      ag <- sgca_init(A=S1, B=sigma0hat1, rho=0.5 * sqrt(log(p)/n),
+                  K=r ,nu=nu,trace=FALSE, maxiter = maxiter) ###needs to be changed to be a little more scalable
+      ainit <- init_process(ag$Pi, r) 
+  
+  }else{
+      RCC_cv<-estim.regul_crossvalidation(Data[,1:p1], Data[,(p2+1):p],
+                                          n.cv=5)
+      method<-rcc(Data[,1:p1], Data[,(p2+1):p], 
+                    RCC_cv$lambda1.optim, RCC_cv$lambda2.optim)
+      ainit= rbind(method$xcoef[,1:r], method$ycoef[,1:r])
+  }
   init <- gca_to_cca(ainit, S, pp)
   
   if (is.null(lambda) | is.null(k)){
