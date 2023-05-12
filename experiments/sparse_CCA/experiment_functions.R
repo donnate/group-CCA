@@ -138,7 +138,11 @@ cv_function <- function(X, Y, kfolds=5, initu, initv,
   }
   
   # return mean RMSE across folds
-  return(median(rmse))
+  if (mean(is.na(rmse)) == 1){
+      return(1e8)
+   }else{
+  return(median(rmse, na.rm=TRUE))
+   }
 }
 
 
@@ -153,8 +157,7 @@ cv_function_tgd <- function(X, Y, Mask, kfolds=5, ainit,
   p <- p1 + p2;
   n <- nrow(X)
   pp <- c(p1,p2);
-  S0 = cov(cbind(X, Y)
-           )
+  S0 = cov(cbind(X, Y))
   
   #init <- gca_to_cca(ainit, S0, pp)
   # loop over folds
@@ -184,12 +187,16 @@ cv_function_tgd <- function(X, Y, Mask, kfolds=5, ainit,
     },
     error = function(e) {
       # If an error occurs, assign NA to the result
-      rmse[i] <- sum((X_val %*% final$u - Y_val%*% final$v)^2)
+      rmse[i] <- NA
     })
   }
   
   # return mean RMSE across folds
-  return(median(rmse))
+  if (mean(is.na(rmse)) == 1){
+      return(1e8)
+   }else{
+  return(median(rmse, na.rm=TRUE))
+   }
 }
 
 pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax, 
@@ -303,7 +310,7 @@ pipeline_thresholded_gradient <- function(Data, Mask, sigma0hat, r=2, nu=1, Sigm
   pp <- c(p1,p2);
   S = cov(Data)
   if (init == "Fantope"){
-      ag <- sgca_init(A=S1, B=sigma0hat1, rho=0.5 * sqrt(log(p)/n),
+      ag <- sgca_init(A=S, B=sigma0hat, rho=0.5 * sqrt(log(p)/n),
                   K=r ,nu=nu,trace=FALSE, maxiter = maxiter) ###needs to be changed to be a little more scalable
       ainit <- init_process(ag$Pi, r) 
   
