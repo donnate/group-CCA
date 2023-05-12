@@ -35,7 +35,9 @@ sgca_tgd <-
       vt <- hard(vt, k, r)
       
       criteria <- sqrt(sum((ut-vt)^2))
-      
+      if (is.na(criteria)){
+         criteria =0
+      } 
       ut <- vt
       iter <- iter+1
       if (plot & (is.null(scale)==FALSE)){
