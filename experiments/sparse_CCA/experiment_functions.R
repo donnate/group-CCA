@@ -39,6 +39,9 @@ generate_example <- function(n, p1, p2,   nnzeros = 5,
   #p1 <- 100;
   #p2 <- 100;
   # r <- 2
+  nnzeros = 5
+  theta = diag( c(0.9,  0.8))
+  a = 0; r=2; signal_strength="normal"
   p <- p1 + p2;
   pp <- c(p1,p2);
   s  <- sample(1:min(p1,p2),nnzeros);
@@ -54,14 +57,14 @@ generate_example <- function(n, p1, p2,   nnzeros = 5,
   #T1 = Sigma[1:p1, 1:p1]
   Tss = T1[s,s];
   u = matrix(0, pp[1], r)
-  u[s,1:r] <- as.matrix(runif( nnzeros * r,max = 5, min=3), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r, replace=TRUE), nrow=nnzeros)
+  u[s,1:r] <- as.matrix(runif( nnzeros * r,max = 3, min=1), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r, replace=TRUE), nrow=nnzeros)
   u <- u %*%(sqrtm(t(u[s,1:r]) %*% Tss %*% u[s,1:r])$Binv)
   
   T2 = toeplitz(a^(0:(pp[2]-1)));
   Sigma[(p1+1):(p1+p2), (p1+1):(p1+p2)] = T2;
   Tss = Sigma[(p1+1):(p1+p2), (p1+1):(p1+p2)][s, s];
   v = matrix(0, pp[2], r)
-  v[s,1:r] <- as.matrix(runif( nnzeros * r,max = 5, min=3), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r, replace=TRUE), nrow=nnzeros)
+  v[s,1:r] <- as.matrix(runif( nnzeros * r,max = 3, min=1), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r, replace=TRUE), nrow=nnzeros)
   v <- v %*%(sqrtm(t(v[s,1:r]) %*% Tss %*% v[s,1:r])$Binv)
   
   Sigma[(p1+1):(p1+p2), 1:p1] = T2 %*%  v  %*% theta %*% t(u) %*% T1;
@@ -108,7 +111,7 @@ generate_example <- function(n, p1, p2,   nnzeros = 5,
 
 
 cv_function <- function(X, Y, kfolds=5, initu, initv,
-                        lambdax, adaptive=TRUE) {
+                        lambdax, adaptive=TRUE, normalize=FALSE) {
   # define empty vector to store results
   folds <- createFolds(1:nrow(Y), k = kfolds, list = TRUE, returnTrain = FALSE)
   rmse <- numeric(length = kfolds)
@@ -130,7 +133,14 @@ cv_function <- function(X, Y, kfolds=5, initu, initv,
     
     # make predictions on validation data
     # compute RMSE on validation data
-    rmse[i] <- sum((X_val %*% model$Uhat - Y_val%*% initv)^2)
+    ##### Normalize Uhat
+    if (normalize == FALSE){
+      rmse[i] <- sum((X_val %*% model$Uhat - Y_val%*% initv)^2)
+    }else{
+      sol <- gca_to_cca(rbind(model$Uhat, initv), 
+                        cov(rbind(X_val, Y_val)), pp)
+      rmse[i] <- sum((X_val %*% sol$u - Y_val%*% initv)^2)
+    }
     },
     error = function(e) {
       # If an error occurs, assign NA to the result
@@ -149,7 +159,7 @@ cv_function <- function(X, Y, kfolds=5, initu, initv,
 
 cv_function_tgd <- function(X, Y, Mask, kfolds=5, ainit,
                         lambda, r=2, k=20,  maxiter=1000, eta=0.001,
-                        convergence=1e-3) {
+                        convergence=1e-3, normalize=FALSE) {
   # define empty vector to store results
   folds <- createFolds(1:nrow(Y), k = kfolds, list = TRUE, returnTrain = FALSE)
   rmse <- numeric(length = kfolds)
@@ -184,7 +194,13 @@ cv_function_tgd <- function(X, Y, Mask, kfolds=5, ainit,
     
     # make predictions on validation data
     # compute RMSE on validation data
-    rmse[i] <- sum((X_val %*% final$u - Y_val%*% final$v)^2)
+    if (normalize == FALSE){
+      rmse[i] <- sum((X_val %*% final$u - Y_val%*% initv)^2)
+    }else{
+      sol <- gca_to_cca(rbind(final$u, initv), 
+                        cov(rbind(X_val, Y_val)), pp)
+      rmse[i] <- sum((X_val %*% sol$u - Y_val%*% initv)^2)
+    }
     },
     error = function(e) {
       # If an error occurs, assign NA to the result
@@ -203,7 +219,7 @@ cv_function_tgd <- function(X, Y, Mask, kfolds=5, ainit,
 pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax, 
                                     Sigmay, maxiter=30, lambdax=NULL, lambday=NULL,
                                     adaptive=TRUE, kfolds=5, param1=10^(seq(-4, 2, by = 0.25)),
-                                    create_folds=TRUE, init ="Fantope"){
+                                    create_folds=TRUE, init ="Fantope", normalize=FALSE){
   
   ### data splitting procedure 3 folds
   Data=example$Data;Mask = example$Mask; sigma0hat=example$sigma0hat; r=2; 
@@ -258,7 +274,8 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
     ### do CV
     resultsx <- expand.grid(param1 = param1) %>%
       mutate(rmse = map_dbl(param1, ~ cv_function(X, Y, kfolds, initu, initv,
-                                                  lambdax = .x, adaptive=adaptive)))
+                                                  lambdax = .x, adaptive=adaptive,
+                                                   normalize=normalize)))
 
     
     # print best hyperparameters and corresponding RMSE
@@ -303,7 +320,8 @@ pipeline_thresholded_gradient <- function(Data, Mask, sigma0hat, r=2, nu=1, Sigm
                                           lambda=NULL, k=NULL, kfolds=5,
                                           maxiter=2000, convergence=1e-3, eta=1e-3,
                                           param1=10^(seq(-4, 1, by = 1)),
-                                          param2=c(20, 1000), init="Fantope"){
+                                          param2=c(20, 1000), init="Fantope",
+                                          normalize=FALSE){
   p1 <- dim(Sigmax)[1]
   p2 <- dim(Sigmay)[1]
   p <- p1 + p2;
@@ -332,7 +350,8 @@ pipeline_thresholded_gradient <- function(Data, Mask, sigma0hat, r=2, nu=1, Sigm
                                                           Mask, kfolds=5, ainit,
                                                           lambda = .x,
                                                           k = .y, r=r,
-                                                          maxiter=maxiter, eta=eta, convergence=convergence)))
+                                                          maxiter=maxiter, eta=eta, convergence=convergence,
+                                                          normalize=normalize)))
                                                           #X, Y, Mask, kfolds=5, ainit,lambda, r=2, k=20,  
                                                           #maxiter=1000, eta=0.001, convergence=1e-
 
