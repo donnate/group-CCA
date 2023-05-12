@@ -1,3 +1,5 @@
+library(fda)
+
 
 ############## RRR #################
 
@@ -79,7 +81,6 @@ angles = function(A, B){
   p = ncol(A)
   angs = rep(0, p)
   for(i in 1:p){
-    #angs[i] =subspace(A[,1:i,drop = F], B[,1:i,drop = F])
     angs[i] = principal_angles(A[,1:i,drop = F], B[,1:i,drop = F])[1]
   } 
   angs
@@ -92,4 +93,82 @@ evaluate = function(X, Y, U, V, U0, V0){
              Vangs = angles(V, V0),
              XUangs = angles(X %*% U, X %*% U0), 
              YVangs = angles(Y %*% V, Y %*% V0))
+}
+
+############## Iteratively re-weighted CCCA #################
+
+D = function(alpha){
+  as.matrix(dist(alpha, diag = T, upper = T))
+}
+
+kernel = function(alpha, lambda, gamma, A){
+  W = lambda * A * (gamma/pmax(D(alpha), 1e-6) + (1 - gamma))
+  w = rowSums(W)
+  return(2 * (diag(w) - W))
+}
+
+rho = function(X, Y, alpha, beta, KX, KY){
+  alpha = as.matrix(alpha)
+  beta = as.matrix(beta)
+  Cxx = var(X, use = "pairwise") + KX
+  Cyy = var(Y, use = "pairwise") + KY
+  Cxy = cov(X, Y, use = "pairwise")
+  return(c(t(alpha) %*% Cxy %*% beta/sqrt(t(alpha) %*% Cxx %*% alpha) / sqrt(t(beta) %*% Cyy %*% beta)))
+}
+
+CCA = function(X, Y, KX, KY){
+  Cxx = var(X, use = "pairwise") + KX
+  Cyy = var(Y, use = "pairwise") + KY
+  Cxy = cov(X, Y, use = "pairwise")
+  cc = geigen(Cxy, Cxx, Cyy)
+  names(cc) = c("cor", "xcoef", "ycoef")
+  list(alpha = cc$xcoef[,1], beta = cc$ycoef[,1], rho = cc$cor[1])
+}
+
+
+CCCA = function(X, Y, lambda, gamma, A, mu, maxiter = 100, eps = 1e-6, verbose = FALSE){
+  #lambda: penalty magnitude
+  #gamma: if 1 then l1, if 0 then l2
+  #A: weights in the penalty
+  p = ncol(X)
+  q = ncol(Y)
+  iter = 0
+  alpha = rnorm(p)
+  beta = rnorm(q)
+  cc = list(alpha = alpha, beta = beta)
+  cor0 = rho(X, Y, cc$alpha, cc$beta, kernel(alpha, lambda, gamma, A), diag(mu, q))
+  delta = Inf
+  if(verbose) cat("iter ", iter, "cor", cor0, "\n")
+  while(delta > eps & iter < maxiter){
+    iter = iter + 1
+    cc = CCA(X, Y, kernel(cc$alpha, lambda, gamma, A), diag(mu, q))
+    cor =  rho(X, Y, cc$alpha, cc$beta, kernel(alpha, lambda, gamma, A), diag(mu, q))
+    delta = abs((cor - cor0)/cor0)
+    cor0 = cor
+    if(verbose) cat("iter ", iter, "cor", cor, "delta", delta, "\n")
+  }
+  return(cc)
+}
+
+
+CCCA_gridsearch = function(Xtrain, Ytrain, Xtest, Ytest, method, lambdas, gammas, A, mus, eps = 1e-6, verbose = F){
+  p = ncol(Xtrain)
+  q = ncol(Ytrain)
+  result = c()
+  if(method == "RCCA") gammas = 0
+  for(lambda in lambdas){
+    for(mu in mus){
+      for(gamma in gammas){
+        cat("\nmethod:", method, "lambda:", lambda, "gamma:", gamma, "mu:", mu, "\n")
+        if(method == "RCCA") cc = CCA(Xtrain, Ytrain, KX = diag(lambda, p), KY = diag(mu, q))
+        if(method == "CCCA") cc = CCCA(Xtrain, Ytrain, lambda, gamma, A, mu, eps = eps, verbose = verbose)
+        result = rbind(result, data.frame(cors = c(cor(Xtrain %*% cc$alpha, Ytrain %*% cc$beta), cor(Xtest %*% cc$alpha, Ytest %*% cc$beta)),
+                                          mses = c(mean((Xtrain %*% cc$alpha - Ytrain %*% cc$beta)^2), mean((Xtest %*% cc$alpha - Ytest %*% cc$beta)^2)),
+                                          type = c("train", "test"), 
+                                          method = ifelse(mean(A) == 1, paste(method, "full"), method), 
+                                          lambda, gamma, mu))
+      }
+    }
+  }
+  return(result)
 }
