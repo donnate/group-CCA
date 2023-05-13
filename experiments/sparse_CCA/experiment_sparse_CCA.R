@@ -24,7 +24,7 @@ for (n in c(N)){
                                 nnzeros = min(nnz, min(p1,p2)-1),
                                 theta = diag( c(0.9,  0.8)),
                                 a = 0, r=2)
-    silly_benchmark = subdistance(matrix(0, p,r=2), example$a)
+    silly_benchmark = subdistance(matrix(0, p,2), example$a)
       print("here")
       max1 = 100 * sqrt(log(p1)/n)
       min1 = 0.01 * sqrt(log(p1)/n) 
