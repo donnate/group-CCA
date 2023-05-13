@@ -122,7 +122,7 @@ cv_function <- function(X, Y, kfolds=5, initu, initv,
     # fit model on training data with hyperparameters
     tryCatch(
     {
-    model <- adaptive_lasso(X_val, Y_val %*% initv, initu, adaptive=adaptive, 
+    model <- adaptive_lasso(X_train, Y_train %*% initv, initu, adaptive=adaptive, 
                          lambdax, 
                          max.iter=5000, 
                          max_k = 10, verbose = FALSE, ZERO_THRESHOLD=1e-5)
