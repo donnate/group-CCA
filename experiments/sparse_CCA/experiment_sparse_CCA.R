@@ -24,9 +24,8 @@ for (n in c(N)){
                                 nnzeros = min(nnz, min(p1,p2)-1),
                                 theta = diag( c(0.9,  0.8)),
                                 a = 0, r=2)
-    silly_benchmark = subdistance(matrix(0, p,r), example$a)
+    silly_benchmark = subdistance(matrix(0, p,r=2), example$a)
       print("here")
-      param1 = 10^(seq(-5, 3, by = 0.2))
       max1 = 100 * sqrt(log(p1)/n)
       min1 = 0.01 * sqrt(log(p1)/n) 
       param1 = seq(min1, max1, length.out=10)
@@ -37,7 +36,7 @@ for (n in c(N)){
 
       for (adaptive in c(TRUE, FALSE)){
         for (create_folds in c(TRUE, FALSE)){
-        name_method = ifelse(adaptive, "adaptive_lasso", "lasso"))
+        name_method = ifelse(adaptive, "adaptive_lasso", "lasso")
         name_method = paste0(name_method, ifelse(create_folds, "_with_folds", ""))
 
         res = pipeline_adaptive_lasso(example$Data, example$Mask, example$sigma0hat, 
@@ -121,7 +120,7 @@ for (n in c(N)){
                            "nnz" = nnz,
                            "p1" = p1,
                            "p2" = p2,
-                             "zero_benchmark" = silly_benchmark,
+                            "zero_benchmark" = silly_benchmark,
                            "nb_discoveries" = sum(apply(Uhat^2, 1, sum)>0),
                            "param1" = NA,
                            "param2" = NA,
