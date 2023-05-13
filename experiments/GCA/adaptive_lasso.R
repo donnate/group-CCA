@@ -39,7 +39,7 @@ adaptive_lasso <- function(X, Z, beta0, adaptive=TRUE,
   #### This is just a quirk of CVXR
   #plot(beta0[,1],Uhat[,1])
   ## Zero out stuff before returning
-  Uhat[abs(Uhat) < ZERO_THRESHOLD] <- 0.0
+  Uhat[abs(Uhat) < THRESHOLD] <- 0.0
   list(
     Uhat = Uhat,
     criterion = result$value)
