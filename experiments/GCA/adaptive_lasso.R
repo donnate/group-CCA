@@ -6,7 +6,7 @@ library(CVXR)
 adaptive_lasso <- function(X, Z, beta0, adaptive=TRUE,
                          lambda, lambda2, max.iter=5000,
                          max_k = 10, verbose = FALSE,
-                         ZERO_THRESHOLD=1e-5){
+                         THRESHOLD=1e-5){
   
   p <- nrow(beta0)
   r <- ncol(beta0)
@@ -16,7 +16,7 @@ adaptive_lasso <- function(X, Z, beta0, adaptive=TRUE,
   
   if (adaptive){
     W0 = sqrt(apply(beta0^2, 1,sum))
-    #W0[which(W0< ZERO_THRESHOLD)] = 0
+    W0[which(W0< THRESHOLD)] = THRESHOLD
     W  <- diag(W0)
     #invW <- diag(sapply(W0, function(x){ifelse(x<ZERO_THRESHOLD, 1/ZERO_THRESHOLD, 1/x)}))
   }else{
