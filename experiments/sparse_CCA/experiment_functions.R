@@ -110,7 +110,7 @@ generate_example <- function(n, p1, p2,   nnzeros = 5,
 }
 
 
-cv_function <- function(X, Y, kfolds=5, initu, initv,
+cv_function <- function(X, Y, kfolds=10, initu, initv,
                         lambdax, adaptive=TRUE, normalize=FALSE) {
   # define empty vector to store results
   folds <- createFolds(1:nrow(Y), k = kfolds, list = TRUE, returnTrain = FALSE)
@@ -126,7 +126,7 @@ cv_function <- function(X, Y, kfolds=5, initu, initv,
     # fit model on training data with hyperparameters
     tryCatch(
     {
-    model <- adaptive_lasso(X_val, Y_val %*% initv, initu, adaptive=adaptive, 
+    model <- adaptive_lasso(X_train, Y_train %*% initv, initu, adaptive=adaptive, 
                          lambdax, 
                          max.iter=5000, 
                          max_k = 10, verbose = FALSE, ZERO_THRESHOLD=1e-5)
@@ -222,7 +222,8 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
                                     create_folds=TRUE, init ="Fantope", normalize=FALSE){
   
   ### data splitting procedure 3 folds
-  
+  #maxiter=100;  lambdax=NULL;
+ #adaptive=TRUE; kfolds=5;  param1=10^(seq(-5, 1, by = 0.5));
   p1 <- dim(Sigmax)[1]
   p2 <- dim(Sigmay)[1]
   p <- p1 + p2;
@@ -245,9 +246,6 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
     Y1 = Data[,(p2+1):p]
   }
   sigma0hat1 <- S1 * Mask
-  # sqx <- sqrtm(Sigmax)$B
-  # sqy <- sqrtm(Sigmay)$B
-  apply(S1[1:p1, (p1+1):p], 1, max)
   if (init == "Fantope"){
       ag <- sgca_init(A=S1, B=sigma0hat1, rho=0.5 * sqrt(log(p)/dim(X)[1]),
                   K=r ,nu=nu,trace=FALSE, maxiter = maxiter) ###needs to be changed to be a little more scalable
