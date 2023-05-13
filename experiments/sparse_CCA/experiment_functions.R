@@ -129,7 +129,7 @@ cv_function <- function(X, Y, kfolds=10, initu, initv,
     model <- adaptive_lasso(X_train, Y_train %*% initv, initu, adaptive=adaptive, 
                          lambdax, 
                          max.iter=5000, 
-                         max_k = 10, verbose = FALSE, ZERO_THRESHOLD=1e-5)
+                         max_k = 10, verbose = FALSE, THRESHOLD=1e-5)
     
     # make predictions on validation data
     # compute RMSE on validation data
@@ -289,10 +289,10 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
   
   ufinal = adaptive_lasso(X, Y %*% initv, initu, adaptive=adaptive, lambdax, 
                           max.iter=5000, 
-                       max_k = 10, verbose = FALSE, ZERO_THRESHOLD=1e-5)
+                       max_k = 10, verbose = FALSE, THRESHOLD=1e-5)
   
   vfinal = adaptive_lasso(Y, X %*% initu, initv, adaptive=adaptive, lambday, max.iter=5000, 
-                       max_k = 10, verbose = FALSE, ZERO_THRESHOLD=1e-5)
+                       max_k = 10, verbose = FALSE, THRESHOLD=1e-5)
   a_estimate = rbind(ufinal$Uhat, vfinal$Uhat)
   a_estimate <- gca_to_cca(a_estimate, S3, pp)
   return(list( ufinal = a_estimate$u, vfinal = a_estimate$v,
