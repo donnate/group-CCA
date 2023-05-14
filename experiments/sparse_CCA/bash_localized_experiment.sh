@@ -18,7 +18,7 @@ job_id=$SLURM_ARRAY_JOB_ID
 module load libgmp
 module load R/4.2.0
 
-result_file="${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
+result_file="localized_${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
 echo "result file is ${result_file}"
 cd $SCRATCH/$USER/group-CCA/
 Rscript experiments/sparse_CCA/experiment_localized_CCA.R $SLURM_ARRAY_TASK_ID $result_file $1 PA
