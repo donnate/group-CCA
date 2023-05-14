@@ -102,6 +102,7 @@ for (n in c(N)){
                              "nnz" = final_nnz,
                              "p1" = p1,
                              "p2" = p2,
+                             "power" = power,
                              "zero_benchmark" = silly_benchmark,
                              "nb_discoveries" = sum(apply(Uhat^2, 1, sum)>1e-4),
                              "param1" = res$lambdax,
