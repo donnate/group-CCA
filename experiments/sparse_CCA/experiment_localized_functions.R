@@ -113,7 +113,7 @@ generate_localized_example <- function(n, p1,  nnzeros = 5,
       cov[-c(sole), -c(sole)] =  solve(L) 
       cov[which(abs(cov)<1e-3)] = 0
       cov = diag(1/sqrt(diag(cov))) %*% cov %*% diag(1/sqrt(diag(cov))) 
-      
+      print("cov done")
       generated_graph = min(eigen(cov)$values) >0
       if(trials > 10){
         print("Error: unable to generate appropriate covariance")
@@ -125,16 +125,20 @@ generate_localized_example <- function(n, p1,  nnzeros = 5,
   # generate covariance matrix for X and Y
   #T1 = toeplitz(a^(0:(pp[1]-1)));
   Sigma <- diag(p1+p2)
+  print(c(pp[1], pp[2],r))
   
   # generate covariance matrix for X and Y
   u = matrix(0, pp[1], r)
   v = matrix(0, pp[2], r)
+  print(c(p1, nnzeros))
   s  = sample(1:p1, nnzeros)
+
   T1 = cov;
   T2 = cov;
   Tss = T1;
   Sigma[1:p1, 1:p1] = T1;
   Sigma[(p1+1):(p1+p2), (p1+1):(p1+p2)] = T1;
+
   u[s,1:r] <- as.matrix(runif( nnzeros * r,max = 3, min=1), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r, replace=TRUE), nrow=nnzeros)
   v[s,1:r] <- as.matrix(runif( nnzeros * r,max = 3, min=1), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r, replace=TRUE), nrow=nnzeros)
   for (i in 1:r){
@@ -151,13 +155,15 @@ generate_localized_example <- function(n, p1,  nnzeros = 5,
   v[s_selected.y,] <- v[s_selected.y,] %*%(sqrtm(t(v[s_selected.y,1:r]) %*% cov[s_selected.y, s_selected.y] %*% v[s_selected.y,1:r])$Binv)
   u[which(abs(u) <1e-5)] = 0
   v[which(abs(v) <1e-5)] = 0
-  
+
   
   Sigma[(p1+1):(p1+p2), 1:p1] = T2 %*%  v  %*% theta %*% t(u) %*% T1;
   Sigma[1:p1, (p1+1):(p1+p2)] = t(Sigma[(p1+1):(p1+p2), 1:p1])
   Sigma[which(abs(Sigma)<1e-3)] = 0
   Sigmax = Sigma[1:p1,1:p1];
   Sigmay = Sigma[(p1+1):p,(p1+1):p];
+  
+
 
   #Generate Multivariate Normal Data According to Sigma
   Data = mvrnorm(n, rep(0, p), Sigma);
@@ -177,13 +183,12 @@ generate_localized_example <- function(n, p1,  nnzeros = 5,
                      matrix(1, length(E(G)),length(E(G))))
   Sigma0 = Sigma * Mask;
   
-  
   S <- cov(Data)
   sigma0hat <- S * Mask
   
   # Estimate the subspace spanned by the largest eigenvector using convex relaxation and TGD
   # First calculate ground truth
-  result = geigen::geigen(Sigma,Sigma0)
+  result = geigen::geigen(Sigma, Sigma0)
   evalues <- result$ values
   evectors <-result$vectors
   evectors <- evectors[,p:1]

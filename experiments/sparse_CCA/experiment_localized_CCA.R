@@ -65,7 +65,7 @@ for (n in c(N)){
     
 
     
-      
+    silly_benchmark = subdistance(matrix(0, p,2), example$a)
     final_nnz = sum(apply(example$a^2,1,sum)>1e-4)
       
     print("here")
@@ -101,6 +101,7 @@ for (n in c(N)){
                              "nnz" = final_nnz,
                              "p1" = p1,
                              "p2" = p2,
+                             "zero_benchmark" = silly_benchmark,
                              "nb_discoveries" = sum(apply(Uhat^2, 1, sum)>1e-4),
                              "param1" = res$lambdax,
                              "param2" = res$lambday,
@@ -137,6 +138,7 @@ for (n in c(N)){
                              "nnz" = final_nnz,
                              "p1" = p1,
                              "p2" = p2,
+                             "zero_benchmark" = silly_benchmark,
                              "nb_discoveries" = sum(apply(Uhat^2, 1, sum)>0),
                              "param1" = res$lambdax,
                              "param2" = res$lambday,
@@ -169,6 +171,7 @@ for (n in c(N)){
                          "nnz" = final_nnz,
                          "p1" = p1,
                          "p2" = p2,
+                         "zero_benchmark" = silly_benchmark,
                          "nb_discoveries" = sum(apply(Uhat^2, 1, sum)>0),
                          "param1" = res_tg$lambda,
                          "param2" = res_tg$k,
