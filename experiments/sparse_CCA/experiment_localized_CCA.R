@@ -31,10 +31,11 @@ for (n in c(N)){
       tryCatch({
         # Code for sampling covariance matrix
         example <- generate_localized_example(n=n, p1=p1,  
-                                              nnzeros = min(nnz, min(p1,p2)-1),
+                                              nnzeros = 2,
                                               theta = diag( c(0.9,  0.8)),
                                               r=2, type_graph=type_graph, power=power, probs=PROBA,
                                               threshold_limit=0.8)
+        
         
         # Continue with the loop if sampling is successful
         error_occurred <- FALSE
