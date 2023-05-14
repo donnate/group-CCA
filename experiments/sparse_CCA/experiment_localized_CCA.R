@@ -13,21 +13,56 @@ print(seed)
 name_exp <- args[2]
 N <- as.integer(as.numeric(args[3]))
 type_graph <- args[4]
-power <- as.numeric(args[5])
 set.seed(seed)
 it = seed
 for (n in c(N)){
   for (psize in c(0.25 *n, 0.5*n, 0.75*n, n, 1.5 *n , 2 *n, 5 *n)){
-    for (nnz in c(5, 10, 20)){
+    for (power in c(0.1, 0.5, 1, 1.5, 2)){
     p1=as.integer(psize); p2=as.integer(psize)
     #nnz = ceil(sparsity * n)
     print(c(n, p1, p2))
     p = p1+ p2
-    example <- generate_localized_example(n=n, p1=p1,  
-                                nnzeros = min(nnz, min(p1,p2)-1),
-                                theta = diag( c(0.9,  0.8)),
-                                r=2, type_graph=type_graph, power=power, probs=PROBA,
-                                threshold_limit=0.8)
+    
+    max_attempts <- 3
+    attempt <- 1
+    error_occurred <- FALSE
+    while (attempt <= max_attempts) {
+      # Attempt to sample covariance matrix
+      tryCatch({
+        # Code for sampling covariance matrix
+        example <- generate_localized_example(n=n, p1=p1,  
+                                              nnzeros = min(nnz, min(p1,p2)-1),
+                                              theta = diag( c(0.9,  0.8)),
+                                              r=2, type_graph=type_graph, power=power, probs=PROBA,
+                                              threshold_limit=0.8)
+        
+        # Continue with the loop if sampling is successful
+        error_occurred <- FALSE
+      }, error = function(e) {
+        # Print error message
+        cat("Error occurred:", conditionMessage(e), "\n")
+        
+        # Set error flag
+        error_occurred <- TRUE
+      })
+      
+      # Exit loop if no error occurred
+      if (!error_occurred) {
+        break
+      }
+      
+      # Increment attempt counter
+      attempt <- attempt + 1
+    }
+    
+    # Check if maximum attempts reached without success
+    if (attempt > max_attempts) {
+      next
+      #stop("Failed to sample data matrix after", max_attempts, "attempts.")
+    }
+    
+    
+
     
       
     final_nnz = sum(apply(example$a^2,1,sum)>1e-4)
