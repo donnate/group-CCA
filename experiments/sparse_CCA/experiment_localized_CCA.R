@@ -70,8 +70,8 @@ for (n in c(N)){
       
     print("here")
     param1 = 10^(seq(-5, 3, by = 0.2))
-    max1 = 20 * sqrt(log(p1)/n)
-    min1 = 0.05 * sqrt(log(p1)/n) 
+    max1 = 50 * sqrt(log(p1)/n)
+    min1 = 0.02 * sqrt(log(p1)/n) 
     param1 = param1[which(param1 < max1 & param1 > min1)]
      # c(5, 10, 20, 30, 50, 80, 100, 200, 300,  500, 700, 1000)
     maxk = 0.5 * p
@@ -84,6 +84,7 @@ for (n in c(N)){
     transformed_Sigmay =as.matrix( t(example$daggerDy) %*% example$Sigmay %*% (example$daggerDy))
     for (adaptive in c(TRUE, FALSE)){
         for (create_folds in c(TRUE, FALSE)){
+          
           name_method = ifelse(adaptive, "adaptive_regularised_lasso", "regularised_lasso")
           name_method = paste0(name_method, ifelse(create_folds, "_with_folds", ""))
           
@@ -136,6 +137,7 @@ for (n in c(N)){
                              "exp" = it,
                              "n" = n,
                              "nnz" = final_nnz,
+                             "power" = power,
                              "p1" = p1,
                              "p2" = p2,
                              "zero_benchmark" = silly_benchmark,
@@ -169,6 +171,7 @@ for (n in c(N)){
                          "exp" = it,
                          "n" = n,
                          "nnz" = final_nnz,
+                         "power" = power,
                          "p1" = p1,
                          "p2" = p2,
                          "zero_benchmark" = silly_benchmark,
@@ -195,6 +198,7 @@ for (n in c(N)){
                            "exp" = it,
                            "n" = n,
                            "nnz" = final_nnz,
+                           "power" = power,
                            "p1" = p1,
                            "p2" = p2,
                            "nb_discoveries" = sum(apply(Uhat^2, 1, sum)>0),
