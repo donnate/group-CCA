@@ -237,15 +237,17 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
     Y = Data[folds[[2]],(p2+1):p]
     X1 = Data[folds[[2]],1:p1]
     Y1= Data[folds[[2]],(p2+1):p]
+    sigma0hat1 <- S1 * Mask
   }else{
-    S1 <- cov(Data)
-    S3 <- cov(Data)
+    S1 <- cov(as.matrix(Data))
+    S3 <- S1
     X = Data[,1:p1]
     Y = Data[,(p2+1):p]
     X1 = Data[,1:p1]
     Y1 = Data[,(p2+1):p]
+    sigma0hat1 <- sigma0hat
   }
-  sigma0hat1 <- S1 * Mask
+ 
   if (init == "Fantope"){
       ag <- sgca_init(A=S1, B=sigma0hat1, rho=0.5 * sqrt(log(p)/dim(X)[1]),
                   K=r ,nu=nu,trace=FALSE, maxiter = maxiter) ###needs to be changed to be a little more scalable

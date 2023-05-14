@@ -27,26 +27,32 @@ principal_angles <- function(a, b){
   out=list(angles=angles)
 }
 
-TPR  <-  function(A, B){
+TPR  <-  function(A, B, tol=1e-4){
   # This is a function that compares the structure of two matrices A and B
   # It outputs the number of entries that A and B have in common that are different from zero
   # A and B need to have the same number of rows and columns
+  A[which(abs(A) <tol)] =0
+  B[which(abs(B) <tol)] =0
   out  <-  sum((A!=0)*(B!=0))/max(1,sum(A!=0))
   return(out)
 }
 
-FPR  <-  function(A, B){
+FPR  <-  function(A, B, tol=1e-4){
   # This is a function that compares the structure of two matrices A and B
   # It outputs the number of entries that A and B have in common that are different from zero
   # A and B need to have the same number of rows and columns
+  A[which(abs(A) <tol)] =0
+  B[which(abs(B) <tol)] =0
   out  <-  sum((A!=0)*(B==0))/max(1,sum(A!=0))
   return(out)
 }
 
-TNR  <-  function(A, B){
+TNR  <-  function(A, B, tol=1e-4){
   # This is a function that compares the structure of two matrices A and B
   # It outputs the number of entries that A and B have in common that are zero #
   # A and B need to have the same number of rows and columns
+  A[which(abs(A) <tol)] =0
+  B[which(abs(B) <tol)] =0
   out  <-  sum((A==0)*(B==0))/max(1,sum(A==0))
   return(out)
 }

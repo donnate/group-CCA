@@ -4,7 +4,7 @@ library(CVXR)
 ####
 
 adaptive_lasso <- function(X, Z, beta0, adaptive=TRUE,
-                         lambda, lambda2, max.iter=5000,
+                         lambda, max.iter=5000,
                          max_k = 10, verbose = FALSE,
                          THRESHOLD=1e-5){
   
@@ -29,6 +29,7 @@ adaptive_lasso <- function(X, Z, beta0, adaptive=TRUE,
   
   #lambda=100
   objective <- 1 / 2 * sum_squares(X %*% W %*% Uhat  - Z) + lambda  * penalty_term
+  
   ## Define_and_Solve_Problem
   prob <- Problem(Minimize(objective))
   thresh = 1e-8
