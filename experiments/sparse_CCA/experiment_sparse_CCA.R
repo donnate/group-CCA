@@ -14,8 +14,8 @@ N <- as.integer(as.numeric(args[3]))
 set.seed(seed)
 it = seed
 for (n in c(N)){
-  for (psize in c(0.25 *n, 0.5*n, 0.75*n, n, 1.5 *n , 2 *n, 5 *n)){
-    for (nnz in c(5, 10, 20)){
+  for (psize in c(1.5 *n , 2 *n, 5 *n)){
+    for (nnz in c(5)){
     p1=as.integer(psize); p2=as.integer(psize)
     #nnz = ceil(sparsity * n)
     print(c(n, p1, p2))
@@ -93,7 +93,7 @@ for (n in c(N)){
                          "nnz" = nnz,
                          "p1" = p1,
                          "p2" = p2,
-                           "zero_benchmark" = silly_benchmark,
+                          "zero_benchmark" = silly_benchmark,
                          "nb_discoveries" = sum(apply(Uhat^2, 1, sum)>0),
                          "param1" = res_tg$lambda,
                          "param2" = res_tg$k,
