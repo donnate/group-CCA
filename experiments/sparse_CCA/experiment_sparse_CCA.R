@@ -30,7 +30,7 @@ for (n in c(N)){
       min1 = 0.01 * sqrt(log(p1)/n) 
       param1 = seq(min1, max1, length.out=10)
        # c(5, 10, 20, 30, 50, 80, 100, 200, 300,  500, 700, 1000)
-      maxk = 0.5 * p
+      maxk = 0.25 * p
       mink = 0.01 * p 
       param2 = ceiling(seq(max(ceiling(mink),5), ceiling(maxk), length.out = 8))
 

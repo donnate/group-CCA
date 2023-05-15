@@ -71,20 +71,22 @@ for (n in c(N)){
     print("here")
     param1 = 10^(seq(-5, 3, by = 0.2))
     max1 = 50 * sqrt(log(p1)/n)
-    min1 = 0.02 * sqrt(log(p1)/n) 
+    min1 = 0.02 * sqrt(log(p1)/n)
+    #param1= c(0.1) 
     param1 = param1[which(param1 < max1 & param1 > min1)]
      # c(5, 10, 20, 30, 50, 80, 100, 200, 300,  500, 700, 1000)
     maxk = 0.5 * p
     mink = 0.01 * p 
     param2 = ceiling(seq(max(ceiling(mink),5), ceiling(maxk), length.out = 8))
-      
+    #param2  =c(10)  
     transformed_data =  as.matrix(example$Data %*% example$daggerD)
     transformed_sigma0hat = as.matrix(t(example$daggerD) %*% example$sigma0hat %*% (example$daggerD))
     transformed_Sigmax =as.matrix( t(example$daggerDx) %*% example$Sigmax %*% (example$daggerDx))
     transformed_Sigmay =as.matrix( t(example$daggerDy) %*% example$Sigmay %*% (example$daggerDy))
     for (adaptive in c(TRUE, FALSE)){
         for (create_folds in c(TRUE, FALSE)){
-          
+    #adaptive = TRUE
+    #create_folds=FALSE      
           name_method = ifelse(adaptive, "adaptive_regularised_lasso", "regularised_lasso")
           name_method = paste0(name_method, ifelse(create_folds, "_with_folds", ""))
           
@@ -122,7 +124,7 @@ for (n in c(N)){
         } 
       }
       
-      print("Done witht hte ")
+      print("Done witht the transfored data")
       for (adaptive in c(TRUE, FALSE)){
         for (create_folds in c(FALSE)){
           name_method = ifelse(adaptive, "adaptive_lasso", "lasso")
@@ -167,6 +169,8 @@ for (n in c(N)){
                                               kfolds=5, maxiter=2000, convergence=1e-3, eta=1e-3,
                                               param1=param1,
                                               param2=param2, normalize=normalize)
+      
+      print(res_tg$ufinal)
       Uhat = rbind(res_tg$ufinal, res_tg$vfinal)
       temp <- data.frame("method" = "TG",
                          "exp" = it,
@@ -186,14 +190,22 @@ for (n in c(N)){
                          "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum)))
       
       results <- rbind(results, temp)
-      
+      print(paste0("done with ", "TG"))
       for (method in c("FIT_SAR_CV", "FIT_SAR_BIC", "Witten_Perm",
                        "Witten.CV", "Waaijenborg-Author", "Waaijenborg-CV",
                        "SCCA_Parkhomenko", "Canonical Ridge-Author"
       )){
+
+       #tryCatch({
+
+
         test1<-additional_checks(example$Data[,1:p1],
                                  example$Data[,(p1+1):(p2+p1)], S=NULL, 
                                  rank=2, kfolds=5, method.type = method)
+#       print(paste0("done with ", method))  
+#      print(test1$u)
+#      print("here done with u")
+#print(test1$v)
         Uhat = rbind(test1$u, test1$v)
         temp <- data.frame("method" = method,
                            "exp" = it,
@@ -202,6 +214,7 @@ for (n in c(N)){
                            "power" = power,
                            "p1" = p1,
                            "p2" = p2,
+                            "zero_benchmark" = silly_benchmark,
                            "nb_discoveries" = sum(apply(Uhat^2, 1, sum)>0),
                            "param1" = NA,
                            "param2" = NA,
@@ -216,9 +229,14 @@ for (n in c(N)){
            results <- rbind(results, temp )
 
         }
+      write_excel_csv(results, paste0("experiments/sparse_CCA/results/results_exp_localized_cca_", name_exp, ".csv"))
+      #}, error = function(err) {
+     #print(paste0("Error for method ", method))
+     #next
+     #  })
         
       }
-      write_excel_csv(results, paste0("experiments/sparse_CCA/results/results_exp_localized_cca_", name_exp, ".csv"))
+     # write_excel_csv(results, paste0("experiments/sparse_CCA/results/results_exp_localized_cca_", name_exp, ".csv"))
       
     }
   }
