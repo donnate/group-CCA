@@ -14,8 +14,13 @@ N <- as.integer(as.numeric(args[3]))
 set.seed(seed)
 it = seed
 for (n in c(N)){
+<<<<<<< HEAD
   for (psize in c(1.5 *n , 2 *n, 5 *n)){
     for (nnz in c(5)){
+=======
+  for (psize in c(n, 1.5 *n , 2 *n, 5 *n)){
+    for (nnz in c(5, 10, 20, 30, 50)){
+>>>>>>> 4463a8a668dba264f049ec2679cc424d0f89936c
     p1=as.integer(psize); p2=as.integer(psize)
     #nnz = ceil(sparsity * n)
     print(c(n, p1, p2))
@@ -30,7 +35,7 @@ for (n in c(N)){
       min1 = 0.01 * sqrt(log(p1)/n) 
       param1 = seq(min1, max1, length.out=10)
        # c(5, 10, 20, 30, 50, 80, 100, 200, 300,  500, 700, 1000)
-      maxk = 0.5 * p
+      maxk = 0.25 * p
       mink = 0.01 * p 
       param2 = ceiling(seq(max(ceiling(mink),5), ceiling(maxk), length.out = 8))
 

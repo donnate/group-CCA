@@ -12,5 +12,5 @@ regular_cca <- function(X_train, Y_train, rank){
   xcoef = inv_sqrt_Sigma_x %*% svd_for_cca$u[, 1:rank]
   ycoef = inv_sqrt_Sigma_y %*% svd_for_cca$v[, 1:rank]
   cancor <- svd_for_cca$d
-  return(list(uhat=xcoef, vhat=ycoef, cancor = cancor))
+  return(list(xcoef=xcoef, ycoef=ycoef, cancor = cancor))
 }

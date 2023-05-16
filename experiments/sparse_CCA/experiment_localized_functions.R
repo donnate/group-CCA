@@ -45,7 +45,7 @@ generate_localized_example <- function(n, p1,  nnzeros = 5,
                              theta = diag( c(0.9,  0.8)),
                              a = 0, r=2, signal_strength="normal",
                              type_graph="SBM", power=1.8, probs=PROBA,
-                             threshold_limit = 0.8){
+                             threshold_limit = 0.8, order=3){
   #n  <- 200;
   #p1 <- 100;
   #p2 <- 100;
@@ -84,6 +84,8 @@ generate_localized_example <- function(n, p1,  nnzeros = 5,
         }
       }
       
+
+      #u = t(daggerD) %*% test
       components.G = components(G)
       E = data.frame(as_edgelist(G))
       colnames(E)  = c("x", "y")
@@ -125,39 +127,52 @@ generate_localized_example <- function(n, p1,  nnzeros = 5,
   # generate covariance matrix for X and Y
   #T1 = toeplitz(a^(0:(pp[1]-1)));
   Sigma <- diag(p1+p2)
-  print(c(pp[1], pp[2],r))
   
   # generate covariance matrix for X and Y
   u = matrix(0, pp[1], r)
   v = matrix(0, pp[2], r)
-  print(c(p1, nnzeros))
-  s  = sample(1:p1, nnzeros)
 
-  T1 = cov;
-  T2 = cov;
-  Tss = T1;
-  Sigma[1:p1, 1:p1] = T1;
-  Sigma[(p1+1):(p1+p2), (p1+1):(p1+p2)] = T1;
 
-  u[s,1:r] <- as.matrix(runif( nnzeros * r,max = 3, min=1), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r, replace=TRUE), nrow=nnzeros)
-  v[s,1:r] <- as.matrix(runif( nnzeros * r,max = 3, min=1), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r, replace=TRUE), nrow=nnzeros)
+  #T1 = cov;
+  #T2 = cov;
+  #Tss = T1;
+  #Sigma[1:p1, 1:p1] = T1;
+  #Sigma[(p1+1):(p1+p2), (p1+1):(p1+p2)] = T1;
+
+  #u[s,1:r] <- as.matrix(runif( nnzeros * r,max = 3, min=1), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r, replace=TRUE), nrow=nnzeros)
+  #v[s,1:r] <- as.matrix(runif( nnzeros * r,max = 3, min=1), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r, replace=TRUE), nrow=nnzeros)
+  print(paste0("order is", order))
   for (i in 1:r){
+    ### Select the neighborhood
     #old = u[,i]
-    u[,i] = mvrnorm(n=1, mu=u[,i], Sigma = Tss)
-    u[which(abs(u[,i])<threshold_limit),i]=0
-    v[,i] = mvrnorm(n=1, mu=v[,i], Sigma = Tss)
-    v[which(abs(v[,i])<threshold_limit),i]=0
+    #u[,i] = mvrnorm(n=1, mu=u[,i], Sigma = Tss)
+    #u[which(abs(u[,i])<threshold_limit),i]=0
+    #v[,i] = mvrnorm(n=1, mu=v[,i], Sigma = Tss)
+    #v[which(abs(v[,i])<threshold_limit),i]=0
     #plot(u[,i], old)
+    nnz= sample(1:p1, nnzeros)
+    nnz.y= sample(1:p1, nnzeros)
+    #print(nnz)
+    for (ego_vertex in nnz){
+      ego_network <- as.numeric(ego(G, order=order, nodes = ego_vertex, mode = "all") [[1]]) # Extract the ego network
+      u[ego_network,i] = rnorm(n=length(ego_network), mean=sample(c(-1,1),1) * runif(1,min=1,max=3))
+      #print( u[ego_network,i] )
+    }
+    for (ego_vertex in nnz.y){
+      ego_network <- as.numeric(ego(G, order=order, nodes = ego_vertex, mode = "all") [[1]]) # Extract the ego network
+      v[ego_network,i] = rnorm(n=length(ego_network), mean=sample(c(-1,1),1) * runif(1,min=1,max=3))
+      #print( u[ego_network,i] )
+    }
   }
+  
   s_selected.x = which(apply(u, 1, norm)>0)
   s_selected.y = which(apply(v, 1, norm)>0)
-  u[s_selected.x,] <- u[s_selected.x,] %*%(sqrtm(t(u[s_selected.x,1:r]) %*% cov[s_selected.x, s_selected.x] %*% u[s_selected.x,1:r])$Binv)
-  v[s_selected.y,] <- v[s_selected.y,] %*%(sqrtm(t(v[s_selected.y,1:r]) %*% cov[s_selected.y, s_selected.y] %*% v[s_selected.y,1:r])$Binv)
-  u[which(abs(u) <1e-5)] = 0
-  v[which(abs(v) <1e-5)] = 0
+  u[s_selected.x,] <- u[s_selected.x,] %*%(sqrtm(t(u[s_selected.x,1:r]) %*% Sigma[s_selected.x, s_selected.x] %*% u[s_selected.x,1:r])$Binv)
+  v[s_selected.y,] <- v[s_selected.y,] %*%(sqrtm(t(v[s_selected.y,1:r]) %*% Sigma[s_selected.y, s_selected.y] %*% v[s_selected.y,1:r])$Binv)
+
 
   
-  Sigma[(p1+1):(p1+p2), 1:p1] = T2 %*%  v  %*% theta %*% t(u) %*% T1;
+  Sigma[(p1+1):(p1+p2), 1:p1] = Sigma[(p1+1):(p1+p2), (p1+1):(p1+p2)] %*%  v  %*% theta %*% t(u) %*% Sigma[1:p1, 1:p1];
   Sigma[1:p1, (p1+1):(p1+p2)] = t(Sigma[(p1+1):(p1+p2), 1:p1])
   Sigma[which(abs(Sigma)<1e-3)] = 0
   Sigmax = Sigma[1:p1,1:p1];
@@ -189,7 +204,7 @@ generate_localized_example <- function(n, p1,  nnzeros = 5,
   # Estimate the subspace spanned by the largest eigenvector using convex relaxation and TGD
   # First calculate ground truth
   result = geigen::geigen(Sigma, Sigma0)
-  evalues <- result$ values
+  evalues <- result$values
   evectors <-result$vectors
   evectors <- evectors[,p:1]
   a <- evectors[,1:r]
@@ -202,8 +217,136 @@ generate_localized_example <- function(n, p1,  nnzeros = 5,
          Mask_dual=Mask_dual,
          X=X, Y = Y, Data=Data,u=u, v=v, 
          Sigmax=Sigmax, Sigmay=Sigmay,
-         a=a
+         a=a, G=G
         ))
+}
+
+
+
+generate_gamma_sparse_example <- function(n, p1,  nnzeros = 5,
+                                       theta = diag( c(0.9,  0.8)),
+                                       a = 0, r=2, signal_strength="normal",
+                                       type_graph="SBM", power=1.8, probs=PROBA,
+                                       threshold_limit = 0.8, order=3){
+  #n  <- 200;
+  #p1 <- 100;
+  #p2 <- 100;
+  # r <- 2
+  p2  <- p1
+  p <- p1 + p2;
+  pp <- c(p1,p2);
+  print('--------------------------------------');
+  print('Generating data ...');
+  #a <- 0.3;
+  generated_graph = FALSE
+  trials = 1
+
+    if (type_graph == "PA"){
+      G <- sample_pa(p1, power = power)
+      #G <- make_lattice(length = 10, dim = 3)
+    }else{
+      if (type_graph == "SBM"){
+        pref.matrix = rbind(c(probs$`11`, probs$`12`, probs$`13`),
+                            c(probs$`12`, probs$`22`, probs$`23`),
+                            c(probs$`13`, probs$`23`, probs$`33`))
+        G.sbm <- sample_sbm(p1, pref.matrix = pref.matrix,
+                            block.sizes = c(floor(p1/3), floor(p1/3), p1- 2*floor(p1/3)))
+        comp = components(G.sbm)
+        G <- delete_vertices(G.sbm, which(comp$membership!=1))
+        Z.u = c(rep(1, floor(p1/3)), rep(2, floor(p1/3)), rep(3,  p1 - 2*floor(p1/3)))
+        Z.u = Z.u[which(comp$membership==1)]
+      }else{
+        if(as.integer(sqrt(p1))^2 == p1){
+          G <- make_lattice(length = as.integer(sqrt(p1)), 
+                            dim = as.integer(sqrt(p1)) )
+        }else{
+          print("p1 must have an integer square root")
+        }
+      }
+    }
+    
+    
+    #u = t(daggerD) %*% test
+    components.G = components(G)
+    E = data.frame(as_edgelist(G))
+    colnames(E)  = c("x", "y")
+    E["e"] = 1:nrow(E)
+    E = pivot_longer(E, cols=-c("e"))
+    E["fill_value"] = sapply(E$name,  vfn <- function(x){
+      ifelse(x=="x", 1, -1)
+    })
+    D = tidyr::pivot_wider(E, id_cols =c("e"), names_from = "value", values_from  =  "fill_value")
+    D[is.na(D)] <- 0
+    D = as.matrix(D %>% dplyr::select(-e))
+    daggerDx = pinv(D)
+    daggerDy = daggerDx
+    daggerD = bdiag(daggerDx,daggerDy)
+    
+    
+    Sigma <- diag(p1+p2)
+    ud = matrix(0, nrow(D), r)
+    vd = matrix(0, nrow(D), r)
+    s.x = sample(1:nrow(D), nnzeros)
+    s.y = sample(1:nrow(D), nnzeros)
+    ud[s.x,1:r] <- as.matrix(runif( nnzeros * r,max = 1, min=0), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r, replace=TRUE), nrow=nnzeros)
+    vd[s.y,1:r] <- as.matrix(runif( nnzeros * r,max = 1, min=0), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r, replace=TRUE), nrow=nnzeros)
+    
+    u = (daggerDx) %*% ud
+    v = (daggerDy) %*% vd
+    u <- u %*%(sqrtm(t(u[,1:r]) %*% Sigma[1:p1, 1:p1] %*% u[,1:r])$Binv)
+    v <- v %*%(sqrtm(t(v[,1:r]) %*% Sigma[(p1+1):p, (1+p1):p] %*% v[,1:r])$Binv)
+  
+  # generate covariance matrix for X and Y
+  #T1 = toeplitz(a^(0:(pp[1]-1)));
+
+  
+  Sigma[(p1+1):(p1+p2), 1:p1] = Sigma[(p1+1):(p1+p2), (p1+1):(p1+p2)] %*%  v  %*% theta %*% t(u) %*% Sigma[1:p1, 1:p1];
+  Sigma[1:p1, (p1+1):(p1+p2)] = t(Sigma[(p1+1):(p1+p2), 1:p1])
+  Sigma[which(abs(Sigma)<1e-3)] = 0
+  Sigmax = Sigma[1:p1,1:p1];
+  Sigmay = Sigma[(p1+1):p,(p1+1):p];
+  
+  
+  
+  #Generate Multivariate Normal Data According to Sigma
+  Data = mvrnorm(n, rep(0, p), Sigma);
+  
+  X = Data[,1:p1];
+  Y = Data[,(p1+1):(p1+p2)];
+  
+  print('Data generated.');
+  print('--------------------------------------');
+  
+  Mask = matrix(0, p, p);
+  idx1 = 1:pp[1];
+  idx2 = (pp[1]+1):(pp[1]+pp[2]);
+  Mask[idx1,idx1] <- matrix(1,pp[1],pp[1]);
+  Mask[idx2,idx2] <- matrix(1,pp[2],pp[2]);
+  Mask_dual = bdiag(matrix(1, length(E(G)),length(E(G))),
+                    matrix(1, length(E(G)),length(E(G))))
+  Sigma0 = Sigma * Mask;
+  
+  S <- cov(Data)
+  sigma0hat <- S * Mask
+  
+  # Estimate the subspace spanned by the largest eigenvector using convex relaxation and TGD
+  # First calculate ground truth
+  result = geigen::geigen(Sigma, Sigma0)
+  evalues <- result$values
+  evectors <-result$vectors
+  evectors <- evectors[,p:1]
+  a <- evectors[,1:r]
+  #scale <- a %*% sqrtm(diag(r)+t(a) %*% Sigma %*% a/lambda)$B;
+  return(list(Sigma=Sigma, Sigma0=Sigma0, daggerD = daggerD,
+              daggerDx =daggerDx,
+              daggerDy = daggerDx,
+              components.G = components.G,
+              S = S, sigma0hat =  sigma0hat, Mask= Mask,
+              Mask_dual=Mask_dual,
+              X=X, Y = Y, Data=Data,u=u, v=v, 
+              Sigmax=Sigmax, Sigmay=Sigmay,
+              a=a, G=G
+  ))
 }
 
 
@@ -269,6 +412,8 @@ pipeline_group_lasso <- function(Data, Mask, sigma0hat, Gamma, r, nu=1, Sigmax,
     best_hyperparams <- resultsx[which.min(resultsx$rmse), ]
     which_lambdax = which(abs(resultsx$rmse-min(resultsx$rmse))/(1e-6 + min(resultsx$rmse)) <0.05)
     lambdax = max(resultsx$param1[which_lambdax])
+   }else{
+    resultsx=NULL
   }
   if (is.null(lambday)){
     ### do CV
@@ -278,6 +423,8 @@ pipeline_group_lasso <- function(Data, Mask, sigma0hat, Gamma, r, nu=1, Sigmax,
     best_hyperparams <- results[which.min(results$rmse), ]
     which_lambday = which(abs(results$rmse-min(results$rmse))/(1e-6 + min(results$rmse)) <0.05)
     lambday = max(results$param1[which_lambday])
+  }else{
+    results=NULL
   }
   
   ufinal = gamma_sparse_lasso(X, Y %*% initv, Gamma,

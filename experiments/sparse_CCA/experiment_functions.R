@@ -278,6 +278,7 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
     best_hyperparams <- resultsx[which.min(resultsx$rmse), ]
     which_lambdax = which(abs(resultsx$rmse-min(resultsx$rmse))/(1e-6 + min(resultsx$rmse)) <0.05)
     lambdax = max(resultsx$param1[which_lambdax])
+    resultsx =NULL
   }
   if (is.null(lambday)){
     ### do CV
@@ -287,6 +288,7 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
     best_hyperparams <- results[which.min(results$rmse), ]
     which_lambday = which(abs(results$rmse-min(results$rmse))/(1e-6 + min(results$rmse)) <0.05)
     lambday = max(results$param1[which_lambday])
+    results =NULL
   }
   
   ufinal = adaptive_lasso(X, Y %*% initv, initu, adaptive=adaptive, lambdax, 
