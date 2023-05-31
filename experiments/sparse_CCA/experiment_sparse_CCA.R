@@ -14,12 +14,19 @@ N <- as.integer(as.numeric(args[3]))
 set.seed(seed)
 it = seed
 for (n in c(N)){
+<<<<<<< HEAD
   for (psize in c(n, 1.5 *n , 2 *n, 5 *n)){
     for (nnz in c(5, 10, 20, 30, 50)){
       psize= 1.5 * n
       nnz= ceiling(0.1*  n/(2 * 2) )
+=======
+#  for (psize in c(0.25 *n, 0.5 *n , 0.75 *n, n, 1.25 *n,  1.5 *n , 2 *n, 3*n,  5 *n)){
+for (psize in c( 1.25 *n,  1.5 *n , 2 *n, 3*n,  5 *n)){   
+ for (sparsity in c(0.01, 0.05, 0.1, 0.2, 0.3, 0.5)){
+>>>>>>> 8026c28060dea1210e3b0bbe13b8e8da60aebc97
     p1=as.integer(psize); p2=as.integer(psize)
-    #nnz = ceil(sparsity * n)
+   
+    nnz = ceil(sparsity * p1)
     print(c(n, p1, p2))
     p = p1+ p2
     example <- generate_example(n=n, p1=p1, p2=p2,   
@@ -38,6 +45,7 @@ for (n in c(N)){
 
       for (adaptive in c(TRUE, FALSE)){
         for (create_folds in c(TRUE, FALSE)){
+          result <- tryCatch({
         name_method = ifelse(adaptive, "adaptive_lasso", "lasso")
         name_method = paste0(name_method, ifelse(create_folds, "_with_folds", ""))
 
@@ -55,6 +63,7 @@ for (n in c(N)){
                          "nnz" = nnz,
                          "p1" = p1,
                          "p2" = p2,
+                         "sparsity" = sparsity,
                          "zero_benchmark" = silly_benchmark,
                          "nb_discoveries" = sum(apply(Uhat^2, 1, sum)>0),
                          "param1" = res$lambdax,
@@ -70,7 +79,14 @@ for (n in c(N)){
            results <- rbind(results, temp )
 
         }
-
+       }, error = function(e) {
+    # Error handling code goes here
+    
+    # Print the error message
+    cat("Error occurred in method", name_method, ":", conditionMessage(e), "\n")
+    
+    # Skip to the next iterationt
+  })
         } 
 
       
@@ -79,8 +95,9 @@ for (n in c(N)){
       }
 
        print("there")
-      for (normalize in c(TRUE, FALSE)){
-   
+      
+     result <- tryCatch({
+      normalize=FALSE
       name_method = paste0("TG", ifelse(normalize, "_normalized", ""))
       res_tg <- pipeline_thresholded_gradient(example$Data, example$Mask, example$sigma0hat, 
                                               r=2, nu=1,Sigmax=example$Sigmax, 
@@ -95,6 +112,7 @@ for (n in c(N)){
                          "nnz" = nnz,
                          "p1" = p1,
                          "p2" = p2,
+                         "sparsity" = sparsity,
                           "zero_benchmark" = silly_benchmark,
                          "nb_discoveries" = sum(apply(Uhat^2, 1, sum)>0),
                          "param1" = res_tg$lambda,
@@ -106,12 +124,102 @@ for (n in c(N)){
                          "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum)))
       
       results <- rbind(results, temp)
-      }
+
+
+      Uhat = rbind(res_tg$initu, res_tg$initv)
+      temp <- data.frame("method" = "Fantope",
+                         "exp" = it,
+                         "n" = n,
+                         "nnz" = nnz,
+                         "p1" = p1,
+                         "p2" = p2,
+                         "sparsity" = sparsity,
+                          "zero_benchmark" = silly_benchmark,
+                         "nb_discoveries" = sum(apply(Uhat^2, 1, sum)>0),
+                         "param1" = res_tg$lambda,
+                         "param2" = res_tg$k,
+                         "distance" = subdistance(Uhat, example$a),
+                         "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
+                         "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
+                         "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
+                         "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum)))
+      results <- rbind(results, temp)
+     selected_rows = which(apply(res_tg$initu^2, 1, sum)>0)
+     selected_rows.v = which(apply(res_tg$initv^2, 1, sum)>0)
+      print("Selected rows.v")
+     print(selected_rows.v)
+
+     print("Selected rows")
+     print(selected_rows)
+     if (min(length(selected_rows), length(selected_rows.v))<n & min(length(selected_rows), length(selected_rows.v))>0){
+          r=2
+          print("here CCA")
+          t=cancor(as.matrix(example$Data[,selected_rows]), as.matrix(example$Data[, (selected_rows.v + p1)]))
+          Uhat = matrix(0, p, r)
+          Uhat[selected_rows,]  = t$xcoef[,1:r]
+           Uhat[selected_rows.v + p1,]  = t$ycoef[,1:r]
+           print(paste0("Done with Uhat: dimension:"))
+          print(dim(Uhat))
+            print(paste0("GT: dimension:"))
+           print(dim(example$a))
+           temp <- data.frame("method" = "thresholded-lasso",
+                         "exp" = it,
+                         "n" = n,
+                         "nnz" = nnz,
+                         "p1" = p1,
+                         "p2" = p2,
+                         "sparsity" = sparsity,
+                          "zero_benchmark" = silly_benchmark,
+                         "nb_discoveries" = sum(apply(Uhat^2, 1, sum)>0),
+                         "param1" = res_tg$lambda,
+                         "param2" = res_tg$k,
+                         "distance" = subdistance(Uhat, example$a),
+                         "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
+                         "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
+                         "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
+                         "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum)))
+       print(dim(temp))
+       print(dim(results))
+       print("done")
+       }else{
+     print("Couldnt threshold")
+         temp <- data.frame("method" = "thresholded-lasso",
+                             "exp" = it,
+                             "n" = n,
+                             "nnz" = nnz,
+                             "p1" = p1,
+                             "p2" = p2,
+                               "sparsity" = sparsity,
+                             "zero_benchmark" = silly_benchmark,
+                             "nb_discoveries" = NA,
+                             "param1" = NA,
+                             "param2" = NA,
+                             "distance" = NA,
+                             "TPR" = NA,
+                             "TNR" = NA,
+                             "FPR" = NA,
+                             "FNR" = NA)
+   }
+      results <- rbind(results, temp )
+     
+
+       }, error = function(e) {
+    # Error handling code goes here
+    
+    # Print the error message
+    cat("Error occurred in method", name_method, ":", conditionMessage(e), "\n")
+    
+    # Skip to the next iteration
+   
+  })
 
       for (method in c("FIT_SAR_CV", "FIT_SAR_BIC", "Witten_Perm",
                        "Witten.CV", "Waaijenborg-Author", "Waaijenborg-CV",
                        "SCCA_Parkhomenko", "Canonical Ridge-Author"
       )){
+      
+
+        result <- tryCatch({
         test1<-additional_checks(example$Data[,1:p1],
                                  example$Data[,(p1+1):(p2+p1)], S=NULL, 
                                  rank=2, kfolds=5, method.type = method)
@@ -122,6 +230,7 @@ for (n in c(N)){
                            "nnz" = nnz,
                            "p1" = p1,
                            "p2" = p2,
+                           "sparsity" = sparsity,
                             "zero_benchmark" = silly_benchmark,
                            "nb_discoveries" = sum(apply(Uhat^2, 1, sum)>0),
                            "param1" = NA,
@@ -137,9 +246,17 @@ for (n in c(N)){
            results <- rbind(results, temp )
 
         }
+        }, error = function(e) {
+    # Error handling code goes here
+    
+    # Print the error message
+    cat("Error occurred in method", method, ":", conditionMessage(e), "\n")
+    
+    # Skip to the next iteration
+      })
         
       }
-      write_excel_csv(results, paste0("experiments/sparse_CCA/results/results_exp_sparse_cca_", name_exp, ".csv"))
+      write_excel_csv(results, paste0("experiments/sparse_CCA/results/extended_results_exp_sparse_cca_", name_exp, ".csv"))
       
     }
   }

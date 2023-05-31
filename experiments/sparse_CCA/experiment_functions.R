@@ -44,7 +44,9 @@ generate_example <- function(n, p1, p2,   nnzeros = 5,
   a = 0; r=2; signal_strength="normal"
   p <- p1 + p2;
   pp <- c(p1,p2);
-  s  <- sample(1:min(p1,p2),nnzeros);
+  print("We have:")
+  print(c(p, nnzeros<=min(p1,p2), nnzeros))
+  s  <- sample(1:min(p1,p2),nnzeros, replace=(nnzeros<=min(p1,p2)));
   print('--------------------------------------');
   print('Generating data ...');
   #a <- 0.3;
@@ -115,6 +117,7 @@ cv_function <- function(X, Y, kfolds=10, initu, initv,
   # define empty vector to store results
   folds <- createFolds(1:nrow(Y), k = kfolds, list = TRUE, returnTrain = FALSE)
   rmse <- numeric(length = kfolds)
+  nnz  <- numeric(length = kfolds)
   # loop over folds
   for (i in seq_along(folds)) {
     # split data into training and validation sets
@@ -136,11 +139,13 @@ cv_function <- function(X, Y, kfolds=10, initu, initv,
     ##### Normalize Uhat
     if (normalize == FALSE){
       rmse[i] <- sum((X_val %*% model$Uhat - Y_val%*% initv)^2)
+      nnz[i] <- sum(apply(model$Uhat^2, 1, sum) >1e-4)
     }else{
       sol <- gca_to_cca(rbind(model$Uhat, initv), 
                         cov(rbind(X_val, Y_val)), pp)
       rmse[i] <- sum((X_val %*% sol$u - Y_val%*% initv)^2)
-    }
+      nnz[i] <- sum(apply(sol$u^2, 1, sum) >1e-4)
+     }
     },
     error = function(e) {
       # If an error occurs, assign NA to the result
@@ -152,7 +157,8 @@ cv_function <- function(X, Y, kfolds=10, initu, initv,
   if (mean(is.na(rmse)) == 1){
       return(1e8)
    }else{
-  return(median(rmse, na.rm=TRUE))
+  return(list(med = median(rmse, na.rm=TRUE),
+              med_nnz = median(nnz, na.rm=TRUE)))
    }
 }
 

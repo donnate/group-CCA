@@ -7,7 +7,7 @@
 #SBATCH --time=35:00:00
 #SBATCH --partition=broadwl
 #SBATCH --ntasks=1
-#SBATCH --mem=10G
+#SBATCH --mem=5G
 #SBATCH --account=pi-cdonnat
 
 # Print the task id.
