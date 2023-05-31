@@ -14,13 +14,10 @@ N <- as.integer(as.numeric(args[3]))
 set.seed(seed)
 it = seed
 for (n in c(N)){
-<<<<<<< HEAD
-  for (psize in c(1.5 *n , 2 *n, 5 *n)){
-    for (nnz in c(5)){
-=======
   for (psize in c(n, 1.5 *n , 2 *n, 5 *n)){
     for (nnz in c(5, 10, 20, 30, 50)){
->>>>>>> 4463a8a668dba264f049ec2679cc424d0f89936c
+      psize= 1.5 * n
+      nnz= ceiling(0.1*  n/(2 * 2) )
     p1=as.integer(psize); p2=as.integer(psize)
     #nnz = ceil(sparsity * n)
     print(c(n, p1, p2))
