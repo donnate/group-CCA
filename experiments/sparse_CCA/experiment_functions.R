@@ -113,7 +113,8 @@ generate_example <- function(n, p1, p2,   nnzeros = 5,
 
 
 cv_function <- function(X, Y, kfolds=10, initu, initv,
-                        lambdax, adaptive=TRUE, normalize=FALSE) {
+                        lambdax, adaptive=TRUE, normalize=FALSE,
+                        criterion="prediction") {
   # define empty vector to store results
   folds <- createFolds(1:nrow(Y), k = kfolds, list = TRUE, returnTrain = FALSE)
   rmse <- numeric(length = kfolds)
@@ -138,12 +139,23 @@ cv_function <- function(X, Y, kfolds=10, initu, initv,
     # compute RMSE on validation data
     ##### Normalize Uhat
     if (normalize == FALSE){
-      rmse[i] <- sum((X_val %*% model$Uhat - Y_val%*% initv)^2)
+      if (criterion=="prediction"){
+        rmse[i] <- sum((X_val %*% model$Uhat - Y_val%*% initv)^2)
+        if (norm(model$Uhat) == 0){ ####prevents selecting values that would make everything 0
+          rmse[i] <- 1e8
+        }
+      }else{
+        rmse[i] <- sum(abs(cor(X_val %*% model$Uhat, Y_val%*% initv)))
+      }
       nnz[i] <- sum(apply(model$Uhat^2, 1, sum) >1e-4)
     }else{
       sol <- gca_to_cca(rbind(model$Uhat, initv), 
                         cov(rbind(X_val, Y_val)), pp)
+      if (criterion=="prediction"){
       rmse[i] <- sum((X_val %*% sol$u - Y_val%*% initv)^2)
+      }else{
+        rmse[i] <- sum(abs(cor(X_val %*%sol$u, Y_val%*% initv)))
+      }
       nnz[i] <- sum(apply(sol$u^2, 1, sum) >1e-4)
      }
     },
@@ -157,15 +169,14 @@ cv_function <- function(X, Y, kfolds=10, initu, initv,
   if (mean(is.na(rmse)) == 1){
       return(1e8)
    }else{
-  return(list(med = median(rmse, na.rm=TRUE),
-              med_nnz = median(nnz, na.rm=TRUE)))
+  return(median(rmse, na.rm=TRUE))
    }
 }
 
 
 cv_function_tgd <- function(X, Y, Mask, kfolds=5, ainit,
                         lambda, r=2, k=20,  maxiter=1000, eta=0.001,
-                        convergence=1e-3, normalize=FALSE) {
+                        convergence=1e-3, normalize=FALSE, criterion="prediction") {
   # define empty vector to store results
   folds <- createFolds(1:nrow(Y), k = kfolds, list = TRUE, returnTrain = FALSE)
   rmse <- numeric(length = kfolds)
@@ -201,11 +212,19 @@ cv_function_tgd <- function(X, Y, Mask, kfolds=5, ainit,
     # make predictions on validation data
     # compute RMSE on validation data
     if (normalize == FALSE){
-      rmse[i] <- sum((X_val %*% final$u - Y_val%*% initv)^2)
+      if (criterion=="prediction"){
+        rmse[i] <- sum((X_val %*% final$u - Y_val%*% initv)^2)
+      }else{
+        rmse[i] <- sum(abs(cor(X_val %*% final$u, Y_val%*% initv)))
+      }
     }else{
       sol <- gca_to_cca(rbind(final$u, initv), 
                         cov(rbind(X_val, Y_val)), pp)
-      rmse[i] <- sum((X_val %*% sol$u - Y_val%*% initv)^2)
+      if (criterion=="prediction"){
+        rmse[i] <- sum((X_val %*% sol$u - Y_val%*% initv)^2)
+      }else{
+        rmse[i] <- sum(abs(cor(X_val %*%sol$u, Y_val%*% initv)))
+      }
     }
     },
     error = function(e) {
@@ -222,10 +241,28 @@ cv_function_tgd <- function(X, Y, Mask, kfolds=5, ainit,
    }
 }
 
+preselection <-function(Data, CorrelationMat, p1, r, alpha){
+  p = ncol(Data)
+  n=  nrow(Data)
+  p2 =  p-p1
+  t = apply(CorrelationMat -diag(diag(CorrelationMat)), 1, 
+            function(x){max(x^2)})
+  J = order(-t)[1: ceiling(alpha  * n/(r))]
+  set_u = J[which(J <= p1)]
+  set_v = J[which(J > p1)]
+  t=CCA::cc(as.matrix(Data[,set_u]), as.matrix(Data[, set_v]))
+  Uhat = matrix(0, p, r)
+  Uhat[set_u, ] =  t$xcoef[,1:r]
+  Uhat[set_v, ] =  t$ycoef[,1:r]
+  return(Uhat)
+}
+
+
 pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax, 
                                     Sigmay, maxiter=30, lambdax=NULL, lambday=NULL,
                                     adaptive=TRUE, kfolds=5, param1=10^(seq(-4, 2, by = 0.25)),
-                                    create_folds=TRUE, init ="Fantope", normalize=FALSE){
+                                    create_folds=TRUE, init ="Fantope", normalize=FALSE, alpha=0.5,
+                                    criterion="prediction"){
   
   ### data splitting procedure 3 folds
   #maxiter=100;  lambdax=NULL;
@@ -260,10 +297,8 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
       ainit <- init_process(ag$Pi, r) 
   
   }else{
-      RCC_cv<-estim.regul_crossvalidation(X1, Y1,
-                                          n.cv=5)
-      method<-rcc(X1, Y1, RCC_cv$lambda1.optim, RCC_cv$lambda2.optim)
-      ainit= rbind(method$xcoef[,1:r], method$ycoef[,1:r])
+    CorrelationMatrix =  diag(1/sqrt(diag(example$S))) %*% example$S %*% diag(1/sqrt(diag(example$S)))
+     ainit= preselection(example$Data, CorrelationMatrix, p1, r, alpha)
   }
 
   init <- gca_to_cca(ainit, S3, pp)
@@ -277,7 +312,8 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
     resultsx <- expand.grid(param1 = param1) %>%
       mutate(rmse = map_dbl(param1, ~ cv_function(X, Y, kfolds, initu, initv,
                                                   lambdax = .x, adaptive=adaptive,
-                                                   normalize=normalize)))
+                                                   normalize=normalize,
+                                                  criterion=criterion)))
 
     
     # print best hyperparameters and corresponding RMSE
@@ -290,7 +326,8 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
     ### do CV
     results <- expand.grid(param1 = param1) %>%
       mutate(rmse = map_dbl(param1, ~ cv_function(Y, X, kfolds, initv, initu,
-                                                  lambdax = .x, adaptive=adaptive)))
+                                                  lambdax = .x, adaptive=adaptive,
+                                                  criterion=criterion)))
     best_hyperparams <- results[which.min(results$rmse), ]
     which_lambday = which(abs(results$rmse-min(results$rmse))/(1e-6 + min(results$rmse)) <0.05)
     lambday = max(results$param1[which_lambday])
@@ -325,7 +362,7 @@ pipeline_thresholded_gradient <- function(Data, Mask, sigma0hat, r=2, nu=1, Sigm
                                           maxiter=2000, convergence=1e-3, eta=1e-3,
                                           param1=10^(seq(-4, 1, by = 1)),
                                           param2=c(20, 1000), init="Fantope",
-                                          normalize=FALSE){
+                                          normalize=FALSE,criterion="prediction"){
   p1 <- dim(Sigmax)[1]
   p2 <- dim(Sigmay)[1]
   p <- p1 + p2;
@@ -355,7 +392,8 @@ pipeline_thresholded_gradient <- function(Data, Mask, sigma0hat, r=2, nu=1, Sigm
                                                           lambda = .x,
                                                           k = .y, r=r,
                                                           maxiter=maxiter, eta=eta, convergence=convergence,
-                                                          normalize=normalize)))
+                                                          normalize=normalize,
+                                                          criterion=criterion)))
                                                           #X, Y, Mask, kfolds=5, ainit,lambda, r=2, k=20,  
                                                           #maxiter=1000, eta=0.001, convergence=1e-
 
