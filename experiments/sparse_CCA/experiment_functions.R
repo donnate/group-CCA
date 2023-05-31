@@ -262,7 +262,8 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
                                     Sigmay, maxiter=30, lambdax=NULL, lambday=NULL,
                                     adaptive=TRUE, kfolds=5, param1=10^(seq(-4, 2, by = 0.25)),
                                     create_folds=TRUE, init ="Fantope", normalize=FALSE, alpha=0.5,
-                                    criterion="prediction"){
+                                    criterion="prediction",
+                                    fantope_solution=NULL){
   
   ### data splitting procedure 3 folds
   #maxiter=100;  lambdax=NULL;
@@ -292,9 +293,14 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
   }
  
   if (init == "Fantope"){
+    if (is.null(fantope_solution)){
       ag <- sgca_init(A=S1, B=sigma0hat1, rho=0.5 * sqrt(log(p)/dim(X)[1]),
-                  K=r ,nu=nu,trace=FALSE, maxiter = maxiter) ###needs to be changed to be a little more scalable
+                      K=r ,nu=nu,trace=FALSE, maxiter = maxiter) ###needs to be changed to be a little more scalable
       ainit <- init_process(ag$Pi, r) 
+    }else{
+      ainit <- fantope_solution
+    }
+      
   
   }else{
     CorrelationMatrix =  diag(1/sqrt(diag(example$S))) %*% example$S %*% diag(1/sqrt(diag(example$S)))
@@ -362,7 +368,8 @@ pipeline_thresholded_gradient <- function(Data, Mask, sigma0hat, r=2, nu=1, Sigm
                                           maxiter=2000, convergence=1e-3, eta=1e-3,
                                           param1=10^(seq(-4, 1, by = 1)),
                                           param2=c(20, 1000), init="Fantope",
-                                          normalize=FALSE,criterion="prediction"){
+                                          normalize=FALSE,criterion="prediction",
+                                          fantope_solution=NULL){
   p1 <- dim(Sigmax)[1]
   p2 <- dim(Sigmay)[1]
   p <- p1 + p2;
@@ -371,10 +378,13 @@ pipeline_thresholded_gradient <- function(Data, Mask, sigma0hat, r=2, nu=1, Sigm
   S = cov(Data)
 
   if (init == "Fantope"){
-      ag <- sgca_init(A=S, B=sigma0hat, rho=0.5 * sqrt(log(p)/n),
-                  K=r ,nu=nu,trace=FALSE, maxiter = maxiter) ###needs to be changed to be a little more scalable
+    if (is.null(fantope_solution)){
+      ag <- sgca_init(A=S1, B=sigma0hat1, rho=0.5 * sqrt(log(p)/n),
+                      K=r ,nu=nu,trace=FALSE, maxiter = maxiter) ###needs to be changed to be a little more scalable
       ainit <- init_process(ag$Pi, r) 
-  
+    }else{
+      ainit <- fantope_solution
+    }
   }else{
       RCC_cv<-estim.regul_crossvalidation(Data[,1:p1], Data[,(p2+1):p],
                                           n.cv=5)

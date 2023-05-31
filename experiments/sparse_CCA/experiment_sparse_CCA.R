@@ -37,6 +37,7 @@ for (psize in c( 0.25 *n, 0.5 *n , 0.75 *n, n, 1.25 *n,  1.5 *n , 2 *n, 2.5*n, 3
       maxk = 0.25 * p
       mink = 0.01 * p 
       param2 = ceiling(seq(max(ceiling(mink),5), ceiling(maxk), length.out = 30))
+      fantope_solution = NULL
 
       for (adaptive in c(TRUE, FALSE)){
         for (initialize in c("Fantope", "Selection")){
@@ -51,9 +52,13 @@ for (psize in c( 0.25 *n, 0.5 *n , 0.75 *n, n, 1.25 *n,  1.5 *n , 2 *n, 2.5*n, 3
                                     adaptive=adaptive, kfolds=5,  param1=param1,
                                     create_folds=FALSE, normalize=FALSE,
                                     init=initialize, alpha = 0.75,
-                                    criterion=criterion)
-         Uhat = rbind(res$Uhat, res$Vhat)
-         temp <- data.frame("method" = name_method,
+                                    criterion=criterion, 
+                                    fantope_solution = fantope_solution )
+          if (initialize == 'Fantope'){
+            fantope_solution = rbind(res$initu, res$initv)
+          }
+          Uhat = rbind(res$Uhat, res$Vhat)
+          temp <- data.frame("method" = name_method,
                          "exp" = it,
                          "n" = n,
                          "nnz" = nnz,
@@ -127,7 +132,8 @@ for (psize in c( 0.25 *n, 0.5 *n , 0.75 *n, n, 1.25 *n,  1.5 *n , 2 *n, 2.5*n, 3
                                               kfolds=5, maxiter=2000, convergence=1e-3, eta=1e-3,
                                               param1=param1,
                                               param2=param2, normalize=normalize,
-                                              criterion=criterion)
+                                              criterion=criterion,
+                                              fantope_solution=fantope_solution)
       Uhat = rbind(res_tg$ufinal, res_tg$vfinal)
       temp <- data.frame("method" = name_method,
                          "exp" = it,
