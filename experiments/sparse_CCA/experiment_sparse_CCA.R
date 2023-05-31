@@ -71,10 +71,10 @@ for (psize in c( 0.25 *n, 0.5 *n , 0.75 *n, n, 1.25 *n,  1.5 *n , 2 *n, 2.5*n, 3
                          "param1" = res$lambdax,
                          "param2" = res$lambday,
                          "distance" = subdistance(Uhat, example$a),
-                          "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-                         "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-                         "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-                         "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum)))
+                          "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
+                         "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
+                         "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
+                         "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum), tol=THRES))
          
       if (length(results)==0){
           results=temp
@@ -95,10 +95,10 @@ for (psize in c( 0.25 *n, 0.5 *n , 0.75 *n, n, 1.25 *n,  1.5 *n , 2 *n, 2.5*n, 3
                                 "param1" = res_tg$lambda,
                                 "param2" = res_tg$k,
                                 "distance" = subdistance(Uhat, example$a),
-                                "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-                                "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-                                "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-                                "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum)))
+                                "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
+                                "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
+                                "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
+                                "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum), tol=THRES))
              results <- rbind(results, temp)
            }
 
@@ -148,10 +148,10 @@ for (psize in c( 0.25 *n, 0.5 *n , 0.75 *n, n, 1.25 *n,  1.5 *n , 2 *n, 2.5*n, 3
                          "param1" = res_tg$lambda,
                          "param2" = res_tg$k,
                          "distance" = subdistance(Uhat, example$a),
-                         "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-                         "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-                         "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-                         "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum)))
+                         "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
+                         "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
+                         "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
+                         "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum), tol=THRES))
       
       results <- rbind(results, temp)
 
@@ -170,10 +170,10 @@ for (psize in c( 0.25 *n, 0.5 *n , 0.75 *n, n, 1.25 *n,  1.5 *n , 2 *n, 2.5*n, 3
                          "param1" = res_tg$lambda,
                          "param2" = res_tg$k,
                          "distance" = subdistance(Uhat, example$a),
-                         "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-                         "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-                         "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-                         "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum)))
+                         "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
+                         "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
+                         "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
+                         "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum), tol=THRES))
      results <- rbind(results, temp)
      selected_rows = which(apply(res_tg$initu^2, 1, sum)>0)
      selected_rows.v = which(apply(res_tg$initv^2, 1, sum)>0)
@@ -209,10 +209,10 @@ for (psize in c( 0.25 *n, 0.5 *n , 0.75 *n, n, 1.25 *n,  1.5 *n , 2 *n, 2.5*n, 3
                          "param1" = res_tg$lambda,
                          "param2" = res_tg$k,
                          "distance" = subdistance(Uhat, example$a),
-                         "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-                         "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-                         "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-                         "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum)))
+                         "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
+                         "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
+                         "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
+                         "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum), tol=THRES))
        print(dim(temp))
        print(dim(results))
        print("done")
@@ -270,10 +270,10 @@ for (psize in c( 0.25 *n, 0.5 *n , 0.75 *n, n, 1.25 *n,  1.5 *n , 2 *n, 2.5*n, 3
                      "param1" = NA,
                      "param2" = NA,
                      "distance" = subdistance(Uhat, example$a),
-                     "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-                     "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-                     "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-                     "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum)))
+                     "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
+                     "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
+                     "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
+                     "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum), tol=THRES))
   results <- rbind(results, temp )
 
     for (method in c("FIT_SAR_CV", "FIT_SAR_BIC", "Witten_Perm",
@@ -300,10 +300,10 @@ for (psize in c( 0.25 *n, 0.5 *n , 0.75 *n, n, 1.25 *n,  1.5 *n , 2 *n, 2.5*n, 3
                            "param1" = NA,
                            "param2" = NA,
                            "distance" = subdistance(Uhat, example$a),
-                           "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-                           "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-                           "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum)),
-                           "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum)))
+                           "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
+                           "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
+                           "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
+                           "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum), tol=THRES))
         if (length(results)==0){
           results=temp
         }else{
