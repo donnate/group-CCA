@@ -30,13 +30,13 @@ for (psize in c( 0.25 *n, 0.5 *n , 0.75 *n, n, 1.25 *n,  1.5 *n , 2 *n, 2.5*n, 3
                                 a = 0, r=2)
     silly_benchmark = subdistance(matrix(0, p,2), example$a)
       print("here")
-      max1 = 100 * sqrt(log(p1)/n)
-      min1 = 0.01 * sqrt(log(p1)/n) 
-      param1 = seq(min1, max1, length.out=10)
+      max1 = 1000 * sqrt(log(p1)/n)
+      min1 = 0.001 * sqrt(log(p1)/n) 
+      param1 = exp(seq(log(min1), log(max1), length.out=30))
        # c(5, 10, 20, 30, 50, 80, 100, 200, 300,  500, 700, 1000)
       maxk = 0.25 * p
       mink = 0.01 * p 
-      param2 = ceiling(seq(max(ceiling(mink),5), ceiling(maxk), length.out = 8))
+      param2 = ceiling(seq(max(ceiling(mink),5), ceiling(maxk), length.out = 30))
 
       for (adaptive in c(TRUE, FALSE)){
         for (initialize in c("Fantope", "Selection")){
