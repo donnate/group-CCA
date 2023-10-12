@@ -33,7 +33,7 @@ adaptive_lasso <- function(X, Z, beta0, adaptive=TRUE,
   ## Define_and_Solve_Problem
   prob <- Problem(Minimize(objective))
   thresh = 1e-8
-  result <- solve(prob, FEASTOL = thresh, RELTOL = thresh, ABSTOL = thresh, verbose = TRUE)
+  result <- solve(prob, FEASTOL = thresh, RELTOL = thresh, ABSTOL = thresh, verbose = verbose)
   #result <- psolve(prob, verbose = TRUE, num_iter =max.iter)
   ## Return_Values
   Uhat <- W%*% result$getValue(Uhat)
@@ -41,6 +41,8 @@ adaptive_lasso <- function(X, Z, beta0, adaptive=TRUE,
   #plot(beta0[,1],Uhat[,1])
   ## Zero out stuff before returning
   Uhat[abs(Uhat) < THRESHOLD] <- 0.0
+  #### Normalize appropriately
+  Uhat <- Uhat %*% sqrtm(t(Uhat) %*% t(X) %*% X %*% Uhat)$Binv
   list(
     Uhat = Uhat,
     criterion = result$value)

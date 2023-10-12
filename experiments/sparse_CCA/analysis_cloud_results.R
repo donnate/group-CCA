@@ -4,19 +4,21 @@ library(tidyverse)
 
 
 
-file_list <- list.files(path = "~/Documents/group-CCA/experiments/sparse_CCA/results/results/", pattern = "results_exp_sparse_cca_27475*", full.names = TRUE)
+file_list <- list.files(path = "~/Documents/group-CCA/experiments/sparse_CCA/results/", pattern = "extended_results_exp_sparse_cca_296*", full.names = TRUE)
 # Read and combine CSV files into a single data frame
 results <- file_list %>%
-  map_dfr(~ read_csv(.x) %>% mutate(filename = .x))
+  map_dfr(~ read_csv(.x) %>% mutate(filename = .x)) %>%
+  mutate("selection" = ifelse(str_detect(filename, "correlation"), "correlation", "prediction"))
 
 
-##### Try and analyse this data
+##### Analyse this data
 
 
 
 
 res = results %>% 
-  group_by(method, n, nnz, p1, p2) %>% 
+  mutate(FDR=1 - nb_real_discoveries/max(1,nb_discoveries)) %>%
+  group_by(method, selection, n, nnz, p1, p2) %>% 
   summarise_if(is.numeric, mean) %>%
   arrange(n, nnz, p1, p2, distance)
 t = as.numeric(sapply(res$method, function(x){ifelse(str_count(x, "folds" )>0, 1, 0)}))
@@ -24,22 +26,26 @@ t = t  + as.numeric(sapply(res$method, function(x){ifelse(str_count(x, "CV" )>0,
 res["shape"] = as.factor(t)
 
 
-legend_order <- c("adaptive_lasso", "TG_normalized","lasso", "Canonical Ridge-Author",
+legend_order <- c("adaptive_lasso_Fantope", "adaptive_lasso_Selection",
+                  "TG" ,"lasso_Fantope", "lasso_Selection",   "Fantope" ,
+                  "thresholded-lasso",
+                  "Canonical Ridge-Author",
                   "FIT_SAR_BIC", "FIT_SAR_CV", "SCCA_Parkhomenko",
                   "Witten_Perm", "Witten.CV", "Waaijenborg-Author",
-                  "Waaijenborg-CV")
+                  "Waaijenborg-CV", "Selection",  "Oracle" )
 
 my_colors <- c(
-  "dodgerblue",  "red","orange",  "yellow", 
+  "dodgerblue", "cyan",  "red","orange","orange4","navy", "grey", "yellow",  
               "green", "green3", "navajowhite3", "plum2", "plum3",
-              "cadetblue1", "lightskyblue", "whitesmoke")
+              "cadetblue1", "lightskyblue", "brown", "black","whitesmoke", "white")
               
 
 
-ggplot(res %>% filter(!method %in% c("lasso_with_folds",
-                                     "adaptive_lasso_with_folds")))+
+ggplot(res %>% filter(method %in% c("adaptive_lasso_Fantope", "adaptive_lasso_Selection",
+                                     "TG" ,  "Fantope" ), selection=="prediction"))+
   geom_line(aes(x=p1/n, y=distance, colour=method, linetype=shape), linewidth=1.)+
   geom_point(aes(x=p1/n, y=distance, colour=method, shape=shape), size=2.2)+
+  geom_jitter(aes(x=p1/n, y=distance, colour=method, shape=shape), size=2.2)+
   geom_line(data=res %>% group_by(n, nnz, p1, p2) %>% summarise(b=mean(zero_benchmark)),
              aes(y=b, x=p1/n, colour="Zero Benchmark"), colour="black", linewidth=0.5)+
   scale_color_manual(values = my_colors, breaks = legend_order) +
@@ -47,10 +53,20 @@ ggplot(res %>% filter(!method %in% c("lasso_with_folds",
   theme_bw()
 
 
+ggplot(res %>% filter(method %in% c("adaptive_lasso_Fantope", "adaptive_lasso_Selection",
+                                    "TG" ,  "Fantope"  )))+
+  geom_line(aes(x=p1/n, y=FNR, colour=method, linetype=shape), linewidth=1.)+
+  geom_point(aes(x=p1/n, y=FNR, colour=method, shape=shape), size=2.2)+
+  scale_color_manual(values = my_colors, breaks = legend_order) +
+  facet_grid(n~sparsity, scales="free") +
+  theme_bw()
+
+
+
 ggplot(res  %>% filter(!method %in% c("lasso_with_folds",
                                       "adaptive_lasso_with_folds")))+
-  geom_line(aes(x=p1/n, y=FPR, colour=method), linewidth=1.)+
-  geom_point(aes(x=p1/n, y=FPR, colour=method), size=2.2)+
+  geom_line(aes(x=p1/n, y=FNR, colour=method), linewidth=1.)+
+  geom_point(aes(x=p1/n, y=FNR, colour=method), size=2.2)+
   # geom_line(data=res  %>% filter(nnz<30)%>% 
   #             mutate(fpr_benchmark = (n-nnz)/n) %>%
   #             group_by(n, nnz, p1, p2) %>% 
@@ -70,7 +86,7 @@ ggplot(res %>% filter(!method %in% c( "lasso_with_folds",
   theme_bw()
 
 
-ggplot(res   %>% filter(!method %in% c( "lasso_with_folds",
+ggplot(res   %>% filter(!method %in% c( "lasso_with_folds","Fantope",
                                      "adaptive_lasso_with_folds",
                                      "Waaijenborg-Author",
                                      "Waaijenborg-CV")))+
@@ -89,11 +105,11 @@ ggplot(res   %>% filter(!method %in% c( "lasso_with_folds",
             aes(y=b, x=p1/n, colour="Zero Benchmark"), colour="black", linewidth=0.5)+
   scale_color_manual(values = my_colors, breaks = legend_order) +
   facet_grid(n~sparsity, scales="free") +
-  scale_y_log10() + 
+  #scale_y_log10() + 
   theme_bw()
 
 
-ggplot(res %>% filter(!method %in% c(  "lasso_with_folds",
+ggplot(res %>% filter(!method %in% c(  "lasso_with_folds","Fantope",
                                      "adaptive_lasso_with_folds")),
        aes(x=FPR, y=FNR, colour=method, size=p1/n))+
   geom_point()+
@@ -160,7 +176,7 @@ ggplot(res_loc  %>%filter(n==100) %>% filter(!method %in% c("TG_normalized", "la
   geom_line(data=res_loc %>%  group_by(n, nnz, p1, p2) %>% summarise(b=mean(zero_benchmark)),
             aes(y=b, x=p1/n, colour="Zero Benchmark"), colour="black", linewidth=0.5)+
   scale_color_manual(values = my_colors, breaks = legend_order) +
-  facet_grid(power~ example_type, scales="free") +
+  facet_grid(power~ example_type +n, scales="free") +
   theme_bw()
 
 

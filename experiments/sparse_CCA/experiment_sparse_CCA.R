@@ -20,6 +20,7 @@ r = 2
 for (n in c(N)){
 for (psize in c( 0.25 *n, 0.5 *n , 0.75 *n, n, 1.25 *n,  1.5 *n , 2 *n, 2.5*n, 3*n, 4*n, 5 *n)){   
  for (sparsity in c(0.05, 0.1, 0.2, 0.3, 0.5)){
+for (sparsity in c(0.1)){
     p1=as.integer(psize); p2=as.integer(psize)
     nnz = ceil(sparsity * p1)
     print(c(n, p1, p2))
@@ -27,17 +28,17 @@ for (psize in c( 0.25 *n, 0.5 *n , 0.75 *n, n, 1.25 *n,  1.5 *n , 2 *n, 2.5*n, 3
     example <- generate_example(n=n, p1=p1, p2=p2,   
                                 nnzeros = min(nnz, min(p1,p2)-1),
                                 theta = diag( c(0.9,  0.8)),
-                                a = 0, r=2)
-    silly_benchmark = subdistance(matrix(0, p,2), example$a)
-      print("here")
-      max1 = 500 * sqrt(log(p1)/n)
-      min1 = 0.001 * sqrt(log(p1)/n) 
-      param1 = exp(seq(log(min1), log(max1), length.out=20))
+                                a = 0.3, r=5)
+    silly_benchmark = subdistance(matrix(0, p1,2), example$u)
+    print("here")
+    max1 = 500 * sqrt(log(p1)/n)
+    min1 = 0.001 * sqrt(log(p1)/n) 
+    param1 = exp(seq(log(min1), log(max1), length.out=20))
        # c(5, 10, 20, 30, 50, 80, 100, 200, 300,  500, 700, 1000)
-      maxk = 0.25 * p
-      mink = 0.01 * p 
-      param2 = ceiling(seq(max(ceiling(mink),5), ceiling(maxk), length.out = 10))
-      fantope_solution = NULL
+    maxk = 0.25 * p
+    mink = 0.01 * p 
+    param2 = ceiling(seq(max(ceiling(mink),5), ceiling(maxk), length.out = 10))
+    fantope_solution = NULL
 
       for (adaptive in c(TRUE, FALSE)){
         for (initialize in c("Fantope", "Selection")){
@@ -46,7 +47,7 @@ for (psize in c( 0.25 *n, 0.5 *n , 0.75 *n, n, 1.25 *n,  1.5 *n , 2 *n, 2.5*n, 3
           name_method = paste0(name_method, "_",  initialize)
         
           res = pipeline_adaptive_lasso(example$Data, example$Mask, example$sigma0hat, 
-                                    r=2, 
+                                    r=r, 
                                     nu=1, example$Sigmax, 
                                     example$Sigmay, maxiter=100, lambdax=NULL,
                                     adaptive=adaptive, kfolds=5,  param1=param1,
@@ -95,6 +96,7 @@ for (psize in c( 0.25 *n, 0.5 *n , 0.75 *n, n, 1.25 *n,  1.5 *n , 2 *n, 2.5*n, 3
                                 "param1" = res_tg$lambda,
                                 "param2" = res_tg$k,
                                 "distance" = subdistance(Uhat, example$a),
+                                "principal_angles" = principal_angles(Uhat, example$a),
                                 "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
                                 "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
                                 "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
@@ -121,8 +123,37 @@ for (psize in c( 0.25 *n, 0.5 *n , 0.75 *n, n, 1.25 *n,  1.5 *n , 2 *n, 2.5*n, 3
        print("there")
       
       
+       test = pipeline_alternating_lasso(example$Data, example$Mask, example$sigma0hat, 
+                                  r=2, 
+                                  nu=1, example$Sigmax, 
+                                  example$Sigmay, maxiter=100, lambdax=NULL,
+                                  adaptive=adaptive, kfolds=5,  param1=param1,
+                                  create_folds=FALSE, normalize=FALSE,
+                                  init=initialize, alpha = 0.75,
+                                  criterion=criterion, 
+                                  fantope_solution = fantope_solution )
        
-      
+       Uhat = rbind(test$ufinal$Uhat, test$vfinal$Uhat)
+       temp <- data.frame("method" = name_method,
+                          "exp" = it,
+                          "n" = n,
+                          "nnz" = nnz,
+                          "p1" = p1,
+                          "p2" = p2,
+                          "sparsity" = sparsity,
+                          "zero_benchmark" = silly_benchmark,
+                          "nb_discoveries" = sum(apply(Uhat^2, 1, sum)>0),
+                          "nb_real_discoveries" = sum(apply(Uhat^2, 1, sum)>THRES),
+                          "param1" = res$lambdax,
+                          "param2" = res$lambday,
+                          "distance" = subdistance(Uhat, example$a),
+                          "principal_angles" = principal_angles(Uhat, example$a),
+                          "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
+                          "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
+                          "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
+                          "FNR" = FPR(apply(example$a^2, 1, sum),apply(Uhat^2, 1, sum), tol=THRES))
+       
+       
      result <- tryCatch({
       normalize=FALSE
       name_method = paste0("TG", ifelse(normalize, "_normalized", ""))
@@ -148,6 +179,7 @@ for (psize in c( 0.25 *n, 0.5 *n , 0.75 *n, n, 1.25 *n,  1.5 *n , 2 *n, 2.5*n, 3
                          "param1" = res_tg$lambda,
                          "param2" = res_tg$k,
                          "distance" = subdistance(Uhat, example$a),
+                         "principal_angles" = principal_angles(Uhat, example$a),
                          "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
                          "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
                          "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
@@ -170,6 +202,7 @@ for (psize in c( 0.25 *n, 0.5 *n , 0.75 *n, n, 1.25 *n,  1.5 *n , 2 *n, 2.5*n, 3
                          "param1" = res_tg$lambda,
                          "param2" = res_tg$k,
                          "distance" = subdistance(Uhat, example$a),
+                         "principal_angles" = principal_angles(Uhat, example$a),
                          "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
                          "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
                          "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
@@ -209,6 +242,7 @@ for (psize in c( 0.25 *n, 0.5 *n , 0.75 *n, n, 1.25 *n,  1.5 *n , 2 *n, 2.5*n, 3
                          "param1" = res_tg$lambda,
                          "param2" = res_tg$k,
                          "distance" = subdistance(Uhat, example$a),
+                         "principal_angles" = principal_angles(Uhat, example$a),
                          "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
                          "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
                          "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
@@ -231,6 +265,7 @@ for (psize in c( 0.25 *n, 0.5 *n , 0.75 *n, n, 1.25 *n,  1.5 *n , 2 *n, 2.5*n, 3
                              "param1" = NA,
                              "param2" = NA,
                              "distance" = NA,
+                            "principal_angles" = NA,
                              "TPR" = NA,
                              "TNR" = NA,
                              "FPR" = NA,
@@ -270,6 +305,7 @@ for (psize in c( 0.25 *n, 0.5 *n , 0.75 *n, n, 1.25 *n,  1.5 *n , 2 *n, 2.5*n, 3
                      "param1" = NA,
                      "param2" = NA,
                      "distance" = subdistance(Uhat, example$a),
+                     "principal_angles" = principal_angles(Uhat, example$a),
                      "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
                      "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
                      "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
@@ -300,6 +336,7 @@ for (psize in c( 0.25 *n, 0.5 *n , 0.75 *n, n, 1.25 *n,  1.5 *n , 2 *n, 2.5*n, 3
                            "param1" = NA,
                            "param2" = NA,
                            "distance" = subdistance(Uhat, example$a),
+                           "principal_angles" = principal_angles(Uhat, example$a),
                            "TPR" =TPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
                            "TNR" = TNR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
                            "FPR" = FPR(apply(Uhat^2, 1, sum), apply(example$a^2, 1, sum), tol=THRES),
@@ -318,10 +355,8 @@ for (psize in c( 0.25 *n, 0.5 *n , 0.75 *n, n, 1.25 *n,  1.5 *n , 2 *n, 2.5*n, 3
     
     # Skip to the next iteration
       })
-        
       }
       write_excel_csv(results, paste0("experiments/sparse_CCA/results/extended_results_exp_sparse_cca_", name_exp, "_", criterion, ".csv"))
-      
     }
   }
 }

@@ -17,6 +17,9 @@ type_graph <- args[4]
 ORDER <- as.numeric(args[5])
 set.seed(seed)
 it = seed
+seed = 1
+ORDER = 2
+
 for (n in c(N)){
   for (psize in c(0.25 *n, 0.5*n, 0.75*n, n, 1.5 *n , 2 *n, 5 *n)){
     for (power in c(0.1, 0.5, 1, 1.5, 2)){
@@ -215,6 +218,7 @@ for (n in c(N)){
         print(paste0("done with ", "TG"))
         
         if (p1<n){
+          r=2
           t=CCA::cc(as.matrix(example$Data[,1:p1]), as.matrix(example$Data[, (p1+1):p]))
           Uhat = rbind(t$xcoef[,1:r], t$ycoef[,1:r])
           temp <- data.frame("method" = "regular-CCA",

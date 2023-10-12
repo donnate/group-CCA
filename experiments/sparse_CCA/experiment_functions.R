@@ -39,30 +39,30 @@ generate_example <- function(n, p1, p2,   nnzeros = 5,
   #p1 <- 100;
   #p2 <- 100;
   # r <- 2
-  nnzeros = 5
-  theta = diag( c(0.9,  0.8))
-  a = 0; r=2; signal_strength="normal"
   p <- p1 + p2;
   pp <- c(p1,p2);
   print("We have:")
   print(c(p, nnzeros<=min(p1,p2), nnzeros))
-  s  <- sample(1:min(p1,p2),nnzeros, replace=(nnzeros<=min(p1,p2)));
   print('--------------------------------------');
   print('Generating data ...');
   #a <- 0.3;
   Sigma <- diag(p1+p2)
+  s = 1:nnzeros
   
   # generate covariance matrix for X and Y
-  T1 = toeplitz(a^(0:(pp[1]-1)));
+  T1 = eye(p1)#as.matrix(toeplitz(a^(0:(pp[1]-1))));
   T1[which(T1<1e-6)] = 0
   Sigma[1:p1, 1:p1] = T1;
   #T1 = Sigma[1:p1, 1:p1]
   Tss = T1[s,s];
+  TsMs = T1[s,-s];
+  TMsMs =  T1[-s,-s];
   u = matrix(0, pp[1], r)
-  u[s,1:r] <- as.matrix(runif( nnzeros * r,max = 3, min=1), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r, replace=TRUE), nrow=nnzeros)
-  u <- u %*%(sqrtm(t(u[s,1:r]) %*% Tss %*% u[s,1:r])$Binv)
   
-  T2 = toeplitz(a^(0:(pp[2]-1)));
+  u[s,1:r] <- as.matrix(runif( nnzeros * r,max = 3, min=1), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r, replace=TRUE), nrow=nnzeros)
+  u <- u %*%(sqrtm(t(u[s,1:r]) %*% Tss%*% u[s,1:r])$Binv)
+  
+  T2 = eye(p2); #toeplitz(a^(0:(pp[2]-1)));
   Sigma[(p1+1):(p1+p2), (p1+1):(p1+p2)] = T2;
   Tss = Sigma[(p1+1):(p1+p2), (p1+1):(p1+p2)][s, s];
   v = matrix(0, pp[2], r)
@@ -97,17 +97,16 @@ generate_example <- function(n, p1, p2,   nnzeros = 5,
   
   # Estimate the subspace spanned by the largest eigenvector using convex relaxation and TGD
   # First calculate ground truth
-  result = geigen::geigen(Sigma,Sigma0)
-  evalues <- result$ values
-  evectors <-result$vectors
-  evectors <- evectors[,p:1]
-  a <- evectors[,1:r]
+  #result = geigen::geigen(Sigma, Sigma0)
+  #evalues <- result$values
+  #evectors <-result$vectors
+  #evectors <- evectors[,p:1]
+  #a <- evectors[,1:r]
   #scale <- a %*% sqrtm(diag(r)+t(a) %*% Sigma %*% a/lambda)$B;
   return(list(Sigma=Sigma, Sigma0=Sigma0,
          S = S, sigma0hat =  sigma0hat, Mask= Mask,
-         X=X, Y = Y, Data=Data,u=u, v=v, 
-         Sigmax=Sigmax, Sigmay=Sigmay,
-         a=a
+         X=X, Y = Y, Data=Data, u=u, v=v, 
+         Sigmax=Sigmax, Sigmay=Sigmay#,#a=a
         ))
 }
 
@@ -357,6 +356,76 @@ pipeline_adaptive_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax,
                resultsx=resultsx,
                resultsy=results
          )) #### Not too bad
+}
+
+pipeline_alternating_lasso <- function(Data, Mask, sigma0hat, r, nu=1, Sigmax, 
+                                       Sigmay, maxiter=30, lambdax=NULL, lambday=NULL,
+                                       adaptive=TRUE, kfolds=5, param1=10^(seq(-4, 2, by = 0.25)),
+                                       create_folds=TRUE, init ="Fantope", normalize=FALSE, alpha=0.5,
+                                       criterion="prediction",
+                                       fantope_solution=NULL){
+  
+  ### Replaces the initialization step by an rcc
+  p1 <- dim(Sigmax)[1]
+  p2 <- dim(Sigmay)[1]
+  p <- p1 + p2;
+  n <- nrow(Data)
+  pp <- c(p1,p2);
+  RCC_cv<-estim.regul_crossvalidation(Data[,1:p1], Data[,(p2+1):p],
+                                      n.cv=5)
+  method<-rcc(Data[,1:p1], Data[,(p2+1):p], 
+              RCC_cv$lambda1.optim, RCC_cv$lambda2.optim)
+  U0 = method$xcoef[,1:r]; ### Initial values
+  V0 = method$ycoef[,1:r];
+  X = Data[,1:p1]
+  Y = Data[,(p2+1):p]
+  Uinit = U0
+  Vinit = V0
+  converged = FALSE
+  it = 0
+  while(converged==FALSE & it <10){
+    resultsx <- expand.grid(param1 = param1) %>%
+      mutate(rmse = map_dbl(param1, ~ cv_function(X, Y, kfolds, U0, V0,
+                                                  lambdax = .x, adaptive=adaptive,
+                                                  normalize=normalize,
+                                                  criterion=criterion)))
+    
+    
+    # print best hyperparameters and corresponding RMSE
+    best_hyperparams <- resultsx[which.min(resultsx$rmse), ]
+    which_lambdax = which(abs(resultsx$rmse-min(resultsx$rmse))/(1e-6 + min(resultsx$rmse)) <0.05)
+    lambdax = max(resultsx$param1[which_lambdax])
+    Unew = adaptive_lasso(X, Y %*% V0, U0, adaptive=adaptive, lambdax, 
+                          max.iter=5000, 
+                          max_k = 10, verbose = FALSE, THRESHOLD=1e-5)
+    
+    results <- expand.grid(param1 = param1) %>%
+      mutate(rmse = map_dbl(param1, ~ cv_function(Y, X, kfolds,  V0, Unew$Uhat,
+                                                  lambdax = .x, adaptive=adaptive,
+                                                  criterion=criterion)))
+    best_hyperparams <- results[which.min(results$rmse), ]
+    which_lambday = which(abs(results$rmse-min(results$rmse))/(1e-6 + min(results$rmse)) <0.05)
+    lambday = max(results$param1[which_lambday])
+    
+    Vnew = adaptive_lasso(Y, X %*% Unew$Uhat, V0, adaptive=adaptive, lambday, max.iter=5000, 
+                            max_k = 10, verbose = FALSE, THRESHOLD=1e-5)
+    
+    converged = (mean((Unew$Uhat-U0)^2) <1e-4) & (mean((Vnew$Uhat-V0)^2) <1e-4)
+    it = it + 1
+    U0  = Unew$Uhat
+    V0 = Vnew$Uhat
+    print(it)
+    
+  }
+  
+  return(list( ufinal = Unew, vfinal = Vnew,
+               initu=Uinit, initv=Vinit,
+               lambda.x=lambdax, 
+               lambda.y=lambday
+  ))
+  
+  
+  
 }
 
 ## Running initialization using convex relaxation
