@@ -19,7 +19,7 @@ module load libgmp
 module load R/4.2.0
 module load python
 
-source activate "r-reticulate"
+#source activate "r-reticulate"
 
 result_file="${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
 echo "result file is ${result_file}"
@@ -27,6 +27,6 @@ cd $SCRATCH/$USER/group-CCA/
 Rscript experiments/sparse_CCA/experiment_sparse_CCA.R $SLURM_ARRAY_TASK_ID $result_file $1 $2 $3 $4
 # $1 : N
 # $2 : r
-# $3 : r_pca
+# $3 : r_pcas
 # $4 : criterion (prediction/ correlation) for CV
 # $5 : normalized diagonal (0/1)
