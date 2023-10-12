@@ -1,6 +1,6 @@
-source("src/cd_solver.R")
-source("src/penalties.R")
-source("src/losses.R")
+source("src/solver/cd_solver.R")
+source("src/solver/penalties.R")
+source("src/solver/losses.R")
 
 library(cvwrapr)
 
