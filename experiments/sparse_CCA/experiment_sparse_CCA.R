@@ -16,6 +16,7 @@ n <- as.integer(as.numeric(args[3]))
 r <- ceiling(as.numeric(args[4]))
 r_pca <- ceiling(as.numeric(args[5]))
 criterion <- args[6]
+normalize_diagonal <- as.logical(as.numeric(args[7]))
 set.seed(seed)
 it = seed
 THRES = 1e-3
@@ -36,7 +37,9 @@ for (psize in c(0.25 *n, 0.5 *n , 0.75 *n, n,
                                               theta = diag(seq(from = 0.9, to=0.6, 
                                                                length.out = r)),
                                               lambda_pca = 1,
-                                              r=r, overlapping_amount = overlapping_amount)
+                                              r=r, 
+                                              overlapping_amount = overlapping_amount,
+                                              normalize_diagonal=normalize_diagonal)
           print("here")
           max1 = 500 * sqrt(log(p1)/n)
           min1 = 0.001 * sqrt(log(p1)/n) 
@@ -61,6 +64,7 @@ for (psize in c(0.25 *n, 0.5 *n , 0.75 *n, n,
                                      lambday = NA, 
                                      thres = THRES,
                                      it=it,
+                                     normalize_diagonal=normalize_diagonal,
                                      criterion=criterion)
             if (length(results)==0){
               results=temp
@@ -90,6 +94,7 @@ for (psize in c(0.25 *n, 0.5 *n , 0.75 *n, n,
                                      lambday = NA, 
                                      thres = THRES,
                                      it=it,
+                                     normalize_diagonal=normalize_diagonal,
                                      criterion=criterion)
             if (length(results)==0){
               results=temp
@@ -141,6 +146,7 @@ for (psize in c(0.25 *n, 0.5 *n , 0.75 *n, n,
                                                              lambday = res$lambday, 
                                                              thres = THRES,
                                                              it=it,
+                                                             normalize_diagonal=normalize_diagonal,
                                                              criterion=criterion)
                                     if (length(results)==0){
                                         results=temp
@@ -156,6 +162,7 @@ for (psize in c(0.25 *n, 0.5 *n , 0.75 *n, n,
                                                                    lambday = res$lambday, 
                                                                    thres = THRES,
                                                                    it=it,
+                                                                   normalize_diagonal=normalize_diagonal,
                                                                    criterion=criterion)
                                           results <- rbind(results, temp)
                                         }
@@ -197,6 +204,7 @@ for (psize in c(0.25 *n, 0.5 *n , 0.75 *n, n,
                                      lambday =   res_tg$k, 
                                      thres = THRES,
                                      it=it,
+                                     normalize_diagonal=normalize_diagonal,
                                      criterion=criterion)
             
           results <- rbind(results, temp)
@@ -211,6 +219,7 @@ for (psize in c(0.25 *n, 0.5 *n , 0.75 *n, n,
                                    lambday =   res_tg$k, 
                                    thres = THRES,
                                    it=it,
+                                   normalize_diagonal=normalize_diagonal,
                                    criterion=criterion)
           results <- rbind(results, temp)
           selected_rows = which(apply(res_tg$initu^2, 1, sum)>0)
@@ -240,6 +249,7 @@ for (psize in c(0.25 *n, 0.5 *n , 0.75 *n, n,
                                          lambday =  res_tg$k, 
                                          thres = THRES,
                                          it=it,
+                                         normalize_diagonal=normalize_diagonal,
                                          criterion=criterion)
               
             print(dim(temp))
@@ -279,6 +289,7 @@ for (psize in c(0.25 *n, 0.5 *n , 0.75 *n, n,
                                  lambday =  NA, 
                                  thres = THRES,
                                  it=it,
+                                 normalize_diagonal=normalize_diagonal,
                                  criterion=criterion)
         results <- rbind(results, temp )
 
@@ -302,6 +313,7 @@ for (psize in c(0.25 *n, 0.5 *n , 0.75 *n, n,
                                                      lambday =  NA, 
                                                      thres = THRES,
                                                      it=it,
+                                                     normalize_diagonal=normalize_diagonal,
                                                      criterion=criterion)
                             
                             if (length(results)==0){

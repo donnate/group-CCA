@@ -500,6 +500,7 @@ additional_checks <- function(X_train, Y_train, S=NULL,
 
 evaluate_results <- function(Uhat, Vhat, example, name_method, overlapping_amount, 
                              thres = 0.0001, lambdax= NULL,lambday = NULL, it=1,
+                             normalize_diagonal=TRUE,
                              criterion="prediction"){
   Uhat_tot = rbind(Uhat, Vhat)
   U_tot = rbind(example$u, example$v)
@@ -523,6 +524,7 @@ evaluate_results <- function(Uhat, Vhat, example, name_method, overlapping_amoun
              "nb_real_discoveries" = sum(apply(Uhat_tot^2, 1, sum)>thres),
              "param1" = lambdax,
              "param2" = lambday,
+             "normalize_diagonal" = normalize_diagonal,
              "distance_tot" = subdistance(Uhat_tot, U_tot),
              "distance_U" = subdistance(Uhat, example$u),
              "distance_V" = subdistance(Vhat, example$v),
