@@ -160,7 +160,7 @@ generate_example_none_trivial_pca <- function(n, p1, p2,
                                               theta = diag( c(0.9,  0.8)),
                                               lambda_pca = 1,
                                               r=2, overlapping_amount = 0,
-                                              norm_diagonal = TRUE){
+                                              normalize_diagonal = TRUE){
   ###
   # This generates a dataset (X,Y) from a multivariate normal where Sigma_XX  and 
   # Sigma_YY have a correlation structure, and Sigma_XY = U Lambda V^T is rank r on a set of nnzeros rows, 0 elsewhere.
@@ -200,7 +200,7 @@ generate_example_none_trivial_pca <- function(n, p1, p2,
   u1[s_pca,1:r_pca] <- u1[s_pca,1:r_pca] %*%(sqrtm(t(u1[s_pca,1:r_pca]) %*% u1[s_pca,1:r_pca])$Binv)
   T1 = u1 %*% diag(Lambda_pca) %*% t(u1)#as.matrix(toeplitz(a^(0:(pp[1]-1))));
   T1[which(T1<1e-6)] = 0
-  if (norm_diagonal){
+  if (normalize_diagonal){
     diag(T1) <- 1
   }
   Sigma[1:p1, 1:p1] = T1;
@@ -219,7 +219,7 @@ generate_example_none_trivial_pca <- function(n, p1, p2,
   u2[s_pca,1:r_pca] <- as.matrix(runif( nnzeros * r_pca,max = 3, min=1), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r_pca, replace=TRUE), nrow=nnzeros)
   u2[s_pca,1:r_pca] <- u1[s_pca,1:r_pca] %*%(sqrtm(t(u1[s_pca,1:r_pca]) %*% u1[s_pca,1:r_pca])$Binv)
   T2 = u2 %*% diag(Lambda_pca) %*% t(u2)#as.matrix(toeplitz(a^(0:(pp[1]-1))));
-  if (norm_diagonal){
+  if (normalize_diagonal){
     diag(T2) <- 1
   }
   Sigma[(p1+1):(p1+p2), (p1+1):(p1+p2)] = T2;

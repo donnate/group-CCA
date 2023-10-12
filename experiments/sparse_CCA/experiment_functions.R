@@ -29,7 +29,7 @@ source('experiments/alternative_methods/SAR.R')
 source('experiments/alternative_methods/Parkhomenko.R')
 source('experiments/alternative_methods/Witten_CrossValidation.R')
 source('experiments/alternative_methods/Waaijenborg.R')
-source("src/cca_bis.R")
+source("src/solver/cca_bis.R")
 
 setwd(wd)
 
