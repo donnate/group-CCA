@@ -7,7 +7,6 @@ source("experiments/sparse_CCA/generate_examples.R")
 source("src/ssvd/my_ssvd.R")
 results <- c()
 
-
 args <- commandArgs(trailingOnly=TRUE)
 seed <- as.numeric(args[1])
 print(seed)
@@ -22,14 +21,15 @@ it = seed
 THRES = 1e-3
 
 
-for (psize in c(0.25 *n, 0.5 *n , 0.75 *n, n, 
+for (psize in c(0.5 *n , 0.75 *n, n, 
                 1.25 *n,  1.5 *n , 2 *n, 2.5*n, 3*n, 4*n, 5 *n)){   
     for (sparsity in c(0.01, 0.05, 0.1, 0.2, 0.3, 0.4)){
-        for (overlapping_amount in seq(0,1 , 0.1)){
+      nnz = ceil(sparsity * p1)
+      if (nnz > 2){
+         for (overlapping_amount in seq(0,1 , 0.1)){
           p1 <- as.integer(psize); 
           p2 <- as.integer(psize)
-          nnz = ceil(sparsity * p1)
-          print(c(n, p1, p2))
+          print(c(n, p1, p2, nnz))
           p <-  p1 + p2
           example <- generate_example_none_trivial_pca(n, p1, p2, 
                                               r_pca = 3, 
@@ -58,7 +58,7 @@ for (psize in c(0.25 *n, 0.5 *n , 0.75 *n, n,
             temp <- evaluate_results(Uhat= test1$u, 
                                      Vhat = test1$v, 
                                      example = example, 
-                                     name_method=name_method, 
+                                     name_method="SSVD-theory", 
                                      overlapping_amount=overlapping_amount,
                                      lambdax= NA,
                                      lambday = NA, 
@@ -88,7 +88,7 @@ for (psize in c(0.25 *n, 0.5 *n , 0.75 *n, n,
             temp <- evaluate_results(Uhat= test1$u, 
                                      Vhat = test1$v, 
                                      example = example, 
-                                     name_method=name_method, 
+                                     name_method="SSVD-method", 
                                      overlapping_amount=overlapping_amount,
                                      lambdax= NA,
                                      lambday = NA, 
@@ -329,6 +329,7 @@ for (psize in c(0.25 *n, 0.5 *n , 0.75 *n, n,
                     })
       }
       write_excel_csv(results, paste0("experiments/sparse_CCA/results/extended_results_exp_sparse_cca_", name_exp, "_", criterion, ".csv"))
+      }
     }
   }
 }

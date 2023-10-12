@@ -189,6 +189,8 @@ generate_example_none_trivial_pca <- function(n, p1, p2,
   #a <- 0.3;
   Sigma <- diag(p1+p2)
   s = (1):(nnzeros)
+  print('Number of non zeros is:');
+  print(nnzeros)
   start = ceiling((1- overlapping_amount) * nnzeros)
   s_pca = start:(start + nnzeros-1)
   
@@ -211,6 +213,11 @@ generate_example_none_trivial_pca <- function(n, p1, p2,
   TMsMs =  T1[-s,-s];
   u = matrix(0, pp[1], r)
   u[s,1:r] <- as.matrix(runif( nnzeros * r,max = 3, min=1), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r, replace=TRUE), nrow=nnzeros)
+  print("Tss is")
+  print(dim(Tss))
+  print(Tss)
+   print("U is")
+  print(dim(u))
   u <- u %*%(sqrtm(t(u[s,1:r]) %*% Tss%*% u[s,1:r])$Binv)
   
   
