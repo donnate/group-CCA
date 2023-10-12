@@ -15,7 +15,7 @@ library(caret)
 #n = 500, p1 = p2 = 100, s_u = s_v = 5
 #k = 20, eta = 0.0025, lambda =0.01, T = 12000
 wd = getwd()
-setwd("experiments/GCA")
+setwd("experiments/alternative_methods/GCA")
 source("utils.R")
 source("gca_to_cca.R")
 source("init_process.R")
@@ -32,86 +32,9 @@ source('experiments/alternative_methods/Waaijenborg.R')
 source("src/cca_bis.R")
 
 setwd(wd)
-generate_example <- function(n, p1, p2,   nnzeros = 5,
-                             theta = diag( c(0.9,  0.8)),
-                             a = 0, r=2, signal_strength="normal"){
-  #n  <- 200;
-  #p1 <- 100;
-  #p2 <- 100;
-  # r <- 2
-  p <- p1 + p2;
-  pp <- c(p1,p2);
-  print("We have:")
-  print(c(p, nnzeros<=min(p1,p2), nnzeros))
-  print('--------------------------------------');
-  print('Generating data ...');
-  #a <- 0.3;
-  Sigma <- diag(p1+p2)
-  s = 1:nnzeros
-  
-  # generate covariance matrix for X and Y
-  T1 = eye(p1)#as.matrix(toeplitz(a^(0:(pp[1]-1))));
-  T1[which(T1<1e-6)] = 0
-  Sigma[1:p1, 1:p1] = T1;
-  #T1 = Sigma[1:p1, 1:p1]
-  Tss = T1[s,s];
-  TsMs = T1[s,-s];
-  TMsMs =  T1[-s,-s];
-  u = matrix(0, pp[1], r)
-  
-  u[s,1:r] <- as.matrix(runif( nnzeros * r,max = 3, min=1), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r, replace=TRUE), nrow=nnzeros)
-  u <- u %*%(sqrtm(t(u[s,1:r]) %*% Tss%*% u[s,1:r])$Binv)
-  
-  T2 = eye(p2); #toeplitz(a^(0:(pp[2]-1)));
-  Sigma[(p1+1):(p1+p2), (p1+1):(p1+p2)] = T2;
-  Tss = Sigma[(p1+1):(p1+p2), (p1+1):(p1+p2)][s, s];
-  v = matrix(0, pp[2], r)
-  v[s,1:r] <- as.matrix(runif( nnzeros * r,max = 3, min=1), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r, replace=TRUE), nrow=nnzeros)
-  v <- v %*%(sqrtm(t(v[s,1:r]) %*% Tss %*% v[s,1:r])$Binv)
-  
-  Sigma[(p1+1):(p1+p2), 1:p1] = T2 %*%  v  %*% theta %*% t(u) %*% T1;
-  Sigma[1:p1, (p1+1):(p1+p2)] = t(Sigma[(p1+1):(p1+p2), 1:p1])
-  
-  Sigmax = Sigma[1:p1,1:p1];
-  Sigmay = Sigma[(p1+1):p,(p1+1):p];
-  
-  #Generate Multivariate Normal Data According to Sigma
-  Data = mvrnorm(n, rep(0, p), Sigma);
-  
-  X = Data[,1:p1];
-  Y = Data[,(p1+1):(p1+p2)];
-  
-  print('Data generated.');
-  print('--------------------------------------');
-  
-  Mask = matrix(0, p, p);
-  idx1 = 1:pp[1];
-  idx2 = (pp[1]+1):(pp[1]+pp[2]);
-  Mask[idx1,idx1] <- matrix(1,pp[1],pp[1]);
-  Mask[idx2,idx2] <- matrix(1,pp[2],pp[2]);
-  Sigma0 = Sigma * Mask;
-  
-  
-  S <- cov(Data)
-  sigma0hat <- S * Mask
-  
-  # Estimate the subspace spanned by the largest eigenvector using convex relaxation and TGD
-  # First calculate ground truth
-  #result = geigen::geigen(Sigma, Sigma0)
-  #evalues <- result$values
-  #evectors <-result$vectors
-  #evectors <- evectors[,p:1]
-  #a <- evectors[,1:r]
-  #scale <- a %*% sqrtm(diag(r)+t(a) %*% Sigma %*% a/lambda)$B;
-  return(list(Sigma=Sigma, Sigma0=Sigma0,
-         S = S, sigma0hat =  sigma0hat, Mask= Mask,
-         X=X, Y = Y, Data=Data, u=u, v=v, 
-         Sigmax=Sigmax, Sigmay=Sigmay#,#a=a
-        ))
-}
 
-
-cv_function <- function(X, Y, kfolds=10, initu, initv,
+cv_function <- function(X, Y, 
+                        kfolds=10, initu, initv,
                         lambdax, adaptive=TRUE, normalize=FALSE,
                         criterion="prediction") {
   # define empty vector to store results
@@ -575,3 +498,45 @@ additional_checks <- function(X_train, Y_train, S=NULL,
 }
 
 
+evaluate_results <- function(Uhat, Vhat, example, name_method, overlapping_amount, 
+                             thres = 0.0001, lambdax= NULL,lambday = NULL, it=1,
+                             criterion="prediction"){
+  Uhat_tot = rbind(Uhat, Vhat)
+  U_tot = rbind(example$u, example$v)
+  p1 = ncol(example$X)
+  p2 = ncol(example$Y)
+  n = nrow(example$X)
+  r = ncol(example$u)
+  sparsity = length(which(apply(example$u^2, 1, sum)>0))
+  silly_benchmark = subdistance(matrix(0, p1, 2), example$u)
+  data.frame("method" = name_method,
+             "exp" = it,
+             "n" = n,
+             "nnz" = nnz,
+             "p1" = p1,
+             "p2" = p2,
+             "sparsity" = sparsity,
+             "criterion" = criterion,
+             "overlapping_amount" = overlapping_amount,
+             "zero_benchmark" = silly_benchmark,
+             "nb_discoveries" = sum(apply(Uhat_tot^2, 1, sum)>0),
+             "nb_real_discoveries" = sum(apply(Uhat_tot^2, 1, sum)>thres),
+             "param1" = lambdax,
+             "param2" = lambday,
+             "distance_tot" = subdistance(Uhat_tot, U_tot),
+             "distance_U" = subdistance(Uhat, example$u),
+             "distance_V" = subdistance(Vhat, example$v),
+             "sinTheta_tot" = sinTheta(Uhat_tot, U_tot),
+             "sinTheta_U" = sinTheta(Uhat, example$u),
+             "sinTheta_V" = sinTheta(Vhat, example$v),
+             "sinTheta_U_0" = sinTheta(matrix(0, p1, r), example$u),
+             "sinTheta_V_0" = sinTheta(matrix(0, p2, r), example$v),
+             "prediction_tot" = mean((example$X %*% Uhat - example$Y %*% Vhat)^2),
+             "prediction_U" = mean((example$X %*% Uhat - example$X %*% example$u)^2),
+             "prediction_V" = mean((example$Y %*% Vhat - example$Y %*% example$v)^2),
+             "TPR" =TPR(apply(Uhat_tot^2, 1, sum), apply(U_tot^2, 1, sum), tol=thres),
+             "TNR" = TNR(apply(Uhat_tot^2, 1, sum), apply(U_tot^2, 1, sum), tol=thres),
+             "FPR" = FPR(apply(Uhat_tot^2, 1, sum), apply(U_tot^2, 1, sum), tol=thres),
+             "FNR" = FPR(apply(U_tot^2, 1, sum),apply(Uhat_tot^2, 1, sum), tol=thres)
+  )
+}

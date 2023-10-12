@@ -4,7 +4,8 @@ library(tidyverse)
 
 
 
-file_list <- list.files(path = "~/Documents/group-CCA/experiments/sparse_CCA/results/", pattern = "extended_results_exp_sparse_cca_296*", full.names = TRUE)
+file_list <- list.files(path = "~/Documents/group-CCA/experiments/sparse_CCA/results/", 
+                               pattern = "extended_results_exp_sparse_cca_296*", full.names = TRUE)
 # Read and combine CSV files into a single data frame
 results <- file_list %>%
   map_dfr(~ read_csv(.x) %>% mutate(filename = .x)) %>%
