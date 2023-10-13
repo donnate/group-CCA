@@ -500,7 +500,7 @@ additional_checks <- function(X_train, Y_train, S=NULL,
 evaluate_results <- function(Uhat, Vhat, example, name_method, overlapping_amount, 
                              thres = 0.0001, lambdax= NULL,lambday = NULL, it=1,
                              normalize_diagonal=TRUE,
-                             criterion="prediction"){
+                             criterion="prediction", r_pca = 0, nnz=0){
   Uhat_tot = rbind(Uhat, Vhat)
   U_tot = rbind(example$u, example$v)
   p1 = ncol(example$X)
@@ -516,6 +516,8 @@ evaluate_results <- function(Uhat, Vhat, example, name_method, overlapping_amoun
              "p1" = p1,
              "p2" = p2,
              "sparsity" = sparsity,
+             "r" = r,
+             "r_pca" = r_pca,
              "criterion" = criterion,
              "overlapping_amount" = overlapping_amount,
              "zero_benchmark" = silly_benchmark,
