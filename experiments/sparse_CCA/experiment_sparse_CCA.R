@@ -65,7 +65,8 @@ for (psize in c(0.5 *n , 0.75 *n, n,
                                      thres = THRES,
                                      it=it,
                                      normalize_diagonal=normalize_diagonal,
-                                     criterion=criterion)
+                                     criterion=criterion,
+                                     r_pca = r_pca, nnz=nnz)
             if (length(results)==0){
               results=temp
             }else{
@@ -95,7 +96,8 @@ for (psize in c(0.5 *n , 0.75 *n, n,
                                      thres = THRES,
                                      it=it,
                                      normalize_diagonal=normalize_diagonal,
-                                     criterion=criterion)
+                                     criterion=criterion,
+                                     r_pca = r_pca, nnz=nnz)
             if (length(results)==0){
               results=temp
             }else{
@@ -147,7 +149,8 @@ for (psize in c(0.5 *n , 0.75 *n, n,
                                                              thres = THRES,
                                                              it=it,
                                                              normalize_diagonal=normalize_diagonal,
-                                                             criterion=criterion)
+                                                             criterion=criterion,
+                                                             r_pca = r_pca, nnz=nnz)
                                     if (length(results)==0){
                                         results=temp
                                       }else{
@@ -163,7 +166,8 @@ for (psize in c(0.5 *n , 0.75 *n, n,
                                                                    thres = THRES,
                                                                    it=it,
                                                                    normalize_diagonal=normalize_diagonal,
-                                                                   criterion=criterion)
+                                                                   criterion=criterion,
+                                                                   r_pca = r_pca, nnz=nnz)
                                           results <- rbind(results, temp)
                                         }
                     
@@ -205,7 +209,8 @@ for (psize in c(0.5 *n , 0.75 *n, n,
                                      thres = THRES,
                                      it=it,
                                      normalize_diagonal=normalize_diagonal,
-                                     criterion=criterion)
+                                     criterion=criterion,
+                                     r_pca = r_pca, nnz=nnz)
             
           results <- rbind(results, temp)
 
@@ -220,7 +225,8 @@ for (psize in c(0.5 *n , 0.75 *n, n,
                                    thres = THRES,
                                    it=it,
                                    normalize_diagonal=normalize_diagonal,
-                                   criterion=criterion)
+                                   criterion=criterion,
+                                   r_pca = r_pca, nnz=nnz)
           results <- rbind(results, temp)
           selected_rows = which(apply(res_tg$initu^2, 1, sum)>0)
           selected_rows.v = which(apply(res_tg$initv^2, 1, sum)>0)
@@ -250,7 +256,8 @@ for (psize in c(0.5 *n , 0.75 *n, n,
                                          thres = THRES,
                                          it=it,
                                          normalize_diagonal=normalize_diagonal,
-                                         criterion=criterion)
+                                         criterion=criterion,
+                                         r_pca = r_pca, nnz=nnz)
               
             print(dim(temp))
             print(dim(results))
@@ -290,7 +297,8 @@ for (psize in c(0.5 *n , 0.75 *n, n,
                                  thres = THRES,
                                  it=it,
                                  normalize_diagonal=normalize_diagonal,
-                                 criterion=criterion)
+                                 criterion=criterion,
+                                 r_pca = r_pca, nnz=nnz)
         results <- rbind(results, temp )
 
         for (method in c("FIT_SAR_CV", "FIT_SAR_BIC", "Witten_Perm",
@@ -314,7 +322,8 @@ for (psize in c(0.5 *n , 0.75 *n, n,
                                                      thres = THRES,
                                                      it=it,
                                                      normalize_diagonal=normalize_diagonal,
-                                                     criterion=criterion)
+                                                     criterion=criterion,
+                                                     r_pca = r_pca, nnz=nnz)
                             
                             if (length(results)==0){
                               results=temp
@@ -328,7 +337,7 @@ for (psize in c(0.5 *n , 0.75 *n, n,
                               # Skip to the next iteration
                     })
       }
-      write_excel_csv(results, paste0("experiments/sparse_CCA/results/extended_results_exp_sparse_cca_", name_exp, "_", criterion, ".csv"))
+      write_excel_csv(results, paste0("experiments/sparse_CCA/results/", name_exp, "_", criterion, ".csv"))
       }
     }
   }

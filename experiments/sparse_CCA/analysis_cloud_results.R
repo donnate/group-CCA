@@ -1,11 +1,7 @@
-
-
 library(tidyverse)
 
-
-
 file_list <- list.files(path = "~/Documents/group-CCA/experiments/sparse_CCA/results/", 
-                               pattern = "extended_results_exp_sparse_cca_296*", full.names = TRUE)
+                               pattern = "extended_results_exp_sparse_cca_new_exp_*", full.names = TRUE)
 # Read and combine CSV files into a single data frame
 results <- file_list %>%
   map_dfr(~ read_csv(.x) %>% mutate(filename = .x)) %>%
@@ -13,21 +9,18 @@ results <- file_list %>%
 
 
 ##### Analyse this data
-
-
-
-
 res = results %>% 
   mutate(FDR=1 - nb_real_discoveries/max(1,nb_discoveries)) %>%
-  group_by(method, selection, n, nnz, p1, p2) %>% 
+  group_by(method, selection,criterion, n, nnz, p1, p2, overlapping_amount) %>% 
   summarise_if(is.numeric, mean) %>%
-  arrange(n, nnz, p1, p2, distance)
+  arrange(n, nnz, p1, p2, distance_tot)
 t = as.numeric(sapply(res$method, function(x){ifelse(str_count(x, "folds" )>0, 1, 0)}))
 t = t  + as.numeric(sapply(res$method, function(x){ifelse(str_count(x, "CV" )>0, 2, 0)}))
 res["shape"] = as.factor(t)
 
 
-legend_order <- c("adaptive_lasso_Fantope", "adaptive_lasso_Selection",
+legend_order <- c( "SSVD-theory" ,  "SSVD-method",
+                   "adaptive_lasso_Fantope", "adaptive_lasso_Selection",
                   "TG" ,"lasso_Fantope", "lasso_Selection",   "Fantope" ,
                   "thresholded-lasso",
                   "Canonical Ridge-Author",
@@ -35,18 +28,19 @@ legend_order <- c("adaptive_lasso_Fantope", "adaptive_lasso_Selection",
                   "Witten_Perm", "Witten.CV", "Waaijenborg-Author",
                   "Waaijenborg-CV", "Selection",  "Oracle" )
 
-my_colors <- c(
+my_colors <- c( "gray", "black",
   "dodgerblue", "cyan",  "red","orange","orange4","navy", "grey", "yellow",  
               "green", "green3", "navajowhite3", "plum2", "plum3",
-              "cadetblue1", "lightskyblue", "brown", "black","whitesmoke", "white")
+              "cadetblue1", "lightskyblue", "brown", "beige","whitesmoke", "white")
               
 
 
-ggplot(res %>% filter(method %in% c("adaptive_lasso_Fantope", "adaptive_lasso_Selection",
+ggplot(res %>% filter(method %in% c( "SSVD-theory" ,  "SSVD-method",
+                                     "adaptive_lasso_Fantope", "adaptive_lasso_Selection",
                                      "TG" ,  "Fantope" ), selection=="prediction"))+
-  geom_line(aes(x=p1/n, y=distance, colour=method, linetype=shape), linewidth=1.)+
-  geom_point(aes(x=p1/n, y=distance, colour=method, shape=shape), size=2.2)+
-  geom_jitter(aes(x=p1/n, y=distance, colour=method, shape=shape), size=2.2)+
+  geom_line(aes(x=p1/n, y=distance_tot, colour=method), linewidth=1.)+
+  geom_point(aes(x=p1/n, y=distance_tot, colour=method, size=2.2)+
+  #geom_jitter(aes(x=p1/n, y=distance_tot, colour=method, shape=shape), size=2.2)+
   geom_line(data=res %>% group_by(n, nnz, p1, p2) %>% summarise(b=mean(zero_benchmark)),
              aes(y=b, x=p1/n, colour="Zero Benchmark"), colour="black", linewidth=0.5)+
   scale_color_manual(values = my_colors, breaks = legend_order) +
