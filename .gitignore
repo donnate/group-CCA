@@ -2,7 +2,9 @@ experiments/.DS_Store
 .DS_Store
 experiments/data/
 experiments/sparse_CCA/logs/
+elena/missing/*.csv
 experiments/sparse_CCA/results/
+elena/missing/Plots/*
 .RData
 .Rhistory
 experiments/sparse_CCA/results/results/
