@@ -5,7 +5,7 @@
 #SBATCH --error=experiments/sparse_CCA/logs/array_%A_%a.err
 #SBATCH --array=1-50
 #SBATCH --time=35:00:00
-#SBATCH --partition=broadwl
+#SBATCH --partition=caslake
 #SBATCH --ntasks=1
 #SBATCH --mem=5G
 #SBATCH --account=pi-cdonnat
