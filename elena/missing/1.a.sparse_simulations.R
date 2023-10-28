@@ -98,6 +98,7 @@ for(seed in seeds){
                   if (lambda == 0.0001){
                     init_coef = NULL
                   }
+                   tryCatch({
                   #### if it's all zero then just stop
                   if (is.null(init_coef) || ((norm(init_coef$U, "F") > 1e-5) & (norm(init_coef$V, "F") > 1e-5))){
                     alt = alternating_cca(gen$Xna, gen$Yna, r = r, lambdax = lambda, 
@@ -117,7 +118,12 @@ for(seed in seeds){
                                                       "exp" = seed))
                     
                     }
-                }
+                }, error = function(e) {
+                                # Print the error message
+                                cat("Error occurred in Alt", lambda, ":", conditionMessage(e), "\n")
+                                # Skip to the next iteration
+                      })
+        }
                 
                 cca = CCA::cc(Ximp, Yimp)
                 result = rbind(result, data.frame(evaluate(gen$newX, gen$newY, cca$xcoef[, 1:r], 

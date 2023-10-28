@@ -89,21 +89,30 @@ alternating_cca <- function(X, Y, r, init_coef = NULL, lambdax = 0,
   ZU <- X %*% U
   U.old = U
   V.old = V
+  U_init = U
+  V_init = V
   it = 1
   eps = 1e10
   while(it<max_iter & eps > thres) {
     if (lambdax >0){
-      U <- Variable(p, r)
+      if (is.null(U_init)){
+         U <- Variable(p, r)
+      }else{
+         U <- Variable(p, r, initialize = U_init)
+      }
+     
       if (is.null(Gamma_u)){
         objective <- Minimize(1/n * sum_squares(X %*% U - ZV) + lambdax * sum(norm2(U, axis=1)))
         problem <- Problem(objective)
         result <- solve(problem)
         U <- result$getValue(U)
+        U_init <- U
       }else{
         objective <- Minimize(1/n * sum_squares(X %*% U - ZV) + lambdax * sum(norm2(Gamma_u %*% U, axis=1)))
         problem <- Problem(objective)
         result <- solve(problem)
         U <- result$getValue(U)
+        U_init <- U
       }
 
     }else{
@@ -118,17 +127,23 @@ alternating_cca <- function(X, Y, r, init_coef = NULL, lambdax = 0,
     ZU <- X %*% U
 
     if (lambday >0){
-      V <- Variable(q, r)
+      if (is.null(V_init)){
+         V <- Variable(p, r)
+      }else{
+         V <- Variable(p, r, initialize = V_init)
+      }
       if (is.null(Gamma_v)){
         objective <- Minimize(1/n * sum_squares(ZU - Y %*% V) + lambday * sum(norm2(V, axis=1)))
         problem <- Problem(objective)
         result <- solve(problem)
         V <- result$getValue(V)
+        V_init <- V
       }else{
         objective <- Minimize(1/n * sum_squares(ZU - Y %*% V) + lambday * sum(norm2(Gamma_v %*% V, axis=1)))
         problem <- Problem(objective)
         result <- solve(problem)
         V <- result$getValue(V)
+        V_init <- V
       }
 
     }else{
