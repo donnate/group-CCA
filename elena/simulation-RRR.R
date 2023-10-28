@@ -12,8 +12,8 @@ generate =  function(n, p, q, s, prop){
   R = matrix(rnorm(p*q), p, q)
   E = matrix(rnorm(n*q, 0, s), n, q)
   Y = X %*% R + E
-  X = scale(X, center = T, scale = F)
-  Y = scale(Y, center = T, scale = F)
+  X = scale(X, center = TRUE, scale = FALSE)
+  Y = scale(Y, center = TRUE, scale = FALSE)
   maskX = sample(1:(n*p), n*p*prop)
   Xna = X
   Xna[maskX] = NA
@@ -52,17 +52,17 @@ generate =  function(n, p, q, s, prop){
 
 n = 100
 seeds = 1:100
-ps = c(5, 10, 20, 30)
+ps = c(5, 10, 20, 30, 50, 70)
 ss = c(0.01, 0.1, 0.5, 1, 2)
-props = seq(0, 0.5, 0.05)
+props = seq(0, 0.7, 0.05)
 
 result = c()
 
+for(seed in 1:100){
 for(s in ss){
 for(p in ps){
   q = p
   for(prop in props){
-    for(seed in 1:100){
       set.seed(seed)
       gen = generate(n, p, q, s, prop)
       X = gen$X
@@ -73,9 +73,13 @@ for(p in ps){
       Yimp = data.frame(Yna) %>% mutate_all(~replace_na(., mean(., na.rm = TRUE)))
       
       cca0 = cc(X, Y)
-      rrr = CCA_RRR(Xna, Yna)
+      rrr = CCA_RRR(Xna, Yna, k = 5, eps = 1e-10)
+      simple = CCA_simple(Xna, Yna, k = 5, eps = 1e-10)
       result = rbind(result, data.frame(evaluate(X, Y, rrr$U, rrr$V, cca0$xcoef, cca0$ycoef), 
                               p,  noise = s, method = "RRR",  prop, seed))
+      result = rbind(result, data.frame(evaluate(X, Y, simple$U,simple$V, cca0$xcoef, cca0$ycoef), 
+                                        p,  noise = s, method = "simple",  prop, seed))
+      ### Imputed
       cca = cc(Ximp, Yimp)
       result = rbind(result, data.frame(evaluate(X, Y, cca$xcoef, cca$ycoef, cca0$xcoef, cca0$ycoef),
                               p, noise = s, method = "CCA", prop, seed))
@@ -84,3 +88,9 @@ for(p in ps){
 }
 }
 write.csv(result, "Results/simulation-RRR.csv", row.names = F)
+
+test = result %>% 
+  group_by(noise, method, prop ) %>%
+  summarise_all(mean)
+
+

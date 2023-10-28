@@ -1,7 +1,7 @@
 library(tidyverse)
 
 file_list <- list.files(path = "~/Documents/group-CCA/experiments/sparse_CCA/results/", 
-                               pattern = "extended_results_exp_sparse_cca_new_exp_*", full.names = TRUE)
+                               pattern = "new_exp_97*", full.names = TRUE)
 # Read and combine CSV files into a single data frame
 results <- file_list %>%
   map_dfr(~ read_csv(.x) %>% mutate(filename = .x)) %>%
@@ -11,8 +11,9 @@ results <- file_list %>%
 ##### Analyse this data
 res = results %>% 
   mutate(FDR=1 - nb_real_discoveries/max(1,nb_discoveries)) %>%
-  group_by(method, selection,criterion, n, nnz, p1, p2, overlapping_amount) %>% 
-  summarise_if(is.numeric, mean) %>%
+  group_by(method, selection, criterion, n, nnz, p1, p2, r, r_pca,
+           overlapping_amount) %>% 
+  summarise_if(is.numeric, median) %>%
   arrange(n, nnz, p1, p2, distance_tot)
 t = as.numeric(sapply(res$method, function(x){ifelse(str_count(x, "folds" )>0, 1, 0)}))
 t = t  + as.numeric(sapply(res$method, function(x){ifelse(str_count(x, "CV" )>0, 2, 0)}))
@@ -34,12 +35,60 @@ my_colors <- c( "gray", "black",
               "cadetblue1", "lightskyblue", "brown", "beige","whitesmoke", "white")
               
 
+unique(res$n)
+unique(res$nnz)
+unique(res$overlapping_amount)
+ggplot(res )+
+  geom_line(aes(x=overlapping_amount, y=distance_tot, colour=method), linewidth=1.)+
+  geom_point(aes(x=overlapping_amount, y=distance_tot, colour=method), size=2.2)+
+  #geom_jitter(aes(x=p1/n, y=distance_tot, colour=method, shape=shape), size=2.2)+
+  #geom_line(data=res %>% group_by(n, nnz, p1, p2) %>% summarise(b=mean(zero_benchmark)),
+  #          aes(y=b, x=p1/n, colour="Zero Benchmark"), colour="black", linewidth=0.5)+
+  scale_color_manual(values = my_colors, breaks = legend_order) +
+  facet_grid(n~nnz, scales="free") +
+  theme_bw()
+
+ggplot(res %>%filter( method %in% c("SSVD-theory" ,  "SSVD-method",
+                      "adaptive_lasso_Fantope", "adaptive_lasso_Selection",
+                      "TG" ,"lasso_Fantope",  "Fantope" ,
+                      "thresholded-lasso",  "Oracle"), n==200))+
+  geom_line(aes(x=overlapping_amount, y=distance_tot, colour=method), linewidth=1.)+
+  geom_point(aes(x=overlapping_amount, y=distance_tot, colour=method), size=2.2)+
+  #geom_jitter(aes(x=p1/n, y=distance_tot, colour=method, shape=shape), size=2.2)+
+  #geom_line(data=res %>% group_by(n, nnz, p1, p2) %>% summarise(b=mean(zero_benchmark)),
+  #          aes(y=b, x=p1/n, colour="Zero Benchmark"), colour="black", linewidth=0.5)+
+  scale_color_manual(values =  c(
+                                  "dodgerblue", "cyan",   "plum2", "plum3", "red","orange","navy", "orange4","black"), 
+                     breaks = c( "SSVD-theory" ,  "SSVD-method",
+                                                     "adaptive_lasso_Fantope", "adaptive_lasso_Selection",
+                                                     "TG" ,"lasso_Fantope",  "Fantope" ,
+                                                     "thresholded-lasso",  "Oracle")) +
+  facet_grid(r~r_pca, scales="free") +
+  theme_bw()
+
+ggplot(res %>%filter( method %in% c("SSVD-theory" ,  "SSVD-method",
+                                    "adaptive_lasso_Fantope", "adaptive_lasso_Selection",
+                                    "TG" ,"lasso_Fantope",  "Fantope" ,
+                                    "thresholded-lasso",  "Oracle"), n==200))+
+  geom_line(aes(x=p1/n, y=distance_tot, colour=method), linewidth=1.)+
+  #geom_point(aes(x=p1/n, y=distance_tot, colour=method), size=2.2)+
+  #geom_jitter(aes(x=p1/n, y=distance_tot, colour=method, shape=shape), size=2.2)+
+  #geom_line(data=res %>% group_by(n, nnz, p1, p2) %>% summarise(b=mean(zero_benchmark)),
+  #          aes(y=b, x=p1/n, colour="Zero Benchmark"), colour="black", linewidth=0.5)+
+  scale_color_manual(values =  c(
+    "dodgerblue", "cyan",   "plum2", "plum3", "red","orange","navy", "orange4","black"), 
+    breaks = c( "SSVD-theory" ,  "SSVD-method",
+                "adaptive_lasso_Fantope", "adaptive_lasso_Selection",
+                "TG" ,"lasso_Fantope",  "Fantope" ,
+                "thresholded-lasso",  "Oracle")) +
+  facet_grid(overlapping_amount~nnz, scales="free") +
+  theme_bw()
 
 ggplot(res %>% filter(method %in% c( "SSVD-theory" ,  "SSVD-method",
                                      "adaptive_lasso_Fantope", "adaptive_lasso_Selection",
                                      "TG" ,  "Fantope" ), selection=="prediction"))+
-  geom_line(aes(x=p1/n, y=distance_tot, colour=method), linewidth=1.)+
-  geom_point(aes(x=p1/n, y=distance_tot, colour=method, size=2.2)+
+  geom_line(aes(x=overlapping_amount, y=distance_tot, colour=method), linewidth=1.)+
+  geom_point(aes(x=overlapping_amount, y=distance_tot, colour=method), size=2.2)+
   #geom_jitter(aes(x=p1/n, y=distance_tot, colour=method, shape=shape), size=2.2)+
   geom_line(data=res %>% group_by(n, nnz, p1, p2) %>% summarise(b=mean(zero_benchmark)),
              aes(y=b, x=p1/n, colour="Zero Benchmark"), colour="black", linewidth=0.5)+

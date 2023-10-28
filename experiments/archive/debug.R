@@ -18,6 +18,12 @@ library(igraph)
 library(pracma)
 
 
+seed = 1
+name_exp = "debug.csv"
+r = 2
+N = 200
+r_pca = 3
+
 n= 200
 p= 317
 q=10 

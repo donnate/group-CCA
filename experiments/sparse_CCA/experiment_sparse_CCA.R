@@ -16,14 +16,13 @@ r <- ceiling(as.numeric(args[4]))
 r_pca <- ceiling(as.numeric(args[5]))
 criterion <- args[6]
 normalize_diagonal <- as.logical(as.numeric(args[7]))
+ratio <- as.numeric(args[8])
 set.seed(seed)
 it = seed
 THRES = 1e-3
 
 
-for (psize in c(0.5 * n , 0.75 * n, n, 
-                1.25 * n,  1.5 * n , 2 * n, 2.5 * n, 3 * n, 4 * n, 5 * n)) {
-    for (sparsity in c(0.01, 0.05, 0.1, 0.2, 0.3, 0.4)) {
+for (psize in c(ratio * n)) {
       nnz = ceil(sparsity * psize)
       if (max(r_pca, r) * nnz < psize & max(r_pca, r) < nnz) { 
         if (nnz > 2){
@@ -35,7 +34,7 @@ for (psize in c(0.5 * n , 0.75 * n, n,
             example <- generate_example_none_trivial_pca(n, p1, p2, 
                                                 r_pca = r_pca, 
                                                 nnzeros = nnz,
-                                                theta = diag(seq(from = 0.9, to=0.6, 
+                                                theta = diag(seq(from = 0.5, to=0.4, 
                                                                 length.out = r)),
                                                 lambda_pca = 1,
                                                 r=r, 
@@ -54,7 +53,7 @@ for (psize in c(0.5 * n , 0.75 * n, n,
               test1<-my.ssvd(example$S[1:p1, (p1+1):p],
                             Sigma_u = example$S[1:p1, 1:p1],
                             Sigma_v=example$S[(p1+1):p, (p1+1):p],
-                            r=r, method = "theory")
+                            r=r, method = "theory", reps=1)
               Uhat = rbind(test1$u, test1$v)
               temp <- evaluate_results(Uhat= test1$u, 
                                       Vhat = test1$v, 
