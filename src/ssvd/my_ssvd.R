@@ -26,6 +26,7 @@ error.est <-
     n.sel.v <- sum(sel.v)
     # the size of approximate pure noise matrix
     n.sel <- n.sel.u * n.sel.v
+    print(c("n.sel", n.sel))
     if (n.sel < (log(pu * (pv - n.sel.v)) * pu * (pv - n.sel.v))) {
       warning("error.est: dense")
       return(sqrt(2 * log(pu)))
@@ -145,7 +146,7 @@ my.ssvd <-
             method = c("theory", "method"), alpha.method = 0.05,
             alpha.theory = 1.5, huber.beta = 0.95, sigma = NA, r = 1,
             gamma.u = sqrt(2), gamma.v = sqrt(2), dothres = "hard", tol = 1e-08,
-            n.iter = 100, n.boot = 100, non.orth = FALSE)
+            n.iter = 100, n.boot = 100, non.orth = FALSE, reps = 1)
     # the main function
   {
     ans.initial <- ssvd.initial(x, method = method, alpha.method = alpha.method,
@@ -153,9 +154,10 @@ my.ssvd <-
                                 sigma = sigma, r = r)
     my.ssvd.iter.thresh(x, Sigma_u, Sigma_v,
                         method = method, u.old = ans.initial$u,
-                     v.old = ans.initial$v, gamma.u = gamma.u, gamma.v = gamma.v,
+                       v.old = ans.initial$v, gamma.u = gamma.u, gamma.v = gamma.v,
                      dothres = dothres, r = r, tol = tol, n.iter = n.iter,
-                     n.boot = n.boot, sigma = ans.initial$sigma.hat, non.orth = non.orth)
+                     n.boot = n.boot, sigma = ans.initial$sigma.hat, 
+                     non.orth = non.orth, reps = reps)
   }
 
 ssvd.initial <-
@@ -219,6 +221,7 @@ my.ssvd.iter.thresh <-
   function (x, Sigma_u, Sigma_v,
             method = c("theory", "method"), u.old, v.old, gamma.u = sqrt(2),
             gamma.v = sqrt(2), dothres = "hard", r = ncol(u.old), tol = 1e-08,
+            reps = 1,
             n.iter = 100, n.boot = 100, sigma = NA, non.orth = FALSE)
     # x is the observed matrix
     # u.old and v.old are the starting points
@@ -268,7 +271,31 @@ my.ssvd.iter.thresh <-
       u.old <- u.cur
       # multiplication
       sel.v <- apply(v.cur == 0, 1, all)
+      
       u.cur <- x.scaled[,!sel.v, drop = FALSE] %*% v.cur[!sel.v,, drop = FALSE]
+      #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      #Orthogonalize Y using economic QR decomposition: Y=QR
+      #If q > 0 perfrom q subspace iterations
+      #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      if( reps > 1 ) {
+        for( i in 1:reps) {
+          u.cur <- qr.Q( qr(u.cur, complete = FALSE) , complete = FALSE )
+          Z <- crossprod_help(x.scaled , u.cur )
+          Z <- qr.Q( qr(Z, complete = FALSE) , complete = FALSE )
+          u.cur <- u.cur %*% Z
+        }#End for
+        remove(Z)
+      }#End if
+      
+      #x.mul = x.scaled[,!sel.v, drop = FALSE]
+      #if (reps > 1){
+      #  ### increase signal
+      #  svd_result <- svd(x.mul)
+      #  x.mul <- svd_result$u %*% diag(svd_result$d^reps) %*% t(svd_result$v)
+      #}
+      
+      #u.cur <- x.mul %*% v.cur[!sel.v,, drop = FALSE]
+      
       # thresholding
       if (method == "theory") {
         u.cur <- thresh(u.cur, gamma.u * sqrt(log(pu)))
@@ -289,13 +316,27 @@ my.ssvd.iter.thresh <-
       else {
         # QR decomposition
         #u.cur <- qr.Q(qr(u.cur))
-        u.cur <- u.cur %*% (sqrtm(t(u.cur) %*% Sigma_u %*% u.cur)$Binv)
+        #selected_col = which(apply(u.cur^2, 2, sum) >0)
+        norm_u = t(u.cur) %*% Sigma_u %*% u.cur
+        index_zero = which(diag(norm_u) < 1e-8)
+        print(index_zero)
+        for (ind in index_zero){
+          norm_u[ind, ind] = 1
+        }
+        u.cur <- u.cur %*% (sqrtm(norm_u)$Binv)
         dist.u <- subsp.dist.orth(u.cur, u.old)
+        #print(c("Dim u", dim(u.cur)))
       }
       v.old <- v.cur
       # multiplication
       sel.u <- apply(u.cur == 0, 1, all)
-      v.cur <- t(x.scaled[!sel.u,, drop = FALSE]) %*% u.cur[!sel.u,, drop = FALSE]
+      
+      t_x.mul = t(x.scaled[!sel.u,, drop = FALSE]) 
+      if (reps > 1){
+        svd_result <- svd(t_x.mul)
+        x.mul <- svd_result$u %*% diag(svd_result$d^reps) %*% t(svd_result$v)
+      }
+      v.cur <- t_x.mul %*% u.cur[!sel.u,, drop = FALSE]
       # thresholding
       if (method == "theory") {
         v.cur <- thresh(v.cur, gamma.v * sqrt(log(pv)))
@@ -316,10 +357,22 @@ my.ssvd.iter.thresh <-
       else {
         # QR decomposition
         #v.cur <- qr.Q(qr(v.cur))
-        v.cur <- v.cur %*% (sqrtm(t(v.cur) %*% Sigma_v %*% v.cur)$Binv)
+        ### check if some rows are 0
+        norm_v = t(v.cur) %*% Sigma_v %*% v.cur
+        index_zero = which(diag(norm_v) < 1e-8)
+        for (ind in index_zero){
+          norm_v[ind, ind] = 1
+        }
+        v.cur <- v.cur %*% (sqrtm(norm_v)$Binv)
         dist.v <- subsp.dist.orth(v.cur, v.old)
+        #print(c("Dim v", dim(v.cur)))
+        #print(c("Dim u after v", dim(u.cur)))
       }
       i.iter <- i.iter + 1
+      #print("iteration is")
+      #print(i.iter)
+      #print("dim U")
+      #print(dim(u.cur))
     }
     
     if(non.orth == TRUE){
@@ -375,5 +428,5 @@ subsp.dist.orth <-
     overlap <- svd(t(A.q) %*% B.q, nu = 0, nv = 0)$d
     overlap <- overlap[length(overlap)]
     1 - overlap^2
-  }
+}
 

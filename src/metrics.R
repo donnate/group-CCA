@@ -66,3 +66,8 @@ subdistance <- function(A, B){
   l = norm(A %*% O-B, type = c('F'));
   return(l)
 }
+
+sinTheta<- function(U, V){
+  l = 1/sqrt(2) * norm(U %*% t(U)-V %*% t(V), type = c('F'));
+  return(l)
+}

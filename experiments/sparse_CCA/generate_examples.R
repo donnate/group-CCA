@@ -192,7 +192,8 @@ generate_example_none_trivial_pca <- function(n, p1, p2,
   print('Number of non zeros is:');
   print(nnzeros)
   start = ceiling((1- overlapping_amount) * nnzeros)
-  s_pca = start:(start + nnzeros-1)
+  s_pca = (start+1):(start + nnzeros)
+  s_pca2 = (start + nnzeros +1):(start + 2 * nnzeros)
   
   Lambda_pca = rep(lambda_pca, r_pca)
   
@@ -201,11 +202,14 @@ generate_example_none_trivial_pca <- function(n, p1, p2,
   u1[s_pca,] <- matrix(runif(n=nnzeros * r_pca,max = 3, min=1), nrow=nnzeros, ncol=r_pca) # * matrix(sample(c(-1,1), nnzeros*r_pca, replace=TRUE), nrow=nnzeros, ncol=r_pca)
   u1[s_pca,1:r_pca] <- u1[s_pca,1:r_pca] %*%(sqrtm(t(u1[s_pca,1:r_pca]) %*% u1[s_pca,1:r_pca])$Binv)
   T1 = u1 %*% diag(Lambda_pca) %*% t(u1)#as.matrix(toeplitz(a^(0:(pp[1]-1))));
-  T1[which(T1<1e-6)] = 0
+  #T1[which(T1<1e-6)] = 0
   if (normalize_diagonal){
     diag(T1) <- 1
+    Sigma[1:p1, 1:p1] = T1;
+  }else{
+    Sigma[1:p1, 1:p1] =Sigma[1:p1, 1:p1] + T1;
   }
-  Sigma[1:p1, 1:p1] = T1;
+  
   
   #T1 = Sigma[1:p1, 1:p1]
   Tss = Sigma[s,s];
@@ -223,23 +227,26 @@ generate_example_none_trivial_pca <- function(n, p1, p2,
   
   
   u2 = matrix(0, pp[2], r_pca)
-  u2[s_pca,1:r_pca] <- as.matrix(runif( nnzeros * r_pca,max = 3, min=1), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r_pca, replace=TRUE), nrow=nnzeros)
-  u2[s_pca,1:r_pca] <- u1[s_pca,1:r_pca] %*%(sqrtm(t(u1[s_pca,1:r_pca]) %*% u1[s_pca,1:r_pca])$Binv)
+  u2[s_pca2,1:r_pca] <- as.matrix(runif( nnzeros * r_pca,max = 3, min=1), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r_pca, replace=TRUE), nrow=nnzeros)
+  u2[s_pca2,1:r_pca] <- u2[s_pca2,1:r_pca] %*%(sqrtm(t(u2[s_pca2,1:r_pca]) %*% u2[s_pca2,1:r_pca])$Binv)
   T2 = u2 %*% diag(Lambda_pca) %*% t(u2)#as.matrix(toeplitz(a^(0:(pp[1]-1))));
   if (normalize_diagonal){
     diag(T2) <- 1
+    Sigma[(p1+1):(p1+p2), (p1+1):(p1+p2)] = T2;
+  }else{
+    Sigma[(p1+1):(p1+p2), (p1+1):(p1+p2)] = T2 + Sigma[(p1+1):(p1+p2), (p1+1):(p1+p2)];
   }
-  Sigma[(p1+1):(p1+p2), (p1+1):(p1+p2)] = T2;
+  
   Tss = Sigma[(p1+1):(p1+p2), (p1+1):(p1+p2)][s, s];
   v = matrix(0, pp[2], r)
-  v[s,1:r] <- as.matrix(runif( nnzeros * r,max = 3, min=1), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r, replace=TRUE), nrow=nnzeros)
+  v[(max(s)+1):(max(s) + length(s)),1:r] <- as.matrix(runif( nnzeros * r,max = 3, min=1), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r, replace=TRUE), nrow=nnzeros)
   v <- v %*%(sqrtm(t(v[s,1:r]) %*% Tss %*% v[s,1:r])$Binv)
   
   ###
   T2 = Sigma[(p1+1):p_tot,(p1+1):p_tot]
   T1 = Sigma[1:p1, 1:p1]
-  Sigma[(p1+1):(p1+p2), 1:p1] = T2 %*%  v  %*% theta %*% t(u) %*% T1;
-  Sigma[1:p1, (p1+1):(p1+p2)] = t(Sigma[(p1+1):(p1+p2), 1:p1])
+  Sigma[(p1+1):(p1+p2), 1:p1] <- T2 %*%  v  %*% theta %*% t(u) %*% T1;
+  Sigma[1:p1, (p1+1):(p1+p2)] <- t(Sigma[(p1+1):(p1+p2), 1:p1])
   
   Sigmax = Sigma[1:p1,1:p1];
   Sigmay = Sigma[(p1+1):p_tot,(p1+1):p_tot];

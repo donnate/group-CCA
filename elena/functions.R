@@ -19,7 +19,7 @@ CCA_step = function(X, Y, k){
   return(list(U = U, V = invtr %*% V, Ucca = U, Vcca = tr %*% V))
 }
 
-CCA_RRR = function(X, Y, k = min(ncol(X), ncol(Y)), eps = 1e-4, maxiter = 1000){
+CCA_RRR = function(X, Y, k = min(ncol(X), ncol(Y)), eps = 1e-6, maxiter = 1000){
   p = ncol(X)
   q = ncol(Y)
   
@@ -35,7 +35,7 @@ CCA_RRR = function(X, Y, k = min(ncol(X), ncol(Y)), eps = 1e-4, maxiter = 1000){
   
   while(delta > eps & iter < maxiter){
     iter = iter + 1
-    
+    print(iter)
     loss0 = loss
     upd = CCA_step(Y, X, k)
     #impute X
@@ -55,6 +55,69 @@ CCA_RRR = function(X, Y, k = min(ncol(X), ncol(Y)), eps = 1e-4, maxiter = 1000){
   return(list(U = Ucca, V = Vcca, cors = diag(cor(X %*% Ucca, Y %*% Vcca))))
 }  
 
+
+CCA_step2 = function(X, Y, U, V){
+  Ytilde = Y %*% V
+  #solve RRR
+  Uhat = solve(t(X) %*% X) %*% t(X) %*% Ytilde
+  Uhat = Uhat %*% sqrtm(t(Uhat) %*% cov(X) %*% Uhat)$Binv
+  
+  Xtilde = X %*% Uhat
+  #solve RRR
+  Vhat = solve(t(Y) %*% Y) %*% t(Y) %*% Ytilde
+  Vhat = Vhat %*% sqrtm(t(Vhat) %*% cov(Y) %*% Vhat)$Binv 
+  return(list(Ucca = Uhat, Vcca =Vhat))
+}
+
+
+CCA_simple = function(X, Y, k = min(ncol(X), ncol(Y)), eps = 1e-6, maxiter = 1000){
+  p = ncol(X)
+  q = ncol(Y)
+  
+  maskY = is.na(Y)
+  maskX = is.na(X)
+  
+  #initialize
+  iter = 0
+  delta = Inf
+  loss = Inf
+  X = data.frame(X) %>% mutate_all(~replace_na(., mean(., na.rm = TRUE))) %>% as.matrix()
+  Y = data.frame(Y) %>% mutate_all(~replace_na(., mean(., na.rm = TRUE))) %>% as.matrix()
+  U = matrix(rnorm(p * k), nrow=p)
+  U = U %*% sqrtm(t(U) %*% cov(X) %*% U)$Binv
+  V = matrix(rnorm(p * k), nrow=p)
+  V = V %*% sqrtm(t(V) %*% cov(Y) %*% V)$Binv 
+  U.old = U
+  V.old = V
+  while(delta > eps & iter < maxiter){
+    iter = iter + 1
+    print(iter)
+    loss0 = loss
+    ##impute X
+    if(sum(maskX) > 0){
+      X[maskX] <- ((Y %*% V.old) %*% t(U.old) %*% pinv(U.old %*% t(U.old)))[maskX]
+    }
+    if(sum(maskY) > 0){
+      Y[maskY] <- ((X %*% U.old) %*% t(V.old) %*% pinv(V.old %*% t(V.old)))[maskY]
+    }
+    upd = CCA_step2(X, Y, U.old, V.old)
+    
+    
+    #upd = CCA_step(X, Y, k)
+    #impute Y
+    #if(sum(1 - maskY) > 0) Y[!maskY] = (X %*% upd$U %*% t(upd$V))[!maskY]
+    
+    U = upd$Ucca 
+    V = upd$Vcca 
+    #loss = sum(diag(cor(X %*% U, Y %*% V)))
+    loss = sum((X %*% U.old - X %*% U)^2) + sum((Y %*% V.old - Y %*% V)^2)
+    if(iter > 1) delta = abs((loss0 - loss))#abs((loss0 - loss)/loss0)
+    cat("iter ", iter, "loss", loss, "delta", delta, "\n")
+    U.old = U
+    V.old = V
+  }
+  return(list(U = U, V = V, cors = diag(cor(X %*% U, Y %*% V))))
+}  
 
 ############## evaluation #################
 
@@ -77,22 +140,29 @@ principal_angles = function(A, B){
   angles
 }
 
+subspace_distance <- function(U, Uhat){
+  QRa = qr(U)
+  QRb = qr(Uhat)
+  Qa = qr.Q(QRa)
+  Qb = qr.Q(QRb)
+  return(1/sqrt(2) * norm(Qa %*% t(Qa) - Qb  %*% t(Qb ), 'F'))
+}
+
 angles = function(A, B){
   p = ncol(A)
-  angs = rep(0, p)
-  for(i in 1:p){
-    angs[i] = principal_angles(A[,1:i,drop = F], B[,1:i,drop = F])[1]
-  } 
-  angs
+  angs =  principal_angles(A, B)
+  mean(angs)
 }
 
 evaluate = function(X, Y, U, V, U0, V0){
-  data.frame(comp = 1:ncol(V), cors = diag(cor(X %*% U, Y %*% V)),
-             mses = colMeans((X %*% U - Y %*% V)^2),
+  data.frame(cors = mean(diag(cor(X %*% U, Y %*% V))),
+             mses = mean(colMeans((X %*% U - Y %*% V)^2)),
              Uangs = angles(U, U0), 
              Vangs = angles(V, V0),
              XUangs = angles(X %*% U, X %*% U0), 
-             YVangs = angles(Y %*% V, Y %*% V0))
+             YVangs = angles(Y %*% V, Y %*% V0),
+             distanceU = subspace_distance(U, U0),
+             distanceV = subspace_distance(V, V0))
 }
 
 ############## Iteratively re-weighted CCCA #################

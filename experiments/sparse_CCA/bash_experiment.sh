@@ -5,7 +5,7 @@
 #SBATCH --error=experiments/sparse_CCA/logs/array_%A_%a.err
 #SBATCH --array=1-50
 #SBATCH --time=35:00:00
-#SBATCH --partition=broadwl
+#SBATCH --partition=caslake
 #SBATCH --ntasks=1
 #SBATCH --mem=5G
 #SBATCH --account=pi-cdonnat
@@ -15,7 +15,7 @@ echo "My SLURM_ARRAY_TASK_ID: " $SLURM_ARRAY_TASK_ID
 echo "My SLURM_ARRAY_JOB_ID: " $SLURM_ARRAY_JOB_ID
 # Add lines here to run your computations
 job_id=$SLURM_ARRAY_JOB_ID
-module load libgmp
+#module load libgmp
 module load R/4.2.0
 module load python
 
