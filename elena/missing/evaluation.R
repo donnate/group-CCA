@@ -73,7 +73,8 @@ TNR  <-  function(A, B, tol=1e-4){
   return(out)
 }
 
-evaluate = function(X, Y, U, V, U0, V0, Sigma_hat_sqrt_inv, Sigma0_sqrt_inv,
+evaluate = function(X, Y, U, V, U0, V0, 
+                    Sigma_hat_sqrt_inv, Sigma0_sqrt_inv,
                     thres = 1e-4){
   U_tot = rbind(U,V)
   U0_tot = rbind(U0,V0)
@@ -101,8 +102,10 @@ evaluate = function(X, Y, U, V, U0, V0, Sigma_hat_sqrt_inv, Sigma0_sqrt_inv,
     "sinTheta_V" = sinTheta(Sigma_hat_sqrt_inv[(p1+1):p, (p1+1):p] %*%V, 
                             Sigma0_sqrt_inv[(p1+1):p, (p1+1):p] %*% V0),
     "prediction_tot" = mean((X %*% U - Y %*% V)^2),
-    "prediction_U" = subdistance(X %*% U, X %*% U0)^2,  ### need to be rotated
-    "prediction_V" = subdistance(X %*% V, X %*% V0)^2,
+    "prediction_U" = mean((X %*% U - X %*% U0)^2),
+    "prediction_V" = mean((Y %*% V - Y %*% V0)^2),
+    "prediction_U_sub" = subdistance(X %*% U, X %*% U0)^2,  ### need to be rotated
+    "prediction_V_sub" = subdistance(Y %*% V, Y %*% V0)^2,
     "TPR" =TPR(apply(U_tot^2, 1, sum), apply(U0_tot^2, 1, sum), tol=thres),
     "TNR" = TNR(apply(U_tot^2, 1, sum), apply(U0_tot^2, 1, sum), tol=thres),
     "FPR" = FPR(apply(U_tot^2, 1, sum), apply(U0_tot^2, 1, sum), tol=thres),
