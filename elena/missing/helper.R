@@ -264,8 +264,8 @@ generate_example_non_trivial_pca <- function(n, p1, p2,
   S <- cov(Data)
   sigma0hat <- S * Mask
   # Generate ground truth canonical vectors
-  Sigma_X_inv <- solve(Sigma[1:p1, 1:p1])
-  Sigma_Y_inv <-  solve(Sigma[(p1 + 1):(p_tot), (p1 + 1):(p_tot)])
+  Sigma_X_inv <- sqrtm(Sigma[1:p1, 1:p1])$Binv
+  Sigma_Y_inv <-  sqrtm(Sigma[(p1 + 1):(p_tot), (p1 + 1):(p_tot)])$Binv
   GT = svd(Sigma_X_inv %*% Sigma[1:p1, (p1 + 1):p_tot] %*% Sigma_Y_inv, nu = r, nv = r)
   
   if (prop_missing >0){
@@ -282,7 +282,8 @@ generate_example_non_trivial_pca <- function(n, p1, p2,
 
   return(list(Sigma=Sigma, Sigma0=Sigma0,
               S = S, sigma0hat =  sigma0hat, Mask= Mask,
-              X=X, Y = Y, Data=Data, u=GT$u, v=GT$v, 
+              X=X, Y = Y, Data=Data, u=Sigma_X_inv %*% GT$u,
+              v=Sigma_Y_inv %*% GT$v, 
               Xna = Xna, Yna = Yna, newX = newX,
               newY=newY
   ))

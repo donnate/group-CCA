@@ -1,38 +1,99 @@
 library(tidyverse)
 library(ggplot2)
-#setwd("~/Documents/group-CCA/elena/")
-result = read.csv("missing CCA code/simulation-RRR-results-sparse.csv", header = TRUE)
+library(pracma)
+setwd("~/Documents/group-CCA/elena/")
+file_list <- list.files(path = "~/Documents/group-CCA/elena/missing/", 
+                        pattern = "simulation-RRR-results-sparse*", full.names = TRUE)
 
-result["lambda"] = sapply(result$method, function(x){ifelse(is.null(strfind(x, "Alt-"))==FALSE,
+results <- file_list %>%
+  map_dfr(~ read_csv(.x) %>% mutate(filename = .x))
+
+
+results["lambda"] = sapply(results$method, function(x){ifelse(is.null(strfind(x, "Alt-"))==FALSE,
                                                            as.numeric(strsplit(x, "Alt-")[[1]][2]),
                                                            NA)})
-result["method_type"] = sapply(result$method, function(x){ifelse(is.null(strfind(x, "Alt-"))==FALSE,
+results["method_type"] = sapply(results$method, function(x){ifelse(is.null(strfind(x, "Alt-"))==FALSE,
                                                             "Alt",
                                                             x)})
-summ = result %>% group_by(n, p1, p2, r, r_pca, 
-                           overlapping_amount, noise, method_type, lambda,
+summ = results %>% group_by(n, p1, p2, r, r_pca,
+                            nnzeros, 
+                           overlapping_amount, noise, 
+                           method_type, 
+                           lambda,
+                           method,
+                           theta_strength,
                            prop_missing) %>% 
-  summarize_all(median) %>% 
+  summarize_if(is.numeric, mean) %>% 
   ungroup() %>%
   arrange(n, p1, p2, r, noise, prop_missing, distance_U)
 
+colnames(summ)
+unique(summ$nnzeros)
 
-ggplot(result %>% filter(n == 100, method_type=="Alt"),
+ggplot(results %>% filter(n == 1000, method_type=="Alt"),
        aes(x=lambda, y =  1/p1 * distance_tot, 
-           colour =method)) +
+           colour =method) )+
   geom_point(alpha=0.1)+
   geom_smooth()+
-  scale_x_log10()
+  scale_y_log10()+
+  scale_x_log10() 
+
   facet_wrap(r_pca ~ p1, scales = "free")
 
 
-ggplot(summ %>% filter(n == 200)) +
-  geom_line(aes(x=prop_missing, y = sinTheta_tot, colour =method))+
-  facet_wrap(r_pca + r ~ p1, scales = "free")
+    
+ggplot(summ %>% filter(n == 1000, 
+                         r_pca == 0, r==2,
+                         overlapping_amount == 0,
+                         lambda %in% c(0.1, NA))) +
+    geom_line(aes(x=prop_missing, 
+                  y = distance_tot, 
+                  colour =method))+
+    facet_grid(theta_strength~ p1, scales = "free")
+
+legend_order <- c("Oracle",  "FIT_SAR_CV", 
+                  "FIT_SAR_BIC", "Witten_Perm", "Witten.CV",
+                  "SCCA_Parkhomenko", "Waaijenborg-CV", "Waaijenborg-Author",
+                  "Canonical Ridge-Author", "CCA-mean",
+                  "RRR" ,   "Alt-0.1" 
+                  )
+my_colors <- c( "black", "chartreuse2", "chartreuse4",
+                "orchid1", "orchid3", "yellow2",
+                "burlywood2", "burlywood4",
+                "cyan", "gray", "red",
+                "dodgerblue")
+labels_n = c()
+  
+unique(summ$n)
+unique(summ$p1)
+unique(summ$r_pca)
+unique(summ$r)
+ggplot(summ %>% filter(theta_strength == "medium",
+                        r==2,
+                         n==500,
+                         overlapping_amount == 0,
+                         method %in% legend_order)) +
+    geom_line(aes(x=prop_missing, 
+                  y = distance_tot, 
+                  colour =method), linewidth=1.2)+
+    scale_color_manual(values =my_colors, 
+      breaks =legend_order) +
+    scale_y_log10() + 
+    facet_grid(p1~r_pca, scales = "free")
+  
+  
+ggplot(summ %>% filter(n == 200, 
+                       r_pca == 0, r==2,
+                       overlapping_amount == 0,
+                       lambda<0.5)) +
+  geom_line(aes(x=prop_missing, 
+                y = sinTheta_tot, 
+                colour =method))+
+  facet_wrap(theta_strength~ p1, scales = "free")
 
 ggplot(summ) +
   geom_line(aes(x=prop_missing, y = 1/p1 * prediction_U, colour =method))+
-  facet_grid(r_pca + r ~ p1)
+  facet_grid(r ~ p1)
 
 ggplot(summ) +
   geom_line(aes(x=prop_missing, y = prediction_U, colour =method))+
