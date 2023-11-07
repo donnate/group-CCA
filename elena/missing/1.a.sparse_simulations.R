@@ -96,7 +96,8 @@ for(seed_n in seeds){
                                                   "exp" = seed + seed_n))
                 
                 for (lambda in c(0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5)){
-                  if (lambda == 0.0001){
+                #for (lambda in c(0.0001)){ 
+	       	if (lambda == 0.0001){
                     init_coef = NULL
                   }
                    tryCatch({
@@ -125,7 +126,7 @@ for(seed_n in seeds){
                                 # Skip to the next iteration
                       })
         }
-                
+               print("done") 
                 cca = CCA::cc(Ximp, Yimp)
                 result = rbind(result, data.frame(evaluate(gen$newX, gen$newY, cca$xcoef[, 1:r], 
                                                            cca$ycoef[, 1:r], 
@@ -158,15 +159,21 @@ for(seed_n in seeds){
 
                 #### Try out alternative approaches
           #### Oracle
-          set_u =  which(apply(gen$u,1, norm)>0)
+          print("beginning oracle")
+		set_u =  which(apply(gen$u,1, norm)>0)
           set_v =  which(apply(gen$v,1, norm)>0)
           t=CCA::cc(as.matrix(gen$X[,set_u]), as.matrix(gen$Y[, set_v]))
           Uhat = matrix(0, p, r)
           Vhat = matrix(0, q, r)
           Uhat[set_u, ] <-  t$xcoef[, 1:r]
           Vhat[set_v, ] <-  t$ycoef[, 1:r]
-          result <- rbind(result, data.frame(evaluate(gen$newX, gen$newY, t$xcoef[, 1:r], 
-                                                           t$ycoef[, 1:r], 
+	  print("here")
+          print(dim(t$xcoef[, 1:r]))
+	  print(dim(gen$u))
+	  print(t$xcoef[, 1:r])
+
+	  result <- rbind(result, data.frame(evaluate(gen$newX, gen$newY, Uhat[, 1:r], 
+                                                           Vhat[, 1:r], 
                                                            gen$u, gen$v,
                                                            Sigma_hat_sqrt_inv = Sigma_hat_sqrt_inv, 
                                                            Sigma0_sqrt_inv = Sigma0_sqrt_inv),
@@ -213,7 +220,7 @@ for(seed_n in seeds){
                       })
         }
 
-                write_csv(result, paste0("missing/simulation-RRR-results-sparse", name_exp, ".csv"))
+                write_csv(result, paste0("elena/missing/simulation-RRR-results-sparse", name_exp, ".csv"))
                 #write.csv(result, "missing/simulation-RRR-results-sparse.csv", row.names = F)
               }
             }

@@ -98,7 +98,7 @@ alternating_cca <- function(X, Y, r, init_coef = NULL, lambdax = 0,
       if (is.null(U_init)){
          U <- Variable(p, r)
       }else{
-         U <- Variable(p, r, initialize = U_init)
+         U <- Variable(p, r)
       }
      
       if (is.null(Gamma_u)){
@@ -130,7 +130,7 @@ alternating_cca <- function(X, Y, r, init_coef = NULL, lambdax = 0,
       if (is.null(V_init)){
          V <- Variable(p, r)
       }else{
-         V <- Variable(p, r, initialize = V_init)
+         V <- Variable(p, r)
       }
       if (is.null(Gamma_v)){
         objective <- Minimize(1/n * sum_squares(ZU - Y %*% V) + lambday * sum(norm2(V, axis=1)))
