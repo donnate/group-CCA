@@ -5,6 +5,7 @@ experiments/sparse_CCA/logs/
 elena/missing/*.csv
 experiments/sparse_CCA/results/
 elena/missing/Plots/*
+elena/logs/*
 .RData
 .Rhistory
 experiments/sparse_CCA/results/results/

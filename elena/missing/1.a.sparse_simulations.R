@@ -57,7 +57,6 @@ for(seed_n in seeds){
             if (max(r_pca * nnzeros, r * nnzeros) < p) {
             for (overlapping_amount in overlaps){
               for(prop_missing in props){
-                #cat("\n\ns:", s, "p:", p, "props:", prop_missing, "\n")
                 cat("seed:")
                 cat(seed, " ")
                 #gen = generate(n, p, q, s, prop_missing)
@@ -190,7 +189,8 @@ for(seed_n in seeds){
 
                 #### Try out alternative approaches
           #### Oracle
-          set_u =  which(apply(gen$u,1, norm)>0)
+          print("beginning oracle")
+		set_u =  which(apply(gen$u,1, norm)>0)
           set_v =  which(apply(gen$v,1, norm)>0)
           t=CCA::cc(as.matrix(gen$X[,set_u]), as.matrix(gen$Y[, set_v]))
           Uhat = matrix(0, p, r)
@@ -212,6 +212,7 @@ for(seed_n in seeds){
                                                    "normalize_diagonal" = normalize_diagonal,
                                                   "exp" = seed_n,
                                              "time" = 0
+
                                             )
           )
           
