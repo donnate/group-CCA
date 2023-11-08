@@ -3,25 +3,25 @@ library(ggplot2)
 library(pracma)
 setwd("~/Documents/group-CCA/elena/")
 file_list <- list.files(path = "~/Documents/group-CCA/elena/missing/", 
-                        pattern = "simulation-RRR-results99*", full.names = TRUE)
+                        pattern = "new-simulation-RRR-results*", full.names = TRUE)
 
 results <- file_list %>%
   map_dfr(~ read_csv(.x) %>% mutate(filename = .x))
 
 
-results["lambda"] = sapply(results$method, function(x){ifelse(is.null(strfind(x, "Alt-"))==FALSE,
-                                                              as.numeric(strsplit(x, "Alt-")[[1]][2]),
-                                                              NA)})
-results["method_type"] = sapply(results$method, function(x){ifelse(is.null(strfind(x, "Alt-"))==FALSE,
-                                                                   "Alt",
-                                                                   x)})
+#results["lambda"] = sapply(results$method, function(x){ifelse(is.null(strfind(x, "Alt-"))==FALSE,
+#                                                              as.numeric(strsplit(x, "Alt-")[[1]][2]),
+#                                                              NA)})
+#results["method_type"] = sapply(results$method, function(x){ifelse(is.null(strfind(x, "Alt-"))==FALSE,
+#                                                                   "Alt",
+#                                                                   x)})
 summ = results %>% group_by(n, p1, p2, r, r_pca,
                             #nnzeros, 
                             overlapping_amount, noise, 
-                            method_type, 
-                            lambda,
+                            #method_type, 
+                            #lambda,
                             method,
-                            #theta_strength,
+                            theta_strength,
                             prop_missing) %>% 
   summarize_if(is.numeric, mean) %>% 
   ungroup() %>%
@@ -30,8 +30,13 @@ summ = results %>% group_by(n, p1, p2, r, r_pca,
 colnames(summ)
 unique(summ$nnzeros)
 unique(summ$n)
+unique(summ$r)
+unique(summ$r_pca)
+unique(summ$theta_strength)
+unique(summ$overlapping_amount)
 unique(summ$lambda)
 
+unique(results$p1)
 ggplot(results %>% filter(n == 1000, method_type=="Alt"),
        aes(x=lambda, y =  1/p1 * distance_tot, 
            colour =method) )+
@@ -40,13 +45,15 @@ ggplot(results %>% filter(n == 1000, method_type=="Alt"),
   scale_y_log10()+
   scale_x_log10() 
 
-ggplot(summ %>% filter(n == 1000, 
-                       r_pca == 0, r==2,
+ggplot(summ %>% filter(
                        overlapping_amount == 0,
-                       lambda %in% c(0.1, NA))) +
-  geom_line(aes(x=prop_missing, 
+                       r_pca == 0, r==2,
+                       method %in% c("Alt-opt",
+                                     "Gradient-descent")) )+
+  geom_line(aes(x=n, 
                 y = distance_tot, 
                 colour =method))+
+  scale_y_log10() + 
   facet_grid(theta_strength~ p1, scales = "free")
 
 legend_order <- c("RRR", "Alt", "CCA-mean", "CCA-median") 

@@ -136,10 +136,10 @@ cca_gd2 <- function(X, Y, r, init, kx=20, ky=20,
     new_u <- ut - eta * grad
     # Apply Regularisation:
     if (penalize_X){
-      if(is.null(Gamma_u) == F){
+      if(is.null(Gamma_u) == FALSE){
         new_u <- get_gamma_sparse_U(new_u, lambda_gamma_x)
       }else{
-        if(is.null(Zu) == F){
+        if(is.null(Zu) == FALSE){
           new_u <- group_sparse(new_u, kx, r, Zu)
         }else{
           new_u <- hard(new_u, kx, r)
@@ -152,10 +152,10 @@ cca_gd2 <- function(X, Y, r, init, kx=20, ky=20,
     new_v <- vt - eta * grad
     # Apply Regularisation:
     if (penalize_Y){
-      if(is.null(Gamma_v) == F){
+      if(is.null(Gamma_v) == FALSE){
         new_v <- get_gamma_sparse_U(new_v, lambda_gamma_y)
       }else{
-        if(is.null(Zu) == F){
+        if(is.null(Zu) == FALSE){
           new_v <- group_sparse(new_v, ky, r, Zv)
         }else{
           new_v <- hard(new_v, ky, r)
@@ -262,8 +262,9 @@ pipeline_CCA_gd2 <- function(X, Y,
   
   resultsx =c()
   for (lambda in param_lambda){
+    
     resultsx_temp <- expand.grid(kx = param_k, ky = param_k) %>%
-      mutate(rmse = map2_dbl(kx, ky, ~ cv_function_gd(X, Y,  
+      mutate(rmse_str = map2_chr(kx, ky, ~ cv_function_gd(X, Y,  
                                                       kfolds=kfolds, init,
                                                       lambda_x = lambda,
                                                       lambda_y = lambda,
@@ -271,7 +272,9 @@ pipeline_CCA_gd2 <- function(X, Y,
                                                       ky = .y, 
                                                       r=r,
                                                       maxiter=maxiter, 
-                                                      eta=eta, convergence=convergence)))
+                                                      eta=eta, convergence=convergence)))%>%
+      separate(rmse_str, 
+               into = c("rmse", "sd"), sep = "_", convert = TRUE)
     resultsx_temp["lambda"] = lambda
     resultsx = rbind(resultsx, resultsx_temp)
   }
@@ -283,10 +286,12 @@ pipeline_CCA_gd2 <- function(X, Y,
     ###### (X, Y, Mask, kfolds=5, ainit, lambda, k=20)
     
     # print best hyperparameters and corresponding RMSE
-    
-  opt_kx <- resultsx$kx[which.min(resultsx$rmse)]
-  opt_ky <- resultsx$ky[which.min(resultsx$rmse)]
-  opt_lambda <- resultsx$lambda[which.min(resultsx$rmse)]
+  ind = which.min(resultsx$rmse)
+  candidates = which( resultsx$rmse < resultsx$rmse[ind] + 0.5 * resultsx$sd[ind]) ### within 
+  opt = which.min(apply(resultsx[candidates,c("kx", "ky")], 1, sum))
+  opt_kx <- resultsx$kx[candidates[opt]]
+  opt_ky <- resultsx$ky[candidates[opt]]
+  opt_lambda <- resultsx$lambda[candidates[opt]]
   #which_lambdax = which(abs(resultsx$rmse-min(resultsx$rmse))/(1e-6  + min(resultsx$rmse)) <0.01)
   #lambda = max(resultsx$lambda[which_lambdax])
   #k = max(resultsx$k[which_lambdax])
@@ -351,7 +356,8 @@ cv_function_gd <- function(X, Y, kfolds=5, init,
                         maxiter=maxiter, plot = FALSE)
         # make predictions on validation data
         # compute RMSE on validation data
-        rmse[i] <- sum((X_val %*% final$Uhat - Y_val%*% final$Vhat)^2)
+        #rmse[i] <- subdistance(X_val %*% final$Uhat, Y_val%*% final$Vhat)
+        rmse[i] <- mean((X_val %*% final$Uhat -  Y_val%*% final$Vhat)^2)
         print(rmse)
       },
       error = function(e) {
@@ -364,7 +370,7 @@ cv_function_gd <- function(X, Y, kfolds=5, init,
   if (mean(is.na(rmse)) == 1){
     return(1e8)
   }else{
-    return(mean(rmse, na.rm=TRUE))
+    return(paste0(mean(rmse, na.rm=TRUE), "_", sd(rmse, na.rm=TRUE)))
   }
 }
 

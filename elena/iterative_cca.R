@@ -97,8 +97,6 @@ alternating_cca <- function(X, Y, r, init_coef = NULL, lambdax = 0,
   while(it<max_iter & eps > thres) {
     if (lambdax >0){
       U <- Variable(p, r)
-      
-     
       if (is.null(Gamma_u)){
         objective <- Minimize(1/n * sum_squares(X %*% U - ZV) + lambdax * sum(norm2(U, axis=1)))
         problem <- Problem(objective)
@@ -119,13 +117,14 @@ alternating_cca <- function(X, Y, r, init_coef = NULL, lambdax = 0,
     #U = U %*% diag(1/sqrt(apply(U^2, 2, sum)))
     if (norm(U) < 1e-5){
       ### Solution is essentially 0
-      return(list(U=U, V = matrix(0, n, q)))
+      return(list(U=matrix(0, n, p), V = V))
+    }else{
+      U = U %*% sqrtm(t(U) %*% cov(X) %*% U)$Binv
     }
-    U = U %*% sqrtm(t(U) %*% cov(X) %*% U)$Binv
     ZU <- X %*% U
 
     if (lambday >0){
-      V <- Variable(p, r)
+      V <- Variable(q, r)
       
       if (is.null(Gamma_v)){
         objective <- Minimize(1/n * sum_squares(ZU - Y %*% V) + lambday * sum(norm2(V, axis=1)))
@@ -148,8 +147,10 @@ alternating_cca <- function(X, Y, r, init_coef = NULL, lambdax = 0,
     if (norm(V) < 1e-5){
       ### Solution is essentially 0
       return(list(U=U, V = V))
+    }else{
+      V = V %*% sqrtm(t(V) %*% cov(Y) %*% V)$Binv
     }
-    V = V %*% sqrtm(t(V) %*% cov(Y) %*% V)$Binv
+    
     #### Solve for Y and X
     if(sum(missY)>0){
      Y[missY] <- ((X %*% U) %*%  t(V) %*% pinv((V) %*% t(V)))[missY]
@@ -174,7 +175,7 @@ pipeline_alternating_CCA<- function(X, Y,
                              param_lambda=c(1, 0.1, 0.01, 0.001),
                              kfolds=10,
                              maxiter=5000, convergence=1e-4, 
-                             eta=1e-3){
+                             eta=1e-3, expand2D = FALSE){
   p1 <- dim(X)[2]
   p2 <- dim(Y)[2]
   p <- p1 + p2;
@@ -186,15 +187,36 @@ pipeline_alternating_CCA<- function(X, Y,
   init <- init_cca(X,Y, r, penalize_X=TRUE,
                    penalize_Y=TRUE)
   
-  
-  resultsx <- expand.grid(lambdax = param_lambda, lambday = param_lambda) %>%
+  if (expand2D){
+    resultsx <- expand.grid(lambdax = param_lambda, lambday = param_lambda) %>%
       mutate(rmse = map2_dbl(lambdax, lambday,  ~cv_function_alternating_cca(X, Y, 
                                                                              kfolds=kfolds, init,
-                                                          lambdax= .x,
-                                                          lambday = .y,
-                                                          r=r, 
-                                                          maxiter=maxiter, 
-                                                          convergence=convergence)))
+                                                                             lambdax= .x,
+                                                                             lambday = .y,
+                                                                             r=r, 
+                                                                             maxiter=maxiter, 
+                                                                             convergence=convergence)))
+    
+    resultsx = resultsx %>% filter(rmse >0) 
+    opt_lambdax <- resultsx$lambdax[which.min(resultsx$rmse)]
+    opt_lambday <- resultsx$lambday[which.min(resultsx$rmse)]
+  }else{
+    resultsx <- expand.grid(lambdax = param_lambda) %>%
+      mutate(rmse = map_dbl(lambdax, ~cv_function_alternating_cca(X, Y, 
+                                                                  kfolds=kfolds, init,
+                                                                  lambdax= .x,
+                                                                  lambday = .x,
+                                                                  r=r, 
+                                                                  maxiter=maxiter, 
+                                                                  convergence=convergence)))
+    
+    resultsx = resultsx %>% filter(rmse >0) 
+    opt_lambdax <- resultsx$lambdax[which.min(resultsx$rmse)]
+    opt_lambday <- resultsx$lambdax[which.min(resultsx$rmse)]
+  }
+
+  
+
 
 
   
@@ -207,8 +229,7 @@ pipeline_alternating_CCA<- function(X, Y,
   
   # print best hyperparameters and corresponding RMSE
   
-  opt_lambdax <- resultsx$lambdax[which.min(resultsx$rmse)]
-  opt_lambday <- resultsx$lambday[which.min(resultsx$rmse)]
+
   #which_lambdax = which(abs(resultsx$rmse-min(resultsx$rmse))/(1e-6  + min(resultsx$rmse)) <0.01)
   #lambda = max(resultsx$lambda[which_lambdax])
   #k = max(resultsx$k[which_lambdax])
@@ -279,7 +300,7 @@ cv_function_alternating_cca<- function(X, Y, kfolds=5, init,
                                 max_iter=maxiter)
         # make predictions on validation data
         # compute RMSE on validation data
-        rmse[i] <- sum((X_val %*% final$U - Y_val%*% final$V)^2)
+        rmse[i] <- mean((X_val %*% final$U - Y_val%*% final$V)^2)
         print(rmse)
       },
       error = function(e) {

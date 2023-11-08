@@ -5,7 +5,7 @@ library(CCA)
 library(tidyr)
 library(zoo)
 library(pracma)
-setwd("~/Documents/group-CCA/")
+#setwd("~/Documents/group-CCA/")
 
 source('experiments/sparse_CCA/experiment_functions.R')
 source('experiments/alternative_methods/SAR.R')
@@ -34,6 +34,7 @@ overlaps <- c(0, 0.5, 1)
 props <- c(0)
 noise = 1
 seeds = 1:100
+normalize_diagonal = TRUE
 result = c()
 for(seed_n in seeds){
   set.seed(seed * 100 + seed_n)
@@ -68,20 +69,18 @@ for(seed_n in seeds){
                                                        lambda_pca = 1,
                                                        r = r,
                                                        overlapping_amount = overlapping_amount,
-                                                       normalize_diagonal = FALSE,
+                                                       normalize_diagonal = normalize_diagonal,
                                                        prop_missing = prop_missing) 
                 X = gen$X
                 Y = gen$Y
-                Xna = gen$Xna
-                Yna = gen$Yna
+                #Xna = gen$Xna
+                #Yna = gen$Yna
                 Sigma0_sqrt_inv = sqrtm(gen$Sigma)$Binv
                 Sigma_hat_sqrt_inv = sqrtm(gen$S  + 1e-4 *diag(nrow=nrow(gen$S)))$Binv
-                Ximp = data.frame(gen$Xna) %>% mutate_all(~replace_na(., mean(., na.rm = TRUE)))
-                Yimp = data.frame(Yna) %>% mutate_all(~replace_na(., mean(., na.rm = TRUE)))
                 
-                Ximp2 = data.frame(gen$Xna) %>% mutate_all(~replace_na(., median(., na.rm = TRUE)))
-                Yimp2 = data.frame(gen$Yna) %>% mutate_all(~replace_na(., median(., na.rm = TRUE)))
                 
+                if (p < n){
+                  
                 start_time_rrr <- system.time({
                   rrr <- CCAimpute(gen$Xna, gen$Yna, k=r, eps = 1e-4, verbose = F)
                 })
@@ -98,42 +97,54 @@ for(seed_n in seeds){
                                                   "n" = n,
                                                   "r_pca" = r_pca,
                                                   "exp" = seed_n,
+                                                  "normalize_diagonal" = normalize_diagonal,
                                                   "time" = start_time_rrr[[1]]))
+                }
                 
-        #         for (lambda in c(0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5)){
-        #           if (lambda == 0.0001){
-        #             init_coef = NULL
-        #           }
-        #            tryCatch({
-        #           #### if it's all zero then just stop
-        #           if (is.null(init_coef) || ((norm(init_coef$U, "F") > 1e-5) & (norm(init_coef$V, "F") > 1e-5))){
-        #             alt = alternating_cca(gen$Xna, gen$Yna, r = r, lambdax = lambda, 
-        #                                   lambday = lambda, thres = 1e-1, 
-        #                                   max_iter = 20)
-        #             init_coef = list(U = alt$U, V = alt$V)
-        #             result = rbind(result, data.frame(evaluate(gen$newX, gen$newY, alt$U, alt$V, gen$u, 
-        #                                                        gen$v,
-        #                                                        Sigma_hat_sqrt_inv = Sigma_hat_sqrt_inv, 
-        #                                                        Sigma0_sqrt_inv = Sigma0_sqrt_inv), 
-        #                                               "noise" = noise, "method" = paste0("Alt-", lambda),
-        #                                               "prop_missing" = prop_missing,
-        #                                               "overlapping_amount" = overlapping_amount,
-        #                                               "nnzeros" = nnzeros,
-        #                                               "theta_strength" = strength_theta,
-        #                                               "n" = n,
-        #                                               "r_pca" = r_pca,
-        #                                               "exp" = seed))
-        #             
-        #             }
-        #         }, error = function(e) {
-        #                         # Print the error message
-        #                         cat("Error occurred in Alt", lambda, ":", conditionMessage(e), "\n")
-        #                         # Skip to the next iteration
-        #               })
-        # }
+                for (lambda in c(0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 
+                                 0.25, 0.5, 1)){
+                  if (lambda == 0.0001){
+                    init_coef = NULL
+                  }
+                   tryCatch({
+                  #### if it's all zero then just stop
+                  if (is.null(init_coef) || ((norm(init_coef$U, "F") > 1e-5) & (norm(init_coef$V, "F") > 1e-5))){
+                    start_time_alt <- system.time({
+                      alt = alternating_cca(gen$Xna, gen$Yna, r = r, lambdax = lambda, 
+                                          lambday = lambda, thres = 1e-3, 
+                                           max_iter = 100)
+                    })
+                    init_coef = list(U = alt$U, V = alt$V)
+                    result = rbind(result, data.frame(evaluate(gen$newX, gen$newY, 
+                                                               alt$U, alt$V, gen$u, 
+                                                               gen$v,
+                                                               Sigma_hat_sqrt_inv = Sigma_hat_sqrt_inv, 
+                                                               Sigma0_sqrt_inv = Sigma0_sqrt_inv), 
+                                                      "noise" = noise, "method" = paste0("Alt-", lambda),
+                                                        "prop_missing" = prop_missing,
+                                                  "overlapping_amount" = overlapping_amount,
+                                                  "nnzeros" = nnzeros,
+                                                  "theta_strength" = strength_theta,
+                                                  "n" = n,
+                                                  "r_pca" = r_pca,
+                                                  "exp" = seed_n,
+                                                  "normalize_diagonal" = normalize_diagonal,
+                                                  "time" = start_time_alt[[1]]))
+                    
+                    }
+                }, error = function(e) {
+                                # Print the error message
+                                cat("Error occurred in Alt", lambda, ":", conditionMessage(e), "\n")
+                                # Skip to the next iteration
+                      })
+        }
                 
-              if ( p < n){
+              if ( p < n && prop_missing > 0){
+                Ximp = data.frame(gen$Xna) %>% mutate_all(~replace_na(., mean(., na.rm = TRUE)))
+                Yimp = data.frame(gen$Yna) %>% mutate_all(~replace_na(., mean(., na.rm = TRUE)))
                 
+                Ximp2 = data.frame(gen$Xna) %>% mutate_all(~replace_na(., median(., na.rm = TRUE)))
+                Yimp2 = data.frame(gen$Yna) %>% mutate_all(~replace_na(., median(., na.rm = TRUE)))
               
                 start_time_cca <- system.time({
                   cca = CCA::cc(Ximp, Yimp)
@@ -152,6 +163,7 @@ for(seed_n in seeds){
                                                   "n" = n,
                                                   "r_pca" = r_pca,
                                                   "exp" = seed_n,
+                                                  "normalize_diagonal" = normalize_diagonal,
                                                   "time" = start_time_cca[[1]]))
                 
                 start_time_cca2 <- system.time({
@@ -170,6 +182,7 @@ for(seed_n in seeds){
                                                   "r_pca" = r_pca,
                                                   "n" = n,
                                                   "exp" = seed_n,
+                                                   "normalize_diagonal" = normalize_diagonal,
                                                   "time" = start_time_cca2[[1]]))
                 
                 
@@ -196,6 +209,7 @@ for(seed_n in seeds){
                                                   "overlapping_amount" = overlapping_amount,
                                                   "r_pca" = r_pca,
                                                   "n" = n,
+                                                   "normalize_diagonal" = normalize_diagonal,
                                                   "exp" = seed_n,
                                              "time" = 0
                                             )
@@ -223,7 +237,27 @@ for(seed_n in seeds){
                                              "r_pca" = r_pca,
                                              "n" = n,
                                              "exp" = seed_n,
+                                              "normalize_diagonal" = normalize_diagonal,
                                              "time" = start_time_gd2[[1]]
+          )
+          )
+
+          result <- rbind(result, data.frame(evaluate(gen$newX, gen$newY, 
+                                                      res_gd$initu[, 1:r], 
+                                                      res_gd$initv[, 1:r], 
+                                                      gen$u, gen$v,
+                                                      Sigma_hat_sqrt_inv = Sigma_hat_sqrt_inv, 
+                                                      Sigma0_sqrt_inv = Sigma0_sqrt_inv),
+                                              "noise" = noise,  method = "init-alternating",  
+                                             "prop_missing" = prop_missing, 
+                                             "nnzeros" = nnzeros,
+                                             "theta_strength" = strength_theta,
+                                             "overlapping_amount" = overlapping_amount,
+                                             "r_pca" = r_pca,
+                                             "n" = n,
+                                             "exp" = seed_n,
+                                              "normalize_diagonal" = normalize_diagonal,
+                                             "time" =0
           )
           )
           
@@ -231,11 +265,12 @@ for(seed_n in seeds){
             res_alt = pipeline_alternating_CCA(gen$X, gen$Y, r=r,
                                                param_lambda=c(0.0001, 0.001, 
                                                               0.005,
-                                                              0.01, 0.05, 0.1,
-                                                              1),
-                                               kfolds=5,
-                                               maxiter=20, convergence=1e-2, 
-                                               eta=1e-3)
+                                                              0.01, 0.05, 0.1, 
+                                                              0.25,
+                                                              0.5,
+                                                              1, 10),
+                                               kfolds=10,
+                                               maxiter=100, convergence=1e-3)
           })
           
             
@@ -253,6 +288,7 @@ for(seed_n in seeds){
                                              "r_pca" = r_pca,
                                              "n" = n,
                                              "exp" = seed_n,
+                                              "normalize_diagonal" = normalize_diagonal,
                                              "time" = start_time_alt2[[1]]
           )
           )
@@ -282,6 +318,7 @@ for(seed_n in seeds){
                                                                       "r_pca" = r_pca,
                                                                       "n" = n,
                                                                       "exp" = seed_n,
+                                                                       "normalize_diagonal" = normalize_diagonal,
                                                      "time" = start_time_additional_method[[1]]
                                                                 )
                               )
@@ -292,7 +329,7 @@ for(seed_n in seeds){
                       })
         }
 
-                write_csv(result, paste0("elena/missing/simulation-RRR-results-sparse", name_exp, ".csv"))
+                write_csv(result, paste0("elena/missing/results/new-simulation-RRR-results-sparse", name_exp, ".csv"))
                 #write.csv(result, "missing/simulation-RRR-results-sparse.csv", row.names = F)
               }
             }

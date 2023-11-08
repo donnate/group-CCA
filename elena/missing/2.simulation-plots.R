@@ -9,17 +9,17 @@ results <- file_list %>%
   map_dfr(~ read_csv(.x) %>% mutate(filename = .x))
 
 
-results["lambda"] = sapply(results$method, function(x){ifelse(is.null(strfind(x, "Alt-"))==FALSE,
-                                                           as.numeric(strsplit(x, "Alt-")[[1]][2]),
-                                                           NA)})
-results["method_type"] = sapply(results$method, function(x){ifelse(is.null(strfind(x, "Alt-"))==FALSE,
-                                                            "Alt",
-                                                            x)})
+#results["lambda"] = sapply(results$method, function(x){ifelse(is.null(strfind(x, "Alt-"))==FALSE,
+#                                                           as.numeric(strsplit(x, "Alt-")[[1]][2]),
+#                                                           NA)})
+#results["method_type"] = sapply(results$method, function(x){ifelse(is.null(strfind(x, "Alt-"))==FALSE,
+#                                                            "Alt",
+#                                                            x)})
 summ = results %>% group_by(n, p1, p2, r, r_pca,
                             nnzeros, 
                            overlapping_amount, noise, 
-                           method_type, 
-                           lambda,
+                           #method_type, 
+                           #lambda,
                            method,
                            theta_strength,
                            prop_missing) %>% 
@@ -41,27 +41,26 @@ ggplot(results %>% filter(n == 1000, method_type=="Alt"),
   facet_wrap(r_pca ~ p1, scales = "free")
 
 
-    
-ggplot(summ %>% filter(n == 1000, 
+legend_order <- c("Oracle",  "FIT_SAR_CV", 
+                    "FIT_SAR_BIC", "Witten_Perm", "Witten.CV",
+                    "SCCA_Parkhomenko", "Waaijenborg-CV", "Waaijenborg-Author",
+                    "Canonical Ridge-Author", "CCA-mean",
+                    "RRR" ,   "Alt-opt", "Gradient-Descent")
+  my_colors <- c( "black", "chartreuse2", "chartreuse4",
+                  "orchid1", "orchid3", "yellow2",
+                  "burlywood2", "burlywood4",
+                  "cyan", "gray", "red",
+                  "dodgerblue", "orange")
+  
+ggplot(summ %>% filter(
                          r_pca == 0, r==2,
-                         overlapping_amount == 0,
-                         lambda %in% c(0.1, NA))) +
-    geom_line(aes(x=prop_missing, 
+                         overlapping_amount == 0)) +
+    geom_line(aes(x=n, 
                   y = distance_tot, 
                   colour =method))+
     facet_grid(theta_strength~ p1, scales = "free")
 
-legend_order <- c("Oracle",  "FIT_SAR_CV", 
-                  "FIT_SAR_BIC", "Witten_Perm", "Witten.CV",
-                  "SCCA_Parkhomenko", "Waaijenborg-CV", "Waaijenborg-Author",
-                  "Canonical Ridge-Author", "CCA-mean",
-                  "RRR" ,   "Alt-0.1" 
-                  )
-my_colors <- c( "black", "chartreuse2", "chartreuse4",
-                "orchid1", "orchid3", "yellow2",
-                "burlywood2", "burlywood4",
-                "cyan", "gray", "red",
-                "dodgerblue")
+
 labels_n = c()
   
 unique(summ$n)
