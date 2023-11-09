@@ -67,7 +67,8 @@ SCCA_Parkhomenko<-function(x.data,y.data,n.cv=5,lambda.v.seq=seq(0, 0.2, by=0.02
 }
 
 
-SCCA_Parkhomenko_K1<-function(x.data,y.data,n.cv=5,lambda.v.seq=seq(0, 0.2, by=0.02), lambda.u.seq=seq(0, 0.2, by=0.02)){ # Sparse CCA for first dimension
+SCCA_Parkhomenko_K1<-function(x.data,y.data,n.cv=5,lambda.v.seq=seq(0, 0.2, by=0.02), 
+                              lambda.u.seq=seq(0, 0.2, by=0.02)){ # Sparse CCA for first dimension
   # CODE taken from http://www.uhnres.utoronto.ca/labs/tritchler/
   
   ### INPUT
@@ -99,8 +100,8 @@ SCCA_Parkhomenko_K1<-function(x.data,y.data,n.cv=5,lambda.v.seq=seq(0, 0.2, by=0
   # Settings sparseness parameters
   n.lambdas.u <-  length(lambda.u.seq)
   n.lambdas.v <-  length(lambda.v.seq)
-  lambda.v.matrix <- matrix(rep(lambda.v.seq, n.lambdas.u), nrow=n.lambdas.u, byrow=T)
-  lambda.u.matrix <- matrix(rep(lambda.u.seq, n.lambdas.v), nrow=n.lambdas.u, byrow=F)
+  lambda.v.matrix <- matrix(rep(lambda.v.seq, n.lambdas.u), nrow=n.lambdas.u, byrow=TRUE)
+  lambda.u.matrix <- matrix(rep(lambda.u.seq, n.lambdas.v), nrow=n.lambdas.u, byrow=FALSE)
   ones.p <- rep(1, p)/p
   ones.q <- rep(1, q)/q
   
@@ -181,7 +182,7 @@ SCCA_Parkhomenko_K1<-function(x.data,y.data,n.cv=5,lambda.v.seq=seq(0, 0.2, by=0
   predict.corr.scca[is.na(predict.corr.scca)] <- 0
   predict.corr.scca <- predict.corr.scca/n.cv
   
-  best.predict.corr.scca <- max(abs(predict.corr.scca), na.rm=T)
+  best.predict.corr.scca <- max(abs(predict.corr.scca), na.rm=TRUE)
   best.lambda.v <- lambda.v.matrix[predict.corr.scca==best.predict.corr.scca]
   best.lambda.u <- lambda.u.matrix[predict.corr.scca==best.predict.corr.scca]  
   

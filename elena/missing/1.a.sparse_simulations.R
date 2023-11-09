@@ -190,7 +190,7 @@ for(seed_n in seeds){
                 #### Try out alternative approaches
           #### Oracle
           print("beginning oracle")
-		set_u =  which(apply(gen$u,1, norm)>0)
+		      set_u =  which(apply(gen$u,1, norm)>0)
           set_v =  which(apply(gen$v,1, norm)>0)
           t=CCA::cc(as.matrix(gen$X[,set_u]), as.matrix(gen$Y[, set_v]))
           Uhat = matrix(0, p, r)
@@ -204,8 +204,8 @@ for(seed_n in seeds){
                                                            Sigma0_sqrt_inv = Sigma0_sqrt_inv),
                                                   "noise" = noise,  method = "Oracle",  
                                                   "prop_missing" = prop_missing, 
-                                               "nnzeros" = nnzeros,
-                                               "theta_strength" = strength_theta,
+                                                  "nnzeros" = nnzeros,
+                                                   "theta_strength" = strength_theta,
                                                   "overlapping_amount" = overlapping_amount,
                                                   "r_pca" = r_pca,
                                                   "n" = n,
@@ -215,7 +215,7 @@ for(seed_n in seeds){
 
                                             )
           )
-          
+          print(paste0("Starting ", "gradient descent opt") ) 
           start_time_gd2 <- system.time({
               res_gd <- pipeline_CCA_gd2(gen$X, gen$Y,  r=r, 
                                      param_lambda = c(0.01),
@@ -243,6 +243,7 @@ for(seed_n in seeds){
           )
           )
 
+          print(paste0("Evaluating ", " init") )
           result <- rbind(result, data.frame(evaluate(gen$newX, gen$newY, 
                                                       res_gd$initu[, 1:r], 
                                                       res_gd$initv[, 1:r], 
@@ -274,7 +275,7 @@ for(seed_n in seeds){
                                                maxiter=100, convergence=1e-3)
           })
           
-            
+          print(paste0("Starting ", "Alt opt") )
           result <- rbind(result, data.frame(evaluate(gen$newX, gen$newY, 
                                                       res_alt$ufinal[, 1:r], 
                                                       res_alt$vfinal[, 1:r], 
@@ -297,6 +298,8 @@ for(seed_n in seeds){
           for (method in c("FIT_SAR_CV", "FIT_SAR_BIC", "Witten_Perm",
                               "Witten.CV", "Waaijenborg-Author", "Waaijenborg-CV",
                               "SCCA_Parkhomenko", "Canonical Ridge-Author")){
+
+              print(paste0("Starting ", method))
               
 
                tryCatch({

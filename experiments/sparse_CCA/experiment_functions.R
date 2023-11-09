@@ -456,14 +456,15 @@ additional_checks <- function(X_train, Y_train, S=NULL,
   if (method.type=="Witten_Perm"){
     Witten_Perm <- CCA.permute(x=X_train,z=Y_train,typex="standard",typez="standard", nperms=50)
     method<-CCA(x=X_train, z=Y_train, typex="standard",typez="standard",K=rank,
-                         penaltyx=Witten_Perm$bestpenaltyx,penaltyz=Witten_Perm$bestpenaltyz,trace=F)
+                         penaltyx=Witten_Perm$bestpenaltyx,penaltyz=Witten_Perm$bestpenaltyz,trace=FALSE)
     a_estimate = rbind(method$u, method$v)
   }
   if(method.type=="Witten.CV"){
-    Witten_CV<-Witten.CV(X=X_train,Y=Y_train,n.cv=5,lambdax=matrix(seq(from=0,to=1,length=20),nrow=1),
-                         lambday=matrix(seq(from=0,to=1,length=20),nrow=1))
+    Witten_CV<-Witten.CV(X=X_train,Y=Y_train, n.cv=5,lambdax=matrix(10^(seq(from=-4,to=1,length=20)),nrow=1),
+                         lambday=matrix(10^(seq(from=-4,to=1,length=20),nrow=1))
     method <-CCA(x=X_train,z=Y_train,typex="standard",typez="standard",
-                 K=rank,penaltyx=Witten_CV$lambdax.opt,penaltyz=Witten_CV$lambday.opt,trace=F)
+                 K=rank,penaltyx=Witten_CV$lambdax.opt,
+                 penaltyz=Witten_CV$lambday.opt,trace=FALSE)
     a_estimate = rbind(method$u, method$v)
     
   }
