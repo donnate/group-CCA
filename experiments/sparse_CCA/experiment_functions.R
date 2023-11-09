@@ -461,7 +461,7 @@ additional_checks <- function(X_train, Y_train, S=NULL,
   }
   if(method.type=="Witten.CV"){
     Witten_CV<-Witten.CV(X=X_train,Y=Y_train, n.cv=5,lambdax=matrix(10^(seq(from=-4,to=1,length=20)),nrow=1),
-                         lambday=matrix(10^(seq(from=-4,to=1,length=20),nrow=1))
+                         lambday=matrix(10^(seq(from=-4,to=1,length=20)),nrow=1))
     method <-CCA(x=X_train,z=Y_train,typex="standard",typez="standard",
                  K=rank,penaltyx=Witten_CV$lambdax.opt,
                  penaltyz=Witten_CV$lambday.opt,trace=FALSE)
