@@ -306,7 +306,7 @@ cv_function_alternating_cca<- function(X, Y, kfolds=5, init,
       error = function(e) {
     #    # If an error occurs, assign NA to the result
         print("An error has occured")
-        rmse[i] <- NA
+        rmse[i] <- 1e8
       })
     #print(rmse)
   #}
