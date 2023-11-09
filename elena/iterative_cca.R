@@ -115,11 +115,18 @@ alternating_cca <- function(X, Y, r, init_coef = NULL, lambdax = 0,
       U = solve(t(X) %*%X) %*% t(X) %*% ZV
     }
     #U = U %*% diag(1/sqrt(apply(U^2, 2, sum)))
-    if (norm(U) < 1e-5){
+    if (max(U) < 1e-3){
       ### Solution is essentially 0
       return(list(U=matrix(0, n, p), V = V))
     }else{
-      U = U %*% sqrtm(t(U) %*% cov(X) %*% U)$Binv
+      norms = apply(U, 1, norm)
+      ind = which(norms > 1e-3)
+      if (length(ind)>1){
+        U[ind,] = U[ind,] %*% sqrtm(t(U)[,ind] %*% cov(X[, ind], X[, ind]) %*% U[ind, ])$Binv
+      }else{
+        U[ind,] = U[ind,] %*% sqrtm( cov(X[, ind], X[, ind]) * (t(U)[,ind] %*% U[ind, ]))$Binv
+      }
+      
     }
     ZU <- X %*% U
 
@@ -144,11 +151,19 @@ alternating_cca <- function(X, Y, r, init_coef = NULL, lambdax = 0,
       V = solve(t(Y) %*%Y) %*% t(Y) %*% ZU
     }
     #V = V %*% diag(1/sqrt(apply(V^2, 2, sum)))
-    if (norm(V) < 1e-5){
+    if (max(V) < 1e-3){
       ### Solution is essentially 0
       return(list(U=U, V = V))
     }else{
-      V = V %*% sqrtm(t(V) %*% cov(Y) %*% V)$Binv
+      norms = apply(V, 1, norm)
+      ind = which(norms > 1e-3)
+      if (length(ind)>1){
+        V[ind,] = V[ind,] %*% sqrtm(t(V)[,ind] %*% cov(Y[, ind], Y[, ind]) %*% V[ind, ])$Binv
+      }else{
+        V[ind,] = V[ind,] %*% sqrtm( cov(Y[, ind], Y[, ind]) * (t(V)[,ind] %*% V[ind, ]))$Binv
+      }
+      
+     # V = V %*% sqrtm(t(V) %*% cov(Y) %*% V)$Binv
     }
     
     #### Solve for Y and X
