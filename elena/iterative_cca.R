@@ -117,7 +117,7 @@ alternating_cca <- function(X, Y, r, init_coef = NULL, lambdax = 0,
     #U = U %*% diag(1/sqrt(apply(U^2, 2, sum)))
     if (max(U) < 1e-3){
       ### Solution is essentially 0
-      return(list(U=matrix(0, n, p), V = V))
+      return(list(U=matrix(0, p, r), V = V))
     }else{
       norms = apply(U, 1, norm)
       ind = which(norms > 1e-3)
@@ -153,7 +153,7 @@ alternating_cca <- function(X, Y, r, init_coef = NULL, lambdax = 0,
     #V = V %*% diag(1/sqrt(apply(V^2, 2, sum)))
     if (max(V) < 1e-3){
       ### Solution is essentially 0
-      return(list(U=U, V = V))
+      return(list(U=U, V = matrix(0, q, r)))
     }else{
       norms = apply(V, 1, norm)
       ind = which(norms > 1e-3)
@@ -257,12 +257,12 @@ pipeline_alternating_CCA<- function(X, Y,
                            thres=convergence, 
                            max_iter=maxiter)
   print(final)
-  if (sum(final$U^2 > 1e-5) >0){
+  if (max(abs(final$U)) > 1e-5){
     Uhat = final$U %*% sqrtm(t(final$U) %*% Sigma_X %*% final$U)$Binv 
   }else{
     Uhat = final$U
   }
-  if (sum(final$V^2 > 1e-5) >0){
+  if (max(abs(final$V)) > 1e-5){
     Vhat = final$V %*% sqrtm(t(final$V) %*% Sigma_Y %*% final$V)$Binv 
   }else{
     Vhat = final$V
@@ -288,7 +288,7 @@ cv_function_alternating_cca<- function(X, Y, kfolds=5, init,
                            convergence=1e-4) {
   # define empty vector to store results
   folds <- createFolds(1:nrow(Y), k = kfolds, list = TRUE, returnTrain = FALSE)
-  rmse <- numeric(length = kfolds)
+  rmse <- rep(1e10, kfolds)
   p1 <- dim(X)[2]
   p2 <- dim(Y)[2]
   p <- p1 + p2;

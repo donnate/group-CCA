@@ -1,6 +1,8 @@
 library(tidyverse)
 library(ggplot2)
 library(pracma)
+library(tidyverse)
+theme_set(theme_bw(base_size = 14))
 setwd("~/Documents/group-CCA/elena/")
 file_list <- list.files(path = "~/Documents/group-CCA/elena/missing/results/", 
                         pattern = "new-simulation-RRR-results-sparse*", full.names = TRUE)
@@ -18,14 +20,36 @@ results["method_type"] = sapply(results$method, function(x){ifelse(is.null(strfi
 summ = results %>% group_by(n, p1, p2, r, r_pca,
                             nnzeros, 
                            overlapping_amount, noise, 
-                           #method_type, 
-                           #lambda,
+                           method_type, 
+                           lambda,
                            method,
                            theta_strength,
                            prop_missing) %>% 
-  summarize_if(is.numeric, mean) %>% 
-  ungroup() %>%
-  arrange(n, p1, p2, r, noise, prop_missing, distance_U)
+  summarize_if(is.numeric, median) %>% 
+  ungroup() 
+
+summ = results %>% group_by(n, p1, p2, r, r_pca,
+                            nnzeros, 
+                            overlapping_amount, noise, 
+                            method_type, 
+                            lambda,
+                            method,
+                            theta_strength,
+                            normalize_diagonal,
+                            prop_missing) %>% 
+  summarise(distance_tot = mean(distance_tot),
+            distance_tot_q50 = quantile(distance_tot, 0.5),
+            distance_tot_q25 = quantile(distance_tot, 0.75),
+            distance_tot_q75 = quantile(distance_tot, 0.25),
+            prediction_tot_mean= mean(prediction_tot),
+            prediction_tot_q50 = quantile(prediction_tot, 0.5),
+            prediction_tot_q25 = quantile(prediction_tot, 0.75),
+            prediction_tot_q75 = quantile(prediction_tot, 0.25),
+            time_med = quantile(time, 0.5),
+            time_mean = mean(time)
+            
+  ) %>%
+  ungroup() 
 
 colnames(summ)
 unique(summ$nnzeros)
@@ -45,24 +69,75 @@ legend_order <- c("Oracle",  "FIT_SAR_CV",
                     "FIT_SAR_BIC", "Witten_Perm", "Witten.CV",
                     "SCCA_Parkhomenko", "Waaijenborg-CV", "Waaijenborg-Author",
                     "Canonical Ridge-Author", "CCA-mean",
-                    "RRR" ,   "Alt-opt", "Gradient-descent")
+                    "RRR" ,   "Alt-opt", "Gradient-descent",
+                  "init-alternating")
   my_colors <- c( "black", "chartreuse2", "chartreuse4",
-                  "orchid1", "orchid3", "yellow2",
+                  "orchid1", "orchid3", "indianred",
                   "burlywood2", "burlywood4",
                   "cyan", "gray", "red",
-                  "dodgerblue", "orange")
-  
+                  "dodgerblue", "orange", "yellow")
+
+labels_n <-   c("Oracle",  "FIT_SAR with CV (Wilms et al)", 
+                "FIT_SAR with BIC (Wilms et al)",  
+                  "Witten et al (with Permutation Test)", "Witten et al.(with CV)",
+                  "SCCA (Parkhomenko et al)", "SCCA with CV (Waaijenborg et al)", 
+                  "SCCA with BIC (Waaijenborg et al)",
+                  "CCA with Ridge Penalty", "CCA-mean",
+                  "CCA as Reduced Rank Regression" , 
+                  "Alternating Regression (this paper)", 
+                  "Gradient Descent (this paper)",
+                  "Initialization (this paper)")
 unique(summ$r_pca)
-ggplot(summ %>% filter( r_pca == 3, r==2,
-                         overlapping_amount == 1),
+ggplot(summ %>% filter( is.na(lambda)==TRUE,
+                        r_pca == 3, r==2,
+                        overlapping_amount == 0),
+       aes(x=n, 
+           y = distance_tot, 
+           colour =method)) +
+  geom_point()+
+  geom_line()+
+  geom_point(aes(y=distance_tot_q25))+    facet_grid(theta_strength~ p1, scales = "free",
+                                                     labeller = as_labeller(c(`20` = "p = 20",
+                                                                              `80` = "p = 80",
+                                                                              `high` = "High",
+                                                                              `medium` = "Medium",
+                                                                              `low` = "Low"
+                                                                              
+                                                     ))) +
+  xlab("n (Number of Samples)") + 
+  ylab(expression("Subspace Distance")) +
+  labs(colour="Method") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplot(summ %>% filter( is.na(lambda)==TRUE,
+                        r_pca == 5, r==2,
+                         overlapping_amount == 0),
        aes(x=n, 
            y = distance_tot, 
            colour =method)) +
     geom_line()+
   geom_point() + 
-    scale_color_manual(values = my_colors, breaks = legend_order) +
+  scale_x_log10() + 
+  scale_color_manual(values = my_colors, breaks = legend_order,
+                     labels = labels_n) +
   scale_y_log10() + 
-    facet_grid(theta_strength~ p1, scales = "free")
+  #geom_errorbar(aes(ymin = distance_tot_q25, 
+  #                  ymax = distance_tot_q75), 
+  #              width = 0.1, alpha=0.7,
+  #              linewidth=1.1, position = position_dodge(0.05))+
+    facet_grid(theta_strength~ p1, scales = "free",
+               labeller = as_labeller(c(`20` = "p = 20",
+                                        `80` = "p = 80",
+                                        `100` = "p = 100",
+                                        `high` = "High",
+                                        `medium` = "Medium",
+                                        `low` = "Low"
+                                        
+                                        ))) +
+  xlab("n (Number of Samples)") + 
+  ylab(expression("Subspace Distance")) +
+  labs(colour="Method") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
 labels_n = c()

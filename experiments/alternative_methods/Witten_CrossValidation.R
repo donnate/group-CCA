@@ -1,5 +1,6 @@
 
-Witten.CV<-function(X,Y,n.cv=5,lambdax=matrix(seq(from=0,to=1,by=0.1),nrow=1),lambday=matrix(seq(from=0,to=1,by=0.1),nrow=1)){ 
+Witten.CV<-function(X,Y,n.cv=5,lambdax=matrix(seq(from=0,to=1,by=0.1),nrow=1),
+                   lambday=matrix(seq(from=0,to=1,by=0.1),nrow=1)){ 
   # Code to  maximizing test sample correlation with Witten approach
   
   ### INPUT
