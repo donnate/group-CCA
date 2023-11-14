@@ -3,11 +3,10 @@
 #SBATCH --job-name=array
 #SBATCH --output=elena/logs/array_%A_%a.out
 #SBATCH --error=elena/logs/array_%A_%a.err
-#SBATCH --array=1-20
-#SBATCH --time=12:00:00
+#SBATCH --array=1-10
+#SBATCH --time=35:00:00
 #SBATCH --partition=caslake
-#SBATCH --ntasks=1
-#SBATCH --mem=5G
+#SBATCH --mem=20G
 #SBATCH --account=pi-cdonnat
 
 # Print the task id.
@@ -21,4 +20,4 @@ module load R/4.2.0
 result_file="${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
 echo "result file is ${result_file}"
 cd $SCRATCH/$USER/group-CCA/
-Rscript elena/missing/1.a.sparse_simulations.R $SLURM_ARRAY_TASK_ID $result_file $1 $2
+Rscript elena/missing/1.a.sparse_simulations.R $SLURM_ARRAY_TASK_ID $result_file $1 $2 $3
