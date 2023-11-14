@@ -3,11 +3,10 @@
 #SBATCH --job-name=array
 #SBATCH --output=elena/logs/array_%A_%a.out
 #SBATCH --error=elena/logs/array_%A_%a.err
-#SBATCH --array=1-2
-#SBATCH --time=6:00:00
+#SBATCH --array=1-20
+#SBATCH --time=35:00:00
 #SBATCH --partition=caslake
-#SBATCH --ntasks=1
-#SBATCH --mem=5G
+#SBATCH --mem=20G
 #SBATCH --account=pi-cdonnat
 
 # Print the task id.

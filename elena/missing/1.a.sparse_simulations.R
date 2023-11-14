@@ -29,7 +29,8 @@ name_exp <- args[2]
 set.seed(seed)
 n <- as.numeric(args[3])
 strength_theta <- args[4]
-overlaps <- c(0, 0.5, 1)
+p_val <- as.numeric(args[5])
+overlaps <- c(0, 1)
 #props <- c(0, 0.1, 0.2)
 props <- c(0)
 noise = 1
@@ -38,9 +39,11 @@ normalize_diagonal = TRUE
 result = c()
 for(seed_n in seeds){
   set.seed(seed * 100 + seed_n)
-    for(p in c(20, 80, 100, 150, 200, 300,  500)){
-      for(nnzeros in c(5, 10, 15, 20, 50)){
-        rs = ifelse( p <6, c(2, 3, 5), c(2, 3, 5, 10))
+    for(nnzeros in c(20, 10, 15, 50, 5)){
+      #for(p in c(100,  200, 300,  500, 800, 80, 20)){
+      for (p in c(p_val)){
+	#for(nnzeros in c(5, 10, 15, 20, 50)){
+        rs = ifelse( p <6, c(2,  5), c(2, 5, 10))
         for (r in rs){
           q = p
           if ( strength_theta == "high"){
@@ -53,12 +56,13 @@ for(seed_n in seeds){
               thetas <- diag(seq(0.5, 0.35, length.out = r))
             }
           }
-          for (r_pca in c(0, 3, 5, 10)){
+          for (r_pca in c(0, 5)){
             if (max(r_pca * nnzeros, r * nnzeros) < p) {
             for (overlapping_amount in overlaps){
               for(prop_missing in props){
                 cat("seed:")
                 cat(seed, " ")
+		print(c(n, r, r_pca, strength_theta))
                 #gen = generate(n, p, q, s, prop_missing)
                 gen = generate_example_non_trivial_pca(n, p, q,
                                                        r_pca = r_pca,
@@ -95,7 +99,7 @@ for(seed_n in seeds){
                                                   "theta_strength" = strength_theta,
                                                   "n" = n,
                                                   "r_pca" = r_pca,
-                                                  "exp" = seed_n,
+                                                  "exp" = seed * 100 + seed_n,
                                                   "normalize_diagonal" = normalize_diagonal,
                                                   "time" = start_time_rrr[[1]]))
                 }
@@ -126,7 +130,7 @@ for(seed_n in seeds){
                                                   "theta_strength" = strength_theta,
                                                   "n" = n,
                                                   "r_pca" = r_pca,
-                                                  "exp" = seed_n,
+                                                  "exp" = seed * 100 + seed_n,
                                                   "normalize_diagonal" = normalize_diagonal,
                                                   "time" = start_time_alt[[1]]))
                     
@@ -161,7 +165,7 @@ for(seed_n in seeds){
                                                   "theta_strength" = strength_theta,
                                                   "n" = n,
                                                   "r_pca" = r_pca,
-                                                  "exp" = seed_n,
+                                                  "exp" = seed * 100 + seed_n,
                                                   "normalize_diagonal" = normalize_diagonal,
                                                   "time" = start_time_cca[[1]]))
                 
@@ -180,7 +184,7 @@ for(seed_n in seeds){
                                                   "overlapping_amount" = overlapping_amount,
                                                   "r_pca" = r_pca,
                                                   "n" = n,
-                                                  "exp" = seed_n,
+                                                  "exp" = seed * 100 + seed_n,
                                                    "normalize_diagonal" = normalize_diagonal,
                                                   "time" = start_time_cca2[[1]]))
                 
@@ -210,7 +214,7 @@ for(seed_n in seeds){
                                                   "r_pca" = r_pca,
                                                   "n" = n,
                                                    "normalize_diagonal" = normalize_diagonal,
-                                                  "exp" = seed_n,
+                                                  "exp" = seed * 100 + seed_n,
                                              "time" = 0
 
                                             )
@@ -237,7 +241,7 @@ for(seed_n in seeds){
                                              "overlapping_amount" = overlapping_amount,
                                              "r_pca" = r_pca,
                                              "n" = n,
-                                             "exp" = seed_n,
+                                             "exp" = seed * 100 + seed_n,
                                               "normalize_diagonal" = normalize_diagonal,
                                              "time" = start_time_gd2[[1]]
           )
@@ -257,7 +261,7 @@ for(seed_n in seeds){
                                              "overlapping_amount" = overlapping_amount,
                                              "r_pca" = r_pca,
                                              "n" = n,
-                                             "exp" = seed_n,
+                                             "exp" = seed * 100 + seed_n,
                                               "normalize_diagonal" = normalize_diagonal,
                                              "time" =0
           )
@@ -270,9 +274,9 @@ for(seed_n in seeds){
                                                               0.01, 0.05, 0.1, 
                                                               0.25,
                                                               0.5,
-                                                              1, 10),
+                                                              1),
                                                kfolds=10,
-                                               maxiter=100, convergence=1e-3)
+                                               maxiter=200, convergence=1e-3)
           })
           
           print(paste0("Starting ", "Alt opt") )
@@ -289,7 +293,7 @@ for(seed_n in seeds){
                                              "overlapping_amount" = overlapping_amount,
                                              "r_pca" = r_pca,
                                              "n" = n,
-                                             "exp" = seed_n,
+                                             "exp" = seed * 100 + seed_n,
                                               "normalize_diagonal" = normalize_diagonal,
                                              "time" = start_time_alt2[[1]]
           )
@@ -321,7 +325,7 @@ for(seed_n in seeds){
                                                                  "theta_strength" = strength_theta,
                                                                       "r_pca" = r_pca,
                                                                       "n" = n,
-                                                                      "exp" = seed_n,
+                                                                      "exp" = seed * 100 + seed_n,
                                                                        "normalize_diagonal" = normalize_diagonal,
                                                      "time" = start_time_additional_method[[1]]
                                                                 )
