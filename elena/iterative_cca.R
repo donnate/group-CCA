@@ -290,7 +290,7 @@ cv_function_alternating_cca<- function(X, Y, kfolds=5, init,
                            convergence=1e-4) {
   # define empty vector to store results
   folds <- createFolds(1:nrow(Y), k = kfolds, list = TRUE, returnTrain = FALSE)
-  rmse <- numeric(length = kfolds)
+  rmse <- rep(1e8, kfolds)
   p1 <- dim(X)[2]
   p2 <- dim(Y)[2]
   p <- p1 + p2;
