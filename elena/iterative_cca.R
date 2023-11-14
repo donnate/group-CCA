@@ -151,7 +151,7 @@ alternating_cca <- function(X, Y, r, init_coef = NULL, lambdax = 0,
     #V = V %*% diag(1/sqrt(apply(V^2, 2, sum)))
     if (norm(V) < 1e-5){
       ### Solution is essentially 0
-      return(list(U=matrix(0, p, r), V = matrix(0, q, r))
+      return(list(U=matrix(0, p, r), V = matrix(0, q, r)))
     }else{
         Sigma_Y= cov(Y)
         norm_V <- t(V) %*% Sigma_Y %*% V
