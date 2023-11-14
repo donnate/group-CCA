@@ -115,18 +115,16 @@ alternating_cca <- function(X, Y, r, init_coef = NULL, lambdax = 0,
       U = solve(t(X) %*%X) %*% t(X) %*% ZV
     }
     #U = U %*% diag(1/sqrt(apply(U^2, 2, sum)))
-    if (max(U) < 1e-3){
+    if (norm(U) < 1e-5){
       ### Solution is essentially 0
-      return(list(U=matrix(0, p, r), V = V))
+      return(list(U=matrix(0, p, r), V = matrix(0, q, r)))
     }else{
-      norms = apply(U, 1, norm)
-      ind = which(norms > 1e-3)
-      if (length(ind)>1){
-        U[ind,] = U[ind,] %*% sqrtm(t(U)[,ind] %*% cov(X[, ind], X[, ind]) %*% U[ind, ])$Binv
-      }else{
-        U[ind,] = U[ind,] %*% sqrtm( cov(X[, ind], X[, ind]) * (t(U)[,ind] %*% U[ind, ]))$Binv
-      }
-      
+        Sigma_X = cov(X)
+        norm_U <- t(U) %*% Sigma_X %*% U
+        svd_norm_U = svd(norm_U)
+        sqrt_inv_U = t(svd_norm_U$u) %*% diag(sapply(svd_norm_U$d, function(x){ifelse(x > 1e-4, 1/sqrt(x), 0)})) %*% (svd_norm_U$u)
+        U =  U %*% sqrt_inv_U 
+        #U = U %*% sqrtm(t(U) %*% cov(X) %*% U)$Binv
     }
     ZU <- X %*% U
 
@@ -151,19 +149,17 @@ alternating_cca <- function(X, Y, r, init_coef = NULL, lambdax = 0,
       V = solve(t(Y) %*%Y) %*% t(Y) %*% ZU
     }
     #V = V %*% diag(1/sqrt(apply(V^2, 2, sum)))
-    if (max(V) < 1e-3){
+    if (norm(V) < 1e-5){
       ### Solution is essentially 0
-      return(list(U=U, V = matrix(0, q, r)))
+      return(list(U=matrix(0, p, r), V = matrix(0, q, r))
     }else{
-      norms = apply(V, 1, norm)
-      ind = which(norms > 1e-3)
-      if (length(ind)>1){
-        V[ind,] = V[ind,] %*% sqrtm(t(V)[,ind] %*% cov(Y[, ind], Y[, ind]) %*% V[ind, ])$Binv
-      }else{
-        V[ind,] = V[ind,] %*% sqrtm( cov(Y[, ind], Y[, ind]) * (t(V)[,ind] %*% V[ind, ]))$Binv
-      }
-      
-     # V = V %*% sqrtm(t(V) %*% cov(Y) %*% V)$Binv
+        Sigma_Y= cov(Y)
+        norm_V <- t(V) %*% Sigma_Y %*% V
+        svd_norm_V = svd(norm_V)
+        sqrt_inv_V = t(svd_norm_V$u) %*% diag(sapply(svd_norm_V$d, function(x){ifelse(x > 1e-4, 1/sqrt(x), 0)})) %*% (svd_norm_V$u)
+        V =  V %*% sqrt_inv_V 
+
+      #V = V %*% sqrtm(t(V) %*% cov(Y) %*% V)$Binv
     }
     
     #### Solve for Y and X
@@ -212,7 +208,7 @@ pipeline_alternating_CCA<- function(X, Y,
                                                                              maxiter=maxiter, 
                                                                              convergence=convergence)))
     
-    resultsx = resultsx %>% filter(rmse >0) 
+    resultsx = resultsx %>% filter(rmse > 1e-5) 
     opt_lambdax <- resultsx$lambdax[which.min(resultsx$rmse)]
     opt_lambday <- resultsx$lambday[which.min(resultsx$rmse)]
   }else{
@@ -225,7 +221,7 @@ pipeline_alternating_CCA<- function(X, Y,
                                                                   maxiter=maxiter, 
                                                                   convergence=convergence)))
     
-    resultsx = resultsx %>% filter(rmse >0) 
+    resultsx = resultsx %>% filter(rmse > 1e-5) 
     opt_lambdax <- resultsx$lambdax[which.min(resultsx$rmse)]
     opt_lambday <- resultsx$lambdax[which.min(resultsx$rmse)]
   }
@@ -257,13 +253,19 @@ pipeline_alternating_CCA<- function(X, Y,
                            thres=convergence, 
                            max_iter=maxiter)
   print(final)
-  if (max(abs(final$U)) > 1e-5){
-    Uhat = final$U %*% sqrtm(t(final$U) %*% Sigma_X %*% final$U)$Binv 
+  if (sum(final$U^2 > 1e-5) >0){
+    norm_U <- t(final$U) %*% Sigma_X %*% final$U
+    svd_norm_U = svd(norm_U)
+    sqrt_inv_U = t(svd_norm_U$u) %*% diag(sapply(svd_norm_U$d, function(x){ifelse(x > 1e-4, 1/sqrt(x), 0)})) %*% (svd_norm_U$u)
+    Uhat = final$U %*% sqrt_inv_U 
   }else{
     Uhat = final$U
   }
-  if (max(abs(final$V)) > 1e-5){
-    Vhat = final$V %*% sqrtm(t(final$V) %*% Sigma_Y %*% final$V)$Binv 
+  if (sum(final$V^2 > 1e-5) >0){
+    norm_V <- t(final$V) %*% Sigma_Y %*% final$V
+    svd_norm_V = svd(norm_V)
+    sqrt_inv_V = t(svd_norm_V$u) %*% diag(sapply(svd_norm_V$d, function(x){ifelse(x > 1e-4, 1/sqrt(x), 0)})) %*% (svd_norm_V$u)
+    Vhat = final$V %*% sqrt_inv_V
   }else{
     Vhat = final$V
   }
@@ -288,7 +290,7 @@ cv_function_alternating_cca<- function(X, Y, kfolds=5, init,
                            convergence=1e-4) {
   # define empty vector to store results
   folds <- createFolds(1:nrow(Y), k = kfolds, list = TRUE, returnTrain = FALSE)
-  rmse <- rep(1e10, kfolds)
+  rmse <- numeric(length = kfolds)
   p1 <- dim(X)[2]
   p2 <- dim(Y)[2]
   p <- p1 + p2;
@@ -316,12 +318,12 @@ cv_function_alternating_cca<- function(X, Y, kfolds=5, init,
         # make predictions on validation data
         # compute RMSE on validation data
         rmse[i] <- mean((X_val %*% final$U - Y_val%*% final$V)^2)
-        print(rmse)
+        #print(rmse)
       },
       error = function(e) {
     #    # If an error occurs, assign NA to the result
         print("An error has occured")
-        rmse[i] <- 1e8
+        rmse[i] <- NA
       })
     #print(rmse)
   #}
