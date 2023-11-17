@@ -303,12 +303,16 @@ estim.regul_crossvalidation <- function (X,  Y,  lambda1grid = NULL,
   #lambda2.optim        : value of the sparsity parameter lambda2
   #cv.optim             : value of cross-validation score
 
-
+  
   if (is.null(lambda1grid)) {
     lambda1grid = matrix(seq(0.001,  1,  length = 5), nrow=1)
+  }else{
+    lambda1grid=matrix(lambda1grid,nrow=1)
   }
   if (is.null(lambda2grid)) {
     lambda2grid = matrix(seq(0.001,  1,  length = 5), nrow=1)
+  }else{
+    lambda2grid=matrix(lambda2grid,nrow=1)
   }
 
   lambda1.matrix <- matrix(rep(lambda1grid, length(lambda1grid)), ncol=length(lambda2grid), byrow=T)

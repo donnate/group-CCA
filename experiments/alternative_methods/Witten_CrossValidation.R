@@ -20,6 +20,8 @@ Witten.CV<-function(X,Y,n.cv=5,lambdax=matrix(seq(from=0,to=1,by=0.1),nrow=1),
   n = nrow(X)
   n.cv.sample<-trunc(n/n.cv)
   whole.sample<-seq(1,n)
+  lambdax=matrix(lambdax,nrow=1)
+  lambday=matrix(lambday,nrow=1)
   
   cvscore<-array(NA,c(length(lambday),length(lambdax),n.cv)) #lambdax in columns, lambday in rows
 
@@ -32,7 +34,7 @@ Witten.CV<-function(X,Y,n.cv=5,lambdax=matrix(seq(from=0,to=1,by=0.1),nrow=1),
     Xtest=X[testing.sample,]
     Ytest=Y[testing.sample,]
 
-    cvscore[,,i]<-apply(lambdax,2,Witten.cv.lambdax,Xtrain=Xcv,Ytrain=Ycv,Xtest=Xtest,Ytest=Ytest,lambday=lambday)
+    cvscore[,,i]<-apply(lambdax,2, Witten.cv.lambdax, Xtrain=Xcv,Ytrain=Ycv,Xtest=Xtest,Ytest=Ytest,lambday=lambday)
   }
   cvscore.vec<-c(apply(cvscore,c(1,2),mean))
 
@@ -54,6 +56,7 @@ Witten.cv.lambdax<-function(U,Xtrain,Ytrain,Xtest,Ytest,lambday){ #AUXILIARY FUN
 }
 
 Witten.cv.lambday<-function(V,Xtrain,Ytrain,Xtest,Ytest,lambdaxfixed){ #AUXILIARY FUNCTION
+  #print(lambdaxfixed)
   Fit.Witten<-CCA(x=Xtrain,z=Ytrain,typex="standard",typez="standard",K=1,penaltyx=lambdaxfixed,penaltyz=V,trace=F)
   return(abs(cor(Xtest%*%Fit.Witten$u,Ytest%*%Fit.Witten$v)))
 }  

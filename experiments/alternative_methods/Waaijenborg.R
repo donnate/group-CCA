@@ -29,6 +29,9 @@ Waaijenborg<-function(X,Y,lambdaxseq=matrix(seq(from=1,to=0,by=-0.01),nrow=1),la
   
   
   ### STORE RESULTS
+  lambdaxseq=matrix(lambdaxseq,nrow=1)
+  lambdayseq=matrix(lambdayseq,nrow=1)
+  
   u_ALL<-matrix(NA,ncol=rank,nrow=ncol(Y))
   v_ALL<-matrix(NA,ncol=rank,nrow=ncol(X))
   ksi_ALL<-matrix(NA,ncol=rank,nrow=nrow(X))
@@ -111,6 +114,9 @@ Waaijenborg<-function(X,Y,lambdaxseq=matrix(seq(from=1,to=0,by=-0.01),nrow=1),la
             
             } 
             CVscore.mean<-apply(cvscore,2,mean)
+            if (is.null(dim(U.hat.reduced))){
+              U.hat.reduced = matrix(U.hat.reduced, ncol=1)
+            }
             U.hat.final<-matrix(U.hat.reduced[,min(which.min(CVscore.mean))],ncol=1) # OPTIMAL SOLUTION
             U.hat.final<-apply(U.hat.final,2,NORMALIZATION_UNIT)
             lambday_ALL[it,i.r]<-lambday.reduced[min(which.min(CVscore.mean))]
@@ -133,6 +139,9 @@ Waaijenborg<-function(X,Y,lambdaxseq=matrix(seq(from=1,to=0,by=-0.01),nrow=1),la
                   } 
                   
                   CVscore.mean<-apply(cvscore,2,mean)
+                  if (is.null(dim(U.hat.reduced))){
+                    U.hat.reduced = matrix(U.hat.reduced, ncol=1)
+                  }
                   U.hat.final<-matrix(U.hat.reduced[,min(which.max(CVscore.mean))],ncol=1) # OPTIMAL SOLUTION
                   U.hat.final<-apply(U.hat.final,2,NORMALIZATION_UNIT)
                   lambday_ALL[it,i.r]<-lambday.reduced[min(which.max(CVscore.mean))]
@@ -167,6 +176,9 @@ Waaijenborg<-function(X,Y,lambdaxseq=matrix(seq(from=1,to=0,by=-0.01),nrow=1),la
                 
               } 
               CVscore.mean<-apply(cvscore,2,mean)
+              if (is.null(dim(V.hat.reduced))){
+                V.hat.reduced = matrix(V.hat.reduced, ncol=1)
+              }
               V.hat.final<-matrix(V.hat.reduced[,min(which.min(CVscore.mean))],ncol=1) # OPTIMAL SOLUTION
               V.hat.final<-apply(V.hat.final,2,NORMALIZATION_UNIT)
               lambdax_ALL[it,i.r]<-lambdax.reduced[min(which.min(CVscore.mean))]
@@ -189,6 +201,9 @@ Waaijenborg<-function(X,Y,lambdaxseq=matrix(seq(from=1,to=0,by=-0.01),nrow=1),la
                 } 
                 
                 CVscore.mean<-apply(cvscore,2,mean)
+                if (is.null(dim(V.hat.reduced))){
+                  V.hat.reduced = matrix(V.hat.reduced, ncol=1)
+                }
                 V.hat.final<-matrix(V.hat.reduced[,min(which.max(CVscore.mean))],ncol=1) # OPTIMAL SOLUTION
                 V.hat.final<-apply(V.hat.final,2,NORMALIZATION_UNIT)
                 lambdax_ALL[it,i.r]<-lambdax.reduced[min(which.min(CVscore.mean))]
