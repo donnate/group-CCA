@@ -74,18 +74,18 @@ TNR  <-  function(A, B, tol=1e-4){
 }
 
 evaluate = function(X, Y, U, V, U0, V0, 
-                    Sigma_hat_sqrt_inv, Sigma0_sqrt_inv,
+                    Sigma_hat_sqrt, Sigma0_sqrt,
                     thres = 1e-4){
   U_tot = rbind(U,V)
   U0_tot = rbind(U0,V0)
   p1 = ncol(X)
   p2 = ncol(Y)
   p = p1 + p2
-  n = nrow(X)
+  n_new = nrow(X)
   r = ncol(U0)
   silly_benchmark = subdistance(matrix(0, p1 + p2, r), U0_tot)
   data.frame(
-    "n" = n,
+    "n_new" = n_new,
     #"exp" = seed,
     "p1" = p1,
     "p2" = p2,
@@ -96,11 +96,11 @@ evaluate = function(X, Y, U, V, U0, V0,
     "distance_tot" = subdistance(U_tot, U0_tot),
     "distance_U" = subdistance(U, U0),
     "distance_V" = subdistance(V, V0),
-    "sinTheta_tot" = sinTheta(Sigma_hat_sqrt_inv %*% U_tot, Sigma0_sqrt_inv %*%U0_tot),
-    "sinTheta_U" = sinTheta(Sigma_hat_sqrt_inv[1:p1, 1:p1] %*% U, 
-                            Sigma0_sqrt_inv[1:p1, 1:p1] %*% U0),
-    "sinTheta_V" = sinTheta(Sigma_hat_sqrt_inv[(p1+1):p, (p1+1):p] %*%V, 
-                            Sigma0_sqrt_inv[(p1+1):p, (p1+1):p] %*% V0),
+    "sinTheta_tot" = sinTheta(Sigma_hat_sqrt %*% U_tot, Sigma0_sqrt %*%U0_tot),
+    "sinTheta_U" = sinTheta(Sigma_hat_sqrt[1:p1, 1:p1] %*% U, 
+                            Sigma0_sqrt[1:p1, 1:p1] %*% U0),
+    "sinTheta_V" = sinTheta(Sigma_hat_sqrt[(p1+1):p, (p1+1):p] %*%V, 
+                            Sigma0_sqrt[(p1+1):p, (p1+1):p] %*% V0),
     "prediction_tot" = mean((X %*% U - Y %*% V)^2),
     "prediction_U" = mean((X %*% U - X %*% U0)^2),
     "prediction_V" = mean((Y %*% V - Y %*% V0)^2),

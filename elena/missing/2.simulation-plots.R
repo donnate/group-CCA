@@ -5,7 +5,7 @@ library(tidyverse)
 theme_set(theme_bw(base_size = 14))
 setwd("~/Documents/group-CCA/elena/")
 file_list <- list.files(path = "~/Documents/group-CCA/elena/missing/results/", 
-                        pattern = "new-simulation-RRR-results-sparse*", full.names = TRUE)
+                        pattern = "new-simulation-RRR-results-sparse1040*", full.names = TRUE)
 
 results <- file_list %>%
   map_dfr(~ read_csv(.x) %>% mutate(filename = .x))
@@ -53,15 +53,14 @@ summ = results %>% group_by(n, p1, p2, r, r_pca,
 
 colnames(summ)
 unique(summ$nnzeros)
-
-ggplot(results %>% filter(n == 1000, method_type=="Alt"),
-       aes(x=lambda, y =  1/p1 * distance_tot, 
+unique(summ$n)
+ggplot(results %>% filter(n ==1000, method_type=="Alt", nnzeros ==5),
+       aes(x=lambda, y =  distance_tot, 
            colour =method) )+
-  geom_point(alpha=0.1)+
+  geom_point(alpha=1)+
   geom_smooth()+
   scale_y_log10()+
-  scale_x_log10() 
-
+  scale_x_log10() +
   facet_wrap(r_pca ~ p1, scales = "free")
 
 unique(summ$method)
@@ -87,18 +86,40 @@ labels_n <-   c("Oracle",  "FIT_SAR with CV (Wilms et al)",
                   "Alternating Regression (this paper)", 
                   "Gradient Descent (this paper)",
                   "Initialization (this paper)")
+
+legend_order <- c("Oracle",  "FIT_SAR_CV", 
+                  "FIT_SAR_BIC", 
+                  "CCA-mean",  "Alt-0.1",
+                 "Alt-opt", "Gradient-descent",
+                  "init-alternating")
+
+labels_n <-   c("Oracle",  "FIT_SAR with CV (Wilms et al)", 
+                "FIT_SAR with BIC (Wilms et al)", "CCA-mean",
+                "Alt-0.1",
+                "Alternating Regression (this paper)", 
+                "Gradient Descent (this paper)",
+                "Initialization (this paper)")
+
 unique(summ$r_pca)
-ggplot(summ %>% filter( is.na(lambda)==TRUE,
-                        r_pca == 3, r==2,
-                        overlapping_amount == 0),
+unique(summ$r)
+
+ggplot(summ %>% filter( r_pca == 5, r==2,
+                        nnzeros == 10,
+                        overlapping_amount == 1,
+                       method %in% legend_order),
        aes(x=n, 
            y = distance_tot, 
            colour =method)) +
   geom_point()+
   geom_line()+
-  geom_point(aes(y=distance_tot_q25))+    facet_grid(theta_strength~ p1, scales = "free",
-                                                     labeller = as_labeller(c(`20` = "p = 20",
+  scale_color_manual(values = my_colors, breaks = legend_order,
+                     labels = labels_n) +
+  geom_point(aes(y=distance_tot))+    
+  facet_grid(theta_strength~ p1, scales = "free",labeller = as_labeller(c(`20` = "p = 20",
                                                                               `80` = "p = 80",
+                                                                              `100` = "p = 100",
+                                                                              `200` = "p = 200",
+                                                                              `300` = "p = 300",
                                                                               `high` = "High",
                                                                               `medium` = "Medium",
                                                                               `low` = "Low"
@@ -107,11 +128,43 @@ ggplot(summ %>% filter( is.na(lambda)==TRUE,
   xlab("n (Number of Samples)") + 
   ylab(expression("Subspace Distance")) +
   labs(colour="Method") + 
+  scale_y_log10()+
+  scale_x_log10()+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
+
+
+ggplot(summ %>% filter( (lambda == 0.1 | is.na(lambda)),
+                        r_pca == 0, r==2,
+                        nnzeros == 5,
+                        overlapping_amount == 1),
+       aes(x=n, 
+           y = distance_tot_q50, 
+           colour =method)) +
+  geom_point()+
+  geom_line()+
+  geom_point(aes(y=distance_tot_q25))+    facet_grid(theta_strength~ p1, scales = "free",
+                                                     labeller = as_labeller(c(`20` = "p = 20",
+                                                                              `80` = "p = 80",
+                                                                              `100` = "p = 100",
+                                                                              `200` = "p = 200",
+                                                                              `300` = "p = 300",
+                                                                              `high` = "High",
+                                                                              `medium` = "Medium",
+                                                                              `low` = "Low"
+                                                                              
+                                                     ))) +
+  xlab("n (Number of Samples)") + 
+  ylab(expression("Subspace Distance")) +
+  labs(colour="Method") + 
+  scale_y_log10()+
+  scale_x_log10()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+unique(summ$p1)
 ggplot(summ %>% filter( is.na(lambda)==TRUE,
-                        r_pca == 5, r==2,
-                         overlapping_amount == 0),
+                        r_pca == 0, r==2,
+                         overlapping_amount == 1),
        aes(x=n, 
            y = distance_tot, 
            colour =method)) +
@@ -135,6 +188,62 @@ ggplot(summ %>% filter( is.na(lambda)==TRUE,
                                         
                                         ))) +
   xlab("n (Number of Samples)") + 
+  ylab(expression("Subspace Distance")) +
+  labs(colour="Method") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+labels_n <-   c("Oracle",  "FIT_SAR with CV (Wilms et al)", 
+                "FIT_SAR with BIC (Wilms et al)",  
+                "Witten et al (with Permutation Test)", "Witten et al.(with CV)",
+                "SCCA (Parkhomenko et al)", "SCCA with CV (Waaijenborg et al)", 
+                "SCCA with BIC (Waaijenborg et al)",
+                "CCA with Ridge Penalty", "CCA-mean",
+                "CCA as Reduced Rank Regression" , 
+                "Alternating Regression (this paper)", 
+                "Gradient Descent (this paper)",
+                "Initialization (this paper)")
+
+my_colors <- c( "black", "chartreuse2", "chartreuse4",
+                "orchid1", "orchid3", "indianred",
+                "burlywood2", "burlywood4",
+                "cyan", "gray", "red",
+                "dodgerblue", "orange", "yellow")
+
+
+legend_order <- c("Oracle",  "FIT_SAR_CV", 
+                  "FIT_SAR_BIC", 
+                  "CCA-mean",  "Alt-0.1",
+                  "Alt-opt", "Gradient-descent",
+                  "init-alternating")
+
+labels_n <-   c("Oracle",  "FIT_SAR with CV (Wilms et al)", 
+                "FIT_SAR with BIC (Wilms et al)", "CCA-mean",
+                "Alt-0.1",
+                "Alternating Regression (this paper)", 
+                "Gradient Descent (this paper)",
+                "Initialization (this paper)")
+
+
+ggplot(summ %>% filter( nnzeros == 5, method %in% legend_order,
+                       r_pca == 5, r==2,
+                        overlapping_amount == 0),
+       aes(x=p1, 
+           y = distance_tot, 
+           colour =method)) +
+  geom_line()+
+  geom_point() + 
+  scale_x_log10() + 
+  scale_y_log10() + 
+  scale_color_manual(values = my_colors, breaks = legend_order,
+                     labels = labels_n) +
+  #geom_errorbar(aes(ymin = distance_tot_q25, 
+  #                  ymax = distance_tot_q75), 
+  #              width = 0.1, alpha=0.7,
+  #              linewidth=1.1, position = position_dodge(0.05))+
+  facet_grid(theta_strength~ n, scales = "free") +
+  xlab("p (Dimension)") + 
   ylab(expression("Subspace Distance")) +
   labs(colour="Method") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
