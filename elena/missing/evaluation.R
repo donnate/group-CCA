@@ -83,6 +83,8 @@ evaluate = function(X, Y, U, V, U0, V0,
   p = p1 + p2
   n_new = nrow(X)
   r = ncol(U0)
+  Y = scale(Y, scale = FALSE)
+  X = scale(X, scale = FALSE)
   silly_benchmark = subdistance(matrix(0, p1 + p2, r), U0_tot)
   data.frame(
     "n_new" = n_new,

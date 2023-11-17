@@ -6,6 +6,7 @@ library(tidyr)
 library(zoo)
 library(pracma)
 library(rrpack)
+library(corpcor)
 setwd("~/Documents/group-CCA/")
 
 source("elena/generate_example_rrr.R")
@@ -38,6 +39,7 @@ props <- c(0)
 noise = 1
 seeds = 1:100
 normalize_diagonal = TRUE
+LW_Sy = TRUE
 result = c()
 for(seed_n in seeds){
   #for (n in c(100, 300, 500, 1000, 10000)){
@@ -88,7 +90,10 @@ for(seed_n in seeds){
                   
                   
                   start_time_rrr <- system.time({
-                    rrr <- CCA_rrr(X, Y, lambda =0, Kx=NULL, r, highdim=FALSE)
+                    rrr <- CCA_rrr(X, Y, Sx=NULL,
+                                   Sy=NULL,
+                                   lambda =0, Kx=NULL, r, highdim=FALSE,
+                                   LW_Sy = LW_Sy)
                   })
                   
                   result = rbind(result, data.frame(evaluate(gen$Xnew, gen$Ynew, rrr$U, rrr$V, gen$u, 
@@ -117,7 +122,8 @@ for(seed_n in seeds){
                     #### if it's all zero then just stop
                     if (is.null(init_coef) || ((norm(init_coef$U, "F") > 1e-5) & (norm(init_coef$V, "F") > 1e-5))){
                       start_time_alt <- system.time({
-                        alt <- CCA_rrr(X, Y, lambda =lambda, Kx=NULL, r, highdim=TRUE,
+                        alt <- CCA_rrr(X, Y, Sx, Sy,
+                                       lambda =lambda, Kx=NULL, r, highdim=TRUE,
                                        penalty = "l21", solver="rrr")
                       })
                       #init_coef = list(U = alt$U, V = alt$V)
@@ -236,7 +242,7 @@ for(seed_n in seeds){
                   res_alt = CCA_rrr.CV(X, Y, 
                              r=r, Kx = NULL, lambda_Kx = 0,
                              param_lambda=c(10^seq(-3, 1.5, length.out = 50)),
-                             kfolds=5, penalty="l21", solver="rrr")
+                             kfolds=5, penalty="l21", solver="rrr", LW_Sy = LW_Sy)
                 })
                 res_alt$ufinal[which(is.na( res_alt$ufinal))] <- 0
                 res_alt$vfinal[which(is.na( res_alt$vfinal))] <- 0
@@ -246,8 +252,9 @@ for(seed_n in seeds){
                   #### Choose another lambda
                   lambda_chosen = max(res_alt$resultsx$lambda[which(res_alt$resultsx$rmse > 1.05 * min(res_alt$resultsx$rmse))])
                   start_time_alt <- system.time({
-                    res_alt <- CCA_rrr(X, Y, lambda =lambda_chosen, Kx=NULL, r, highdim=TRUE,
-                                   penalty = "l21", solver="rrr")
+                    res_alt <- CCA_rrr(X, Y, Sx = NULL, Sy=NULL,
+                                       lambda =lambda_chosen, Kx=NULL, r, highdim=TRUE,
+                                   penalty = "l21", solver="rrr", LW_Sy = LW_Sy)
                     res_alt$U[which(is.na(res_alt$U))] <- 0
                     res_alt$V[which(is.na(res_alt$v))] <- 0
                     Uhat <- res_alt$U[, 1:r]
@@ -299,7 +306,8 @@ for(seed_n in seeds){
                                                lambdax= 10^seq(-3,2, length.out = 50),
                                                lambday = c(0))
                     })
-                    result <- rbind(result, data.frame(evaluate(gen$Xnew, gen$Ynew, test1$u[, 1:r], 
+                    result <- rbind(result, data.frame(evaluate(gen$Xnew, gen$Ynew, 
+                                                                test1$u[, 1:r], 
                                                                 test1$v[, 1:r], 
                                                                 gen$u, gen$v,
                                                                 Sigma_hat_sqrt = Sigma_hat_sqrt, 
