@@ -2,8 +2,9 @@ library(dplyr)
 library(tidyr)
 library(Matrix)
 
-CCA_rrr = function(X, Y, lambda =0, Kx, r, highdim=FALSE, 
-               penalty = "l21", lambda_Kx=0, solver="rrr"){
+CCA_rrr = function(X, Y, Sx, Sy,
+                  lambda =0, Kx, r, highdim=FALSE, 
+                  penalty = "l21", lambda_Kx=0, solver="rrr"){
   # solve RRR: ||Y-XB|| + tr(Bt K B)
   n = nrow(X)
   p = ncol(X)
@@ -19,8 +20,14 @@ CCA_rrr = function(X, Y, lambda =0, Kx, r, highdim=FALSE,
   if ( n <  min(q,p)){
     print("Warning!!!! Both X and Y are high dimensional, method may fail")
   }
-  Sx = t(X) %*% X /n
-  Sy = t(Y) %*% Y /n
+  if (is.null(Sx)){
+    Sx = t(X) %*% X /n
+  }
+  if (is.null(Sy)){
+    Sy = t(Y) %*% Y /n
+  }
+  
+  #Sy = t(Y) %*% Y /n
   svd_Sy = svd(Sy)
   sqrt_inv_Sy = svd_Sy$u %*% diag(sapply(svd_Sy$d, function(x){ifelse(x > 1e-4, 1/sqrt(x), 0)}))  %*% t(svd_Sy$u)
   tilde_Y = Y %*% sqrt_inv_Sy
@@ -108,7 +115,8 @@ CCA_rrr = function(X, Y, lambda =0, Kx, r, highdim=FALSE,
 CCA_rrr.CV<- function(X, Y, 
                      r=2, Kx = NULL, lambda_Kx = 0,
                      param_lambda=10^seq(-3, 1.5, length.out = 100),
-                     kfolds=10,penalty="l21", solver="rrr"
+                     kfolds=10,penalty="l21", solver="rrr",
+                     LW_Sy = FALSE
                      ){
   n = nrow(X)
   p = ncol(X)
@@ -120,13 +128,20 @@ CCA_rrr.CV<- function(X, Y,
   }
   X <- scale(X, scale = FALSE)
   Y <- scale(Y, scale = FALSE)
+  Sx = t(X) %*% X /n
+  Sy = t(Y) %*% Y /n
+  if (LW_Sy){
+    lw_cov <- corpcor::cov.shrink(Y)
+    Sy <- as.matrix(lw_cov)
+  }
   
   if ( n <  min(q,p)){
     print("Warning!!!! Both X and Y are high dimensional, method may fail")
   }
   if (solver=="CVRX"){
     resultsx <- expand.grid(lambda = param_lambda) %>%
-      mutate(rmse = map_dbl(lambda, ~CCA_rrr.folds(X, Y, kfolds=kfolds, init,
+      mutate(rmse = map_dbl(lambda, ~CCA_rrr.folds(X, Y, Sx=Sx, Sy=Sy,
+                                                   kfolds=kfolds, init,
                                                    lambda=.x,
                                                    r=r, penalty=penalty,
                                                    Kx = Kx, lambda_Kx =lambda_Kx)))
@@ -140,8 +155,6 @@ CCA_rrr.CV<- function(X, Y,
     
     print(resultsx)
   }else{
-    Sx = t(X) %*% X /n
-    Sy = t(Y) %*% Y /n
     svd_Sy = svd(Sy)
     sqrt_inv_Sy = svd_Sy$u %*% diag(sapply(svd_Sy$d, function(x){ifelse(x > 1e-4, 1/sqrt(x), 0)}))  %*% t(svd_Sy$u)
     tilde_Y = Y %*% sqrt_inv_Sy
@@ -169,7 +182,7 @@ CCA_rrr.CV<- function(X, Y,
 }
 
 
-CCA_rrr.folds<- function(X, Y, kfolds=5, init,
+CCA_rrr.folds<- function(X, Y, Sx, Sy, kfolds=5, init,
                   lambda=0.01,
                   r=2, penalty="l21", Kx = NULL,
                   lambda_Kx = 0) {
@@ -194,7 +207,9 @@ CCA_rrr.folds<- function(X, Y, kfolds=5, init,
     # fit model on training data with hyperparameters
     tryCatch(
       {
-        final = CCA_rrr(X_train, Y_train, lambda = lambda, Kx=Kx, r, 
+        final = CCA_rrr(X_train, Y_train, Sx=Sx,
+                        Sy =Sy,
+                        lambda = lambda, Kx=Kx, r, 
                     highdim=TRUE, penalty = "l21", lambda_Kx=lambda_Kx)
         # make predictions on validation data
         # compute RMSE on validation data
