@@ -6,7 +6,7 @@ library(tidyr)
 library(zoo)
 library(pracma)
 library(rrpack)
-setwd("~/Documents/group-CCA/")
+#setwd("~/Documents/group-CCA/")
 
 source("elena/generate_example_rrr.R")
 source('experiments/sparse_CCA/experiment_functions.R')
@@ -285,7 +285,7 @@ for(seed_n in seeds){
                 
                 for (method in c("FIT_SAR_CV", "FIT_SAR_BIC", "Witten_Perm",
                                  "Witten.CV", "Waaijenborg-Author", "Waaijenborg-CV",
-                                 "SCCA_Parkhomenko", "Canonical Ridge-Author")){
+                                 "SCCA_Parkhomenko")){
                   
                   print(paste0("Starting ", method))
                   
@@ -326,6 +326,7 @@ for(seed_n in seeds){
                 
                 write_csv(result, paste0("elena/missing/results/new_RRR_efficient_results", name_exp, ".csv"))
                 
+		if(FALSE){
                 tryCatch({
                   # Estimate the subspace spanned by the largest eigenvector using convex relaxation and TGD
                   
@@ -336,7 +337,8 @@ for(seed_n in seeds){
                   maxk = 0.25 * p
                   mink = 0.01 * p 
                   param2 = ceiling(seq(max(ceiling(mink),5), ceiling(maxk), length.out = 10))
-                  res_tg <- pipeline_thresholded_gradient(gen$Data, gen$Mask, 
+                  start_time_additional_method <- system.time({
+		  res_tg <- pipeline_thresholded_gradient(gen$Data, gen$Mask, 
                                                           gen$sigma0hat, 
                                                           r=r, nu=1,
                                                           Sigmax=gen$Sigmax, 
@@ -350,6 +352,7 @@ for(seed_n in seeds){
                                                           normalize=TRUE,
                                                           criterion="prediction",
                                                           fantope_solution=NULL)
+		  })
                   Uhat = rbind(res_tg$ufinal, res_tg$vfinal)
                   result <- rbind(result, data.frame(evaluate(gen$Xnew, gen$Ynew, res_tg$ufinal[, 1:r], 
                                                               res_tg$vfinal[, 1:r], 
@@ -400,6 +403,7 @@ for(seed_n in seeds){
                 
                 write_csv(result, paste0("elena/missing/results/new_RRR_efficient_results", name_exp, ".csv"))
               }
+	      }
               
                   
                 #write.csv(result, "missing/simulation-RRR-results-sparse.csv", row.names = F)
