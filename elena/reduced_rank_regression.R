@@ -4,7 +4,8 @@ library(Matrix)
 
 CCA_rrr = function(X, Y, Sx=NULL, Sy=NULL,
                   lambda =0, Kx, r, highdim=FALSE, 
-                  penalty = "l21", lambda_Kx=0, solver="rrr"){
+                  penalty = "l21", lambda_Kx=0, solver="rrr",
+                  LW_Sy = FALSE){
   # solve RRR: ||Y-XB|| + tr(Bt K B)
   n = nrow(X)
   p = ncol(X)
@@ -25,6 +26,10 @@ CCA_rrr = function(X, Y, Sx=NULL, Sy=NULL,
   }
   if (is.null(Sy)){
     Sy = t(Y) %*% Y /n
+    if (LW_Sy){
+      lw_cov <- corpcor::cov.shrink(Y)
+      Sy <- as.matrix(lw_cov)
+    }
   }
   
   #Sy = t(Y) %*% Y /n
