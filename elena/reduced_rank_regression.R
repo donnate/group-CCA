@@ -2,7 +2,7 @@ library(dplyr)
 library(tidyr)
 library(Matrix)
 
-CCA_rrr = function(X, Y, Sx, Sy,
+CCA_rrr = function(X, Y, Sx=NULL, Sy=NULL,
                   lambda =0, Kx, r, highdim=FALSE, 
                   penalty = "l21", lambda_Kx=0, solver="rrr"){
   # solve RRR: ||Y-XB|| + tr(Bt K B)
