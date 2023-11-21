@@ -7,7 +7,7 @@ library(zoo)
 library(pracma)
 library(rrpack)
 library(corpcor)
-setwd("~/Documents/group-CCA/")
+#setwd("~/Documents/group-CCA/")
 
 source("elena/generate_example_rrr.R")
 source('experiments/sparse_CCA/experiment_functions.R')
@@ -32,9 +32,9 @@ name_exp <- args[2]
 set.seed(seed)
 n <- as.numeric(args[3])
 strength_theta <- args[4]
-
+rs <- c(as.numeric(args[5]))
 #p_val <- as.numeric(args[5])
-overlaps <- c(0, 1)
+overlaps <- c(0)
 #props <- c(0, 0.1, 0.2)
 props <- c(0)
 noise = 1
@@ -50,7 +50,6 @@ for(seed_n in seeds){
     for (nb_patterns in c(5)){
       for (q in c(10)){
         #for(nnzeros in c(5, 10, 15, 20, 50)){
-        rs = c(2)
         for (r in rs){
           
           if ( strength_theta == "high"){
