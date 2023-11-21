@@ -39,18 +39,18 @@ props <- c(0)
 noise = 1
 seeds = 1:100
 normalize_diagonal = TRUE
-LW_Sy = TRUE
+LW_Sy = FALSE
 result = c()
 for(seed_n in seeds){
   #for (n in c(100, 300, 500, 1000, 10000)){
   set.seed(seed * 100 + seed_n)
-  for(nnzeros in c(20, 10, 15, 50, 5)){
+  for(nnzeros in c(20, 10)){
     #for(p in c(100,  200, 300,  500, 800, 80, 20)){
-    for (p in c(20, 50, 80, 100, 200, 500, 1000)){
-      for (q in c(10, 20, 30, 50, 80)){
+    for (p in c(100, 200, 500, 1000, 20, 80, 50)){
+      for (q in c(10, 20, 30)){
       #for(nnzeros in c(5, 10, 15, 20, 50)){
       rs = ifelse( p <6, c(2,  5), c(2, 5, 10))
-      for (r in rs){
+      for (r in c(2)){
         
         if ( strength_theta == "high"){
           thetas <- diag(seq(0.9, 0.75, length.out = r))
@@ -241,7 +241,7 @@ for(seed_n in seeds){
                 start_time_alt2 <- system.time({
                   res_alt = CCA_rrr.CV(X, Y, 
                              r=r, Kx = NULL, lambda_Kx = 0,
-                             param_lambda=c(10^seq(-3, 1.5, length.out = 50)),
+                             param_lambda=c(10^seq(-3, 2, length.out = 50)),
                              kfolds=5, penalty="l21", solver="rrr", LW_Sy = LW_Sy)
                 })
                 res_alt$ufinal[which(is.na( res_alt$ufinal))] <- 0
