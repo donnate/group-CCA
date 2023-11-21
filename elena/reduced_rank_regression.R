@@ -1,6 +1,8 @@
 library(dplyr)
 library(tidyr)
 library(Matrix)
+library(glmnet)
+library(gglasso)
 
 CCA_rrr = function(X, Y, Sx=NULL, Sy=NULL,
                   lambda =0, Kx, r, highdim=FALSE, 
@@ -240,152 +242,142 @@ CCA_rrr.folds<- function(X, Y, Sx, Sy, kfolds=5, init,
 
 
 
-CCA_step = function(X, Y, Kx, Ky, k, highdim = FALSE){
-  tr = transform(Y, Ky)
-  Y = scale(Y, center = tr$mu, scale = F)
-  Ytilde = Y %*% tr$tilde
-  rrr = RRR(X, Ytilde, Kx, k, highdim)
-  #for imputation
-  Yhat = rrr$Yhat %*% tr$notilde 
-  Yhat = scale(Yhat, center = -tr$mu, scale = F)
-  #cca solution
-  U = rrr$U
-  V = tr$tilde %*% rrr$V
-  return(list(U = U, V = V, Yhat = Yhat, rrrloss = rrr$loss))
-}
 
-CCAimpute = function(X, Y, Kx = NULL, Ky = NULL, k = min(nrow(X), min(ncol(X), ncol(Y))), init = NULL, eps = 1e-6, maxiter = 1000, verbose = F){
+RRR_CCA_group <- function(X, Y,  groups, Sy=NULL, 
+                          Sx=NULL, r=2, 
+                          lambdax =0, LW_Sy = TRUE){
+  
   n = nrow(X)
   p = ncol(X)
   q = ncol(Y)
-  if(p > n & is.null(Kx)) stop("Regularization of X coefficients is requred when p > n")
-  if(q > n & is.null(Ky)) stop("Regularization of Y coefficients is requred when q > n")
+  if(q >n){
+    X_temp <- X
+    X <- Y
+    Y <- X_temp
+  }
+  X <- scale(X, scale = FALSE)
+  Y <- scale(Y, scale = FALSE)
   
-  missY = is.na(Y)
-  missX = is.na(X)
-  if(sum(missY) > 0){
-    if(sum(missX) > 0) rrrside = "both"   
-    else rrrside = "Y" 
-  } else {
-    if(p > q) rrrside = "Y"
-    else rrrside = "X"
+  if ( n <  min(q,p)){
+    print("Warning!!!! Both X and Y are high dimensional, method may fail")
   }
   
-  #initialize
-  iter = 0
-  delta = Inf
-  loss = Inf
-  info = c()
-  if(is.null(init)){
-    X = data.frame(X) %>% mutate_all(~replace_na(., mean(., na.rm = TRUE))) %>% as.matrix()
-    Y = data.frame(Y) %>% mutate_all(~replace_na(., mean(., na.rm = TRUE))) %>% as.matrix()
-  } else {
-    X = init$X
-    Y = init$Y
+  if(is.null(Sx)){
+    Sx = t(X) %*% X /n
   }
-  
-  while(delta > eps & iter < maxiter){
-    iter = iter + 1
-    loss0 = loss
-    
-    #CCA step (impute Y)
-    if(rrrside %in% c("Y", "both")){
-      if(verbose) cat("RRR with response Y\n")
-      if(p > n){
-        step = CCA_step(X, Y, Kx, Ky, k, highdim = T)
-        if(verbose) cat("High dim on X\n")
-      } 
-      else step = CCA_step(X, Y, Kx, Ky, k)
-      Y[missY] = step$Yhat[missY]
-      imploss = mean((Y - step$Yhat)^2)
-      U = step$U
-      V = step$V
+  if (is.null(Sy)){
+    Sy = t(Y) %*% Y /n
+    if (LW_Sy){
+      lw_cov <- corpcor::cov.shrink(Y)
+      Sy <- as.matrix(lw_cov)
     }
-    
-    #CCA step (impute X)
-    if(rrrside %in% c("X", "both")){
-      if(verbose) cat("RRR with response X\n")
-      if(q > n){
-        step = CCA_step(Y, X, Ky, Kx, k, highdim = T)
-        if(verbose) cat("High dim on Y\n")
-      } 
-      else step = CCA_step(Y, X, Ky, Kx, k)
-      X[missX] = step$Yhat[missX]
-      imploss = mean((X - step$Yhat)^2)
-      U = step$V
-      V = step$U
-    }
-    
-    XU = X %*% U
-    YV = Y %*% V
-    loss = diag(cor(XU, YV))[1]
-    info = rbind(info, c(iter, loss, step$rrrloss, imploss, delta))
-    if(iter > 1) delta = abs((loss0 - loss)/loss0)
-    if(verbose) cat("iter ", iter, "cor", loss, "imp.loss", imploss, "delta", delta, "\n\n")
   }
-  colnames(info) = c("iter", "cor", "rrrloss", "imploss", "delta")
-  sx = diag(t(XU) %*% XU)/(n-1)
-  if(!is.null(Kx)) sx = sx + diag(t(U) %*% Kx %*% U)
-  sy = diag(t(YV) %*% YV)/(n-1)
-  if(!is.null(Ky)) sy = sy + diag(t(V) %*% Ky %*% V)
   
-  return(list(U = scale(U, center = F, scale = sqrt(sx)), V = scale(V, center = F, scale = sqrt(sy)), X = X, Y = Y, info = data.frame(info)))
+  
+  
+  # Create a block diagonal matrix for X
+  X_block <- kronecker(diag(1, q), X)
+  
+  groups_long <- rep(groups, each = q)
+  # The dimension of B is now pq x q
+  svd_y = svd(Sy)
+  Sigma_y_sqrt_inv = svd_y$u %*% diag(sapply(svd_y$d, function(x){ifelse(x >1e-4, 1/sqrt(x), 0)})) %*% t(svd_y$u)
+  Y_tilde = Y %*% Sigma_y_sqrt_inv
+  if(is.null(group_intercept) ==FALSE){
+    Y_tilde = Y_tilde
+  }
+  Y_long <- as.vector(Y_tilde)
+  #### run the CV procedure)
+  test = gglasso(X_block, Y_long, group=groups_long, lambda = c(lambdax),
+                 intercept = FALSE)
+  
+  beta = test$gglasso.fit$beta[, ind_lambda[ind]]
+  B_opt <- matrix(beta, nrow = p, ncol = q, byrow = TRUE)
+  B_opt[which(abs(B_opt)<1e-5)] = 0
+  I = which(apply(B_opt^2, 1, sum) > 0)
+  if (length(I) >0){
+    svd_Sx = svd(Sx[I, I])
+    sqrt_Sx = svd_Sx$u %*% diag(sapply(svd_Sx$d, function(x){ifelse(x > 1e-4, sqrt(x), 0)}))  %*% t(svd_Sx$u)
+    sqrt_inv_Sx = svd_Sx$u %*% diag(sapply(svd_Sx$d, function(x){ifelse(x > 1e-4, 1/sqrt(x), 0)}))  %*% t(svd_Sx$u)
+    sol = svd(sqrt_Sx %*% B_opt[I,])
+    #sol = svd(t(B_OLS[I, ]), nu = r, nv=r)
+    V = Sigma_y_sqrt_inv %*% sol$v[, 1:r]
+    U = matrix(0, p, r)
+    U[I,] = sqrt_inv_Sx %*% sol$u[, 1:r]
+  }else{
+    U = matrix(0, p, r)
+    V = Sigma_y_sqrt_inv %*% test$V[, 1:r]
+  }
+  loss = mean((Y %*% V - X %*% U)^2)
+  return(list(U = U, V = V, loss = loss))
 }
 
-CCAimpute_l1= function(X, Y, lambdax = NULL, lambday = NULL, k = k, eps = list(outer = 1e-6, inner = 1e-6), maxiter = list(outer = 1000, inner = 1000), verbose = list(outer = F, inner = F)){
+cv.RRR_CCA_group <- function(X, Y, groups, Sy = NULL,
+                             Sx = NULL,
+                             r=2, lambdax =10^seq(-5, 1,length.out=50),
+                             group_intercept = NULL,
+                             LW_Sy = TRUE){
+  
   n = nrow(X)
   p = ncol(X)
   q = ncol(Y)
-  
-  #initialize
-  epoch = 0
-  delta = Inf
-  deltaU = Inf
-  deltaV = Inf
-  loss = Inf
-  info = list(outer = c(), inner = c())
-  if(!is.null(lambdax)) Kx = sparseMatrix(i = 1:p, j = 1:p, x = lambdax, dims = c(p, p))
-  else Kx = NULL
-  if(!is.null(lambday)) Ky = sparseMatrix(i = 1:q, j = 1:q, x = lambday, dims = c(q, q))
-  else Ky = NULL
-  init = NULL
-  u0 = rep(1, p)
-  v0 = rep(1, q)
-  
-  while(delta > eps$outer & epoch < maxiter$outer){
-    epoch = epoch + 1
-    loss0 = loss
-    
-    impute = CCAimpute(X, Y, Kx = Kx, Ky = Ky, init = init, k = k, eps = eps$inner, maxiter = maxiter$inner, verbose = verbose$inner)
-    XU = impute$X %*% impute$U
-    YV = impute$Y %*% impute$V
-    loss = diag(cor(XU, YV))[1]
-    
-    info$inner = rbind(info$inner, data.frame(epoch = epoch, impute$info)) %>% data.frame()
-    info$outer = rbind(info$outer, c(epoch, loss, delta)) %>% data.frame()
-    
-    #update kernels
-    kx = lambdax/pmax(abs(impute$U[,1]), 1e-6)
-    #kx[abs(impute$U[,1]) < 1e-6] = 0
-    ky = lambday/pmax(abs(impute$V[,1]), 1e-6)
-    #ky[abs(impute$V[,1]) < 1e-6] = 0
-    Kx = diag(kx)
-    Ky = diag(ky)
-    init = list(X = impute$X, Y = impute$Y)
-    u = impute$U[,1]
-    v = impute$V[,1]
-    
-    if(epoch > 1){ 
-      delta = abs((loss0 - loss)/loss0)
-      deltaU = sum((u0 - u)^2)/sum(u0^2)
-      deltaV = sum((v0 - v)^2)/sum(v0^2)
-    }
-    u0 = u
-    v0 = v
-    if(verbose$outer) cat("===================================\nepoch", epoch, "cor", loss, "delta", delta, "deltaU", deltaU, "deltaV", deltaV, "\n===================================\n\n")
-    
+  if(q >n){
+    X_temp <- X
+    X <- Y
+    Y <- X_temp
   }
-  colnames(info$outer) = c("epoch", "cor", "delta")
-  return(list(U = impute$U, V = impute$V, X = impute$X, Y = impute$Y, info = info))
+  X <- scale(X, scale = FALSE)
+  Y <- scale(Y, scale = FALSE)
+  
+  if ( n <  min(q,p)){
+    print("Warning!!!! Both X and Y are high dimensional, method may fail")
+  }
+  
+  if(is.null(Sx)){
+    Sx = t(X) %*% X /n 
+  }
+  if(is.null(Sy)){
+    Sy = t(Y) %*% Y /n
+    if (LW_Sy){
+      lw_cov <- corpcor::cov.shrink(Y)
+      Sy <- as.matrix(lw_cov)
+    }
+  }
+  
+  
+  
+  # Create a block diagonal matrix for X
+  X_block <- kronecker(diag(1, q), X)
+  
+  groups_long <- rep(groups, each = q)
+  # The dimension of B is now pq x q
+  svd_y = svd(Sy)
+  Sigma_y_sqrt_inv = svd_y$u %*% diag(sapply(svd_y$d, function(x){ifelse(x >1e-4, 1/sqrt(x), 0)})) %*% t(svd_y$u)
+  Y_tilde = Y %*% Sigma_y_sqrt_inv
+  Y_long <- as.vector(Y_tilde)
+  #### run the CV procedure)
+  test = cv.gglasso(X_block, Y_long, group=groups_long, lambda = lambdax,
+                    intercept = FALSE)
+  ind_lambda = which(test$gglasso.fit$df >0)
+  ind = which.min(test$cvm[ind_lambda])
+  beta = test$gglasso.fit$beta[, ind_lambda[ind]]
+  B_opt <- matrix(beta, nrow = p, ncol = q, byrow = TRUE)
+  B_opt[which(abs(B_opt)<1e-5)] = 0
+  I = which(apply(B_opt^2, 1, sum) > 0)
+  if (length(I) >0){
+    svd_Sx = svd(Sx[I, I])
+    sqrt_Sx = svd_Sx$u %*% diag(sapply(svd_Sx$d, function(x){ifelse(x > 1e-4, sqrt(x), 0)}))  %*% t(svd_Sx$u)
+    sqrt_inv_Sx = svd_Sx$u %*% diag(sapply(svd_Sx$d, function(x){ifelse(x > 1e-4, 1/sqrt(x), 0)}))  %*% t(svd_Sx$u)
+    sol = svd(sqrt_Sx %*% B_opt[I,])
+    #sol = svd(t(B_OLS[I, ]), nu = r, nv=r)
+    V = Sigma_y_sqrt_inv %*% sol$v[, 1:r]
+    U = matrix(0, p, r)
+    U[I,] = sqrt_inv_Sx %*% sol$u[, 1:r]
+  }else{
+    U = matrix(0, p, r)
+    V = Sigma_y_sqrt_inv %*% test$V[, 1:r]
+  }
+  loss = mean((Y %*% V - X %*% U)^2)
+  return(list(U = U, V = V, loss = loss))
 }
 

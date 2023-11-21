@@ -5,19 +5,26 @@ library(tidyverse)
 theme_set(theme_bw(base_size = 14))
 setwd("~/Documents/group-CCA/elena/")
 file_list <- list.files(path = "~/Documents/group-CCA/elena/missing/results/", 
-                        pattern = "new_RRR_efficient_results10*", full.names = TRUE)
+                        pattern = "new_RRR_efficient_results1062*", full.names = TRUE)
 
-results <- file_list %>%
+file_list_orig = sapply(file_list, function(x){ifelse(str_detect(x,  "new_RRR_efficient_results1061"),
+                        "orig", ifelse(str_detect(x,  "new_RRR_efficient_results1062"), "LW", "orig2"))})
+ind_orig = which(as.character(file_list_orig) == "orig")
+ind_LW = which(as.character(file_list_orig) == "LW")
+ind_orig2 = which(as.character(file_list_orig) == "orig2")
+results <- file_list[ind_orig] %>%
   map_dfr(~ read_csv(.x) %>% mutate(filename = .x))
-
-
-
-results["lambda"] = sapply(results$method, function(x){ifelse(is.null(strfind(x, "Alt-"))==FALSE,
-                                                              as.numeric(strsplit(x, "Alt-")[[1]][2]),
-                                                              NA)})
-results["method_type"] = sapply(results$method, function(x){ifelse(is.null(strfind(x, "Alt-"))==FALSE,
-                                                                   "Alt",
-                                                                   x)})
+results = results[,c(1:34, 36)]
+results["shrinkage_type"] = "None"
+results_LW <- file_list[ind_LW] %>%
+  map_dfr(~ read_csv(.x) %>% mutate(filename = .x))
+results_LW["shrinkage_type"] = "LW"
+results_LW = results_LW[, 1:34]
+results = rbind(results, results_LW)
+results2 <- file_list[ind_orig2] %>%
+  map_dfr(~ read_csv(.x) %>% mutate(filename = .x))
+results["shrinkage_type"] = "None2"
+results = rbind(results, results2)
 # summ = results %>% group_by(n, p1, p2, r, r_pca,
 #                             nnzeros, 
 #                            overlapping_amount, noise, 
@@ -31,38 +38,38 @@ results["method_type"] = sapply(results$method, function(x){ifelse(is.null(strfi
 
 summ = results %>% group_by(n, p1, p2, r, r_pca,
                             nnzeros, 
+                            shrinkage_type,
                             overlapping_amount, noise, 
                             #lambda_opt,
                             method,
                             theta_strength,
                             normalize_diagonal,
                             prop_missing) %>% 
-  summarise(distance_tot = median(distance_tot),
-            distance_tot_mean = mean(distance_tot),
-            distance_U = median(distance_U),
-            distance_V = median(distance_V),
-            distance_tot_q50 = quantile(distance_tot, 0.5),
-            distance_tot_q25 = quantile(distance_tot, 0.75),
-            distance_tot_q75 = quantile(distance_tot, 0.25),
+  summarise(distance_tot_mean = mean(distance_tot),
+            distance_U_mean = mean(distance_U),
+            distance_V_mean = mean(distance_V),
+            distance_tot_q50 = quantile(distance_tot, 0.5, na.rm=TRUE),
+            distance_tot_q25 = quantile(distance_tot, 0.75, na.rm=TRUE),
+            distance_tot_q75 = quantile(distance_tot, 0.25, na.rm=TRUE),
             prediction_tot_mean= mean(prediction_tot),
-            prediction_tot_q50 = quantile(prediction_tot, 0.5),
-            prediction_tot_q25 = quantile(prediction_tot, 0.75),
-            prediction_tot_q75 = quantile(prediction_tot, 0.25),
-            distance_U_q50 = quantile(distance_U, 0.5),
-            distance_U_q25 = quantile(distance_U, 0.75),
-            distance_U_q75 = quantile(distance_U, 0.25),
+            prediction_tot_q50 = quantile(prediction_tot, 0.5, na.rm=TRUE),
+            prediction_tot_q25 = quantile(prediction_tot, 0.75, na.rm=TRUE),
+            prediction_tot_q75 = quantile(prediction_tot, 0.25, na.rm=TRUE),
+            distance_U_q50 = quantile(distance_U, 0.5, na.rm=TRUE),
+            distance_U_q25 = quantile(distance_U, 0.75, na.rm=TRUE),
+            distance_U_q75 = quantile(distance_U, 0.25, na.rm=TRUE),
             prediction_U_mean= mean(distance_U),
-            prediction_U_q50 = quantile(distance_U, 0.5),
-            prediction_U_q25 = quantile(distance_U, 0.75),
-            prediction_U_q75 = quantile(distance_U, 0.25),
-            distance_V_q50 = quantile(distance_V, 0.5),
-            distance_V_q25 = quantile(distance_V, 0.75),
-            distance_V_q75 = quantile(distance_V, 0.25),
+            prediction_U_q50 = quantile(distance_U, 0.5, na.rm=TRUE),
+            prediction_U_q25 = quantile(distance_U, 0.75, na.rm=TRUE),
+            prediction_U_q75 = quantile(distance_U, 0.25, na.rm=TRUE),
+            distance_V_q50 = quantile(distance_V, 0.5, na.rm=TRUE),
+            distance_V_q25 = quantile(distance_V, 0.75, na.rm=TRUE),
+            distance_V_q75 = quantile(distance_V, 0.25, na.rm=TRUE),
             prediction_V_mean= mean(distance_V),
-            prediction_V_q50 = quantile(distance_V, 0.5),
-            prediction_V_q25 = quantile(distance_V, 0.75),
-            prediction_V_q75 = quantile(distance_V, 0.25),
-            time_med = quantile(time, 0.5),
+            prediction_V_q50 = quantile(distance_V, 0.5, na.rm=TRUE),
+            prediction_V_q25 = quantile(distance_V, 0.75, na.rm=TRUE),
+            prediction_V_q75 = quantile(distance_V, 0.25, na.rm=TRUE),
+            time_med = quantile(time, 0.5, na.rm=TRUE),
             time_mean = mean(time)
             
   ) %>%
@@ -70,7 +77,7 @@ summ = results %>% group_by(n, p1, p2, r, r_pca,
 colnames(results)
 colnames(summ)
 unique(summ$nnzeros)
-
+summ$theta_strength <- factor(summ$theta_strength, levels = c("high", "medium", "low"))
 unique(summ$n)
 
 
@@ -108,28 +115,41 @@ my_colors <- c( "black", "chartreuse2", "chartreuse4",
                 "orchid1", "orchid3", "indianred",
                 "burlywood2", "burlywood4",
                  "yellow",
-                #"lightblue", "lightblue3","cyan", "dodgerblue", "dodgerblue4", 
+               # "lightblue", "lightblue3","cyan", "dodgerblue", "dodgerblue4", 
                 "navyblue")
 
-labels_n <-   legend_order
+labels_n <-    c("Oracle",  "SAR CV (Wilms et al)", 
+                 "SAR BIC (Wilms et al)", 
+                 "Sparse CCA, permuted\n(Witten et al)", 
+                 "Sparse CCA with CV\n(Witten et al)",
+                 "SCCA (Parkhomenko et al)", "Sparse CCA with CV\n(Waaijenborg et al)",
+                 "Sparse CCA(Waaijenborg et al)",
+                 "Canonical Ridge-Author",
+                # "RRR-0.5" ,"RRR-7.5","RRR-10","RRR-12.5",  "RRR-20",   
+                 "RRR-CCA (this paper)")
 
 unique(summ$r_pca)
+unique(summ$r)
 unique(summ$p1)
 unique(summ$n)
 unique(summ$p2)
 unique(summ$nnzeros)
 unique(summ$overlapping_amount)
+unique(summ$shrinkage_type)
 summ %>% filter( r_pca == 5, r==2,  p2==10, p1>50)
 
-ggplot(summ %>% filter( r_pca == 0, r==2,  p2==20,# n<2000,
-                        nnzeros==20, overlapping_amount == 0,
+ggplot(summ %>% filter( r_pca == 5, r==2,  p2==10,
+                        shrinkage_type == "LW",
+                        nnzeros==10, overlapping_amount == 0,
                         method %in% legend_order
                         ),
        aes(x=p1, 
-           y = distance_U_q50, 
+           y = distance_tot_q50, 
            colour =method)) +
   geom_point()+
   geom_line()+
+  geom_errorbar(aes(ymin=distance_tot_q25, ymax=distance_tot_q75,
+                                      colour =method))+
   scale_color_manual(values = my_colors, breaks = legend_order,
                     labels = labels_n) +
   facet_grid(theta_strength~ n, scales = "free",labeller = as_labeller(c(`20` = "p = 20",
@@ -139,8 +159,8 @@ ggplot(summ %>% filter( r_pca == 0, r==2,  p2==20,# n<2000,
                                                                           `300` = "n = 300",
                                                                          `500` = "n = 500",
                                                                           `high` = "High",
-                                                                         `1000` = "n = 1000",
-                                                                         `2000` = "n = 2000",
+                                                                         `1000` = "n = 1,000",
+                                                                         `2000` = "n = 2,000",
                                                                          `10000` = "n = 10000",
                                                                           `medium` = "Medium",
                                                                           `low` = "Low"
@@ -150,12 +170,87 @@ ggplot(summ %>% filter( r_pca == 0, r==2,  p2==20,# n<2000,
   ylab(expression("Subspace Distance")) +
   labs(colour="Method") + 
   #scale_y_log10()+
-  #scale_x_log10()+
+  scale_x_log10()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+ggplot(summ %>% filter( r_pca == 5, r==2,  p2==50,
+                        shrinkage_type == "LW",
+                        nnzeros==10, overlapping_amount == 0,
+                        method %in% legend_order
+),
+aes(x=n, 
+    y = distance_tot_q50, 
+    colour =method)) +
+  geom_point()+
+  geom_line()+
+  geom_errorbar(aes(ymin=distance_tot_q25, ymax=distance_tot_q75,
+                    colour =method), width=0.1)+
+  scale_color_manual(values = my_colors, breaks = legend_order,
+                     labels = labels_n) +
+  facet_grid(theta_strength~ p1, scales = "free",labeller = as_labeller(c(`20` = "p = 20",
+                                                                         `80` = "p = 80",
+                                                                         `100` = "p = 100",
+                                                                         `200` = "p = 200",
+                                                                         `300` = "p = 300",
+                                                                         `500` = "p = 500",
+                                                                         `high` = "High",
+                                                                         `1000` = "p = 1,000",
+                                                                         `2000` = "n = 2,000",
+                                                                         `10000` = "n = 10000",
+                                                                         `medium` = "Medium",
+                                                                         `low` = "Low"
+                                                                         
+  ))) +
+  xlab("n") + 
+  ylab(expression("Subspace Distance")) +
+  labs(colour="Method") + 
+  #scale_y_log10()+
+  scale_x_log10()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+ggplot(summ %>% filter( r_pca == 5, r==2,  n==500,
+                        shrinkage_type == "LW",
+                        nnzeros==10, overlapping_amount == 0,
+                        method %in% legend_order
+),
+aes(x=p2, 
+    y = distance_tot_q50, 
+    colour =method)) +
+  geom_point()+
+  geom_line()+
+  geom_errorbar(aes(ymin=distance_tot_q25, ymax=distance_tot_q75,
+                    colour =method), width=0.1)+
+  scale_color_manual(values = my_colors, breaks = legend_order,
+                     labels = labels_n) +
+  facet_grid(theta_strength~ p1, scales = "free",labeller = as_labeller(c(`20` = "p = 20",
+                                                                          `80` = "p = 80",
+                                                                          `100` = "p = 100",
+                                                                          `200` = "p = 200",
+                                                                          `300` = "p = 300",
+                                                                          `500` = "p = 500",
+                                                                          `high` = "High",
+                                                                          `1000` = "p = 1,000",
+                                                                          `2000` = "n = 2,000",
+                                                                          `10000` = "n = 10000",
+                                                                          `medium` = "Medium",
+                                                                          `low` = "Low"
+                                                                          
+  ))) +
+  xlab("q") + 
+  ylab(expression("Subspace Distance")) +
+  labs(colour="Method") + 
+  #scale_y_log10()+
+  scale_x_log10()+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
 unique(summ$p1)
-ggplot(summ %>% filter( r_pca == 0, r==2,  p2==20,
+
+
+ggplot(summ %>% filter( r_pca == 5, r==2,  p2==10,
                         #n<2000,
                         #n>100,
                         nnzeros==20, overlapping_amount == 0,
@@ -176,7 +271,7 @@ aes(x=n,
                                                                          `300` = "n = 300",
                                                                          `500` = "p = 500",
                                                                          `high` = "High",
-                                                                         `1000` = "n = 1000",
+                                                                         `1000` = "p = 1,000",
                                                                          `2000` = "n = 2000",
                                                                          `10000` = "n = 10000",
                                                                          `medium` = "Medium",
@@ -191,7 +286,7 @@ aes(x=n,
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 ggplot(summ %>% filter( 
-                        r_pca == 0, r==2,
+                        r_pca == 5, r==2,
                         nnzeros == 5,
                         overlapping_amount == 1),
        aes(x=p, 
@@ -222,7 +317,7 @@ unique(summ$r_pca)
 unique(summ$nnzeros)
 ggplot(summ %>% filter( 
                         r_pca == 5, r==2,
-                        overlapping_amount == 1,
+                        overlapping_amount == 0,
                         nnzeros==20
                         ),
        aes(x=n, 

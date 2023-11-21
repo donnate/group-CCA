@@ -5,7 +5,7 @@ library(tidyverse)
 theme_set(theme_bw(base_size = 14))
 setwd("~/Documents/group-CCA/elena/")
 file_list <- list.files(path = "~/Documents/group-CCA/elena/missing/results/", 
-                        pattern = "new-simulation-RRR-results-sparse1040*", full.names = TRUE)
+                        pattern = "new_RRR_efficient*", full.names = TRUE)
 
 results <- file_list %>%
   map_dfr(~ read_csv(.x) %>% mutate(filename = .x))
@@ -17,22 +17,21 @@ results["lambda"] = sapply(results$method, function(x){ifelse(is.null(strfind(x,
 results["method_type"] = sapply(results$method, function(x){ifelse(is.null(strfind(x, "Alt-"))==FALSE,
                                                             "Alt",
                                                             x)})
-summ = results %>% group_by(n, p1, p2, r, r_pca,
-                            nnzeros, 
-                           overlapping_amount, noise, 
-                           method_type, 
-                           lambda,
-                           method,
-                           theta_strength,
-                           prop_missing) %>% 
-  summarize_if(is.numeric, median) %>% 
-  ungroup() 
+# summ = results %>% group_by(n, p1, p2, r, r_pca,
+#                             nnzeros, 
+#                            overlapping_amount, noise, 
+#                            #method_type, 
+#                            lambda_opt,
+#                            method,
+#                            theta_strength,
+#                            prop_missing) %>% 
+#   summarize_if(is.numeric, median) %>% 
+#   ungroup() 
 
 summ = results %>% group_by(n, p1, p2, r, r_pca,
                             nnzeros, 
                             overlapping_amount, noise, 
-                            method_type, 
-                            lambda,
+                            lambda_opt,
                             method,
                             theta_strength,
                             normalize_diagonal,
@@ -105,8 +104,7 @@ unique(summ$r)
 
 ggplot(summ %>% filter( r_pca == 5, r==2,
                         nnzeros == 10,
-                        overlapping_amount == 1,
-                       method %in% legend_order),
+                        overlapping_amount == 1),
        aes(x=n, 
            y = distance_tot, 
            colour =method)) +

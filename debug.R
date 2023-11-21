@@ -2,7 +2,7 @@ seed <- 1
 print(seed)
 name_exp <- "test"
 set.seed(seed)
-n <- 1000
+n <- 200
 strength_theta <- "high"
 prop_missing = 0
 #props <- c(0, 0.1, 0.2)
@@ -12,13 +12,12 @@ seeds = 1:100
 normalize_diagonal = TRUE
 result = c()
 thetas <- diag(seq(0.9, 0.75, length.out = r))
-r_pca = 3
+r_pca = 0
 overlapping_amount = 0
 r = 2
 nnzeros = 10
-p =80
-q = 80
-n = 1000
+p = 100
+q = 100
 
 library(ggplot2)
 library(dplyr)
@@ -44,7 +43,7 @@ source("elena/iterative_cca.R")
 #cat("\n\ns:", s, "p:", p, "props:", prop_missing, "\n")
 cat("seed:")
 cat(seed, " ")
-
+thetas <- diag(seq(0.7, 0.55, length.out = r))
 #gen = generate(n, p, q, s, prop_missing)
 gen = generate_example_non_trivial_pca(n, p, q,
                                        r_pca = r_pca,
@@ -244,11 +243,8 @@ result <- rbind(result, data.frame(evaluate(gen$newX, gen$newY,
 
 start_time_alt2 <- system.time({
   res_alt = pipeline_alternating_CCA(gen$X, gen$Y, r=r,
-                                     param_lambda=c(0.0001, 0.001, 
-                                                    0.005,
-                                                    0.01, 0.05, 0.1, 
-                                                    0.25,
-                                                    0.5),
+                                     param_lambda=c(1, 0.0001,
+                                                    0.01),
                                      kfolds=10,
                                      maxiter=100, convergence=1e-3)
 })
