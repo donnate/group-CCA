@@ -7,7 +7,7 @@ library(zoo)
 library(pracma)
 library(rrpack)
 library(corpcor)
-setwd("~/Documents/group-CCA/")
+#setwd("~/Documents/group-CCA/")
 
 source("elena/generate_example_rrr.R")
 source('experiments/sparse_CCA/experiment_functions.R')
@@ -40,18 +40,32 @@ props <- c(0)
 noise = 1
 seeds = 1:100
 normalize_diagonal = TRUE
+<<<<<<< HEAD
 LW_Sy = TRUE
 nnzero_values = c(20, 10, 15, 50, 5)
+=======
+LW_Sy = FALSE
+>>>>>>> 02ea63e2792f2e0f35597a7164c3a3947e83643f
 result = c()
 for(seed_n in seeds){
   #for (n in c(100, 300, 500, 1000, 10000)){
   set.seed(seed * 100 + seed_n)
+<<<<<<< HEAD
   for(nnzeros in nnzero_values){
     #for(p in c(100,  200, 300,  500, 800, 80, 20)){
     #for (p in c(20, 50, 80, 100, 200, 500, 1000)){
       for (q in c(10, 20, 30, 50, 80)){
       #for(nnzeros in c(5, 10, 15, 20, 50)){
       for (r in rs){
+=======
+  for(nnzeros in c(20, 10)){
+    #for(p in c(100,  200, 300,  500, 800, 80, 20)){
+    for (p in c(100, 200, 500, 1000, 20, 80, 50)){
+      for (q in c(10, 20, 30)){
+      #for(nnzeros in c(5, 10, 15, 20, 50)){
+      rs = ifelse( p <6, c(2,  5), c(2, 5, 10))
+      for (r in c(2)){
+>>>>>>> 02ea63e2792f2e0f35597a7164c3a3947e83643f
         
         if ( strength_theta == "high"){
           thetas <- diag(seq(0.9, 0.75, length.out = r))
@@ -242,7 +256,7 @@ for(seed_n in seeds){
                 start_time_alt2 <- system.time({
                   res_alt = CCA_rrr.CV(X, Y, 
                              r=r, Kx = NULL, lambda_Kx = 0,
-                             param_lambda=c(10^seq(-3, 1.5, length.out = 50)),
+                             param_lambda=c(10^seq(-3, 2, length.out = 50)),
                              kfolds=5, penalty="l21", solver="rrr", LW_Sy = LW_Sy)
                 })
                 res_alt$ufinal[which(is.na( res_alt$ufinal))] <- 0
@@ -333,7 +347,90 @@ for(seed_n in seeds){
                   })
                 }
                 
+<<<<<<< HEAD
                 write_csv(result, paste0("elena/missing/results/newest_RRR_efficient_results", name_exp, ".csv"))
+=======
+                write_csv(result, paste0("elena/missing/results/new_RRR_efficient_results", name_exp, ".csv"))
+                
+		if(FALSE){
+                tryCatch({
+                  # Estimate the subspace spanned by the largest eigenvector using convex relaxation and TGD
+                  
+                  ## Running initialization using convex relaxation
+                  max1 = 500 * sqrt(log(p)/n)
+                  min1 = 0.001 * sqrt(log(p)/n) 
+                  param1 = exp(seq(log(min1), log(max1), length.out=20))
+                  maxk = 0.25 * p
+                  mink = 0.01 * p 
+                  param2 = ceiling(seq(max(ceiling(mink),5), ceiling(maxk), length.out = 10))
+                  start_time_additional_method <- system.time({
+		  res_tg <- pipeline_thresholded_gradient(gen$Data, gen$Mask, 
+                                                          gen$sigma0hat, 
+                                                          r=r, nu=1,
+                                                          Sigmax=gen$Sigmax, 
+                                                          Sigmay=gen$Sigmay, 
+                                                          maxiter.init=100, 
+                                                          lambda=NULL,k=NULL,
+                                                          kfolds=5, maxiter=2000, 
+                                                          convergence=1e-3, eta=1e-3,
+                                                          param1=param1,
+                                                          param2=param2, 
+                                                          normalize=TRUE,
+                                                          criterion="prediction",
+                                                          fantope_solution=NULL)
+		  })
+                  Uhat = rbind(res_tg$ufinal, res_tg$vfinal)
+                  result <- rbind(result, data.frame(evaluate(gen$Xnew, gen$Ynew, res_tg$ufinal[, 1:r], 
+                                                              res_tg$vfinal[, 1:r], 
+                                                              gen$u, gen$v,
+                                                              Sigma_hat_sqrt = Sigma_hat_sqrt, 
+                                                              Sigma0_sqrt = Sigma0_sqrt),
+                                                     "noise" = noise,  
+                                                      "method" = "SGCA",  
+                                                     "prop_missing" = prop_missing, 
+                                                     "overlapping_amount" = overlapping_amount,
+                                                     "nnzeros" = nnzeros,
+                                                     "theta_strength" = strength_theta,
+                                                     "r_pca" = r_pca,
+                                                     "n" = n,
+                                                     "exp" = seed * 100 + seed_n,
+                                                     "normalize_diagonal" = normalize_diagonal,
+                                                     "lambda_opt" = 0,
+                                                     "time" = start_time_additional_method[[1]]
+                  )
+                  )
+                  
+                  result <- rbind(result, data.frame(evaluate(gen$Xnew, gen$Ynew, res_tg$initu[, 1:r], 
+                                                              res_tg$initv[, 1:r], 
+                                                              gen$u, gen$v,
+                                                              Sigma_hat_sqrt = Sigma_hat_sqrt, 
+                                                              Sigma0_sqrt = Sigma0_sqrt),
+                                                     "noise" = noise,  
+                                                     "method" = "Fantope",  
+                                                     "prop_missing" = prop_missing, 
+                                                     "overlapping_amount" = overlapping_amount,
+                                                     "nnzeros" = nnzeros,
+                                                     "theta_strength" = strength_theta,
+                                                     "r_pca" = r_pca,
+                                                     "n" = n,
+                                                     "exp" = seed * 100 + seed_n,
+                                                     "normalize_diagonal" = normalize_diagonal,
+                                                     "lambda_opt" = 0,
+                                                     "time" = start_time_additional_method[[1]]
+                  )
+                  )
+                  print("Selected rows.v")
+                  print(selected_rows.v)
+                }, error = function(e) {
+                  # Print the error message
+                  cat("Error occurred in method", method, ":", conditionMessage(e), "\n")
+                  # Skip to the next iteration
+                })
+                
+                write_csv(result, paste0("elena/missing/results/new_RRR_efficient_results", name_exp, ".csv"))
+              }
+	      }
+>>>>>>> 02ea63e2792f2e0f35597a7164c3a3947e83643f
               
                 #write.csv(result, "missing/simulation-RRR-results-sparse.csv", row.names = F)
               }
