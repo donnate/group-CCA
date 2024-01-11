@@ -7,7 +7,7 @@ library(zoo)
 library(pracma)
 library(rrpack)
 library(corpcor)
-#setwd("~/Documents/group-CCA/")
+setwd("~/Documents/group-CCA/")
 
 source("elena/generate_example_rrr.R")
 source('experiments/sparse_CCA/experiment_functions.R')
@@ -45,7 +45,7 @@ result = c()
 for(seed_n in seeds){
   #for (n in c(100, 300, 500, 1000, 10000)){
   set.seed(seed * 100 + seed_n)
-  for(nnzeros in c(2)){
+  for(nnzeros in c(2 * as.numeric(args[5]))){
     #for(p in c(100,  200, 300,  500, 800, 80, 20)){
     for (nb_patterns in c(5)){
       for (q in c(10)){
@@ -230,7 +230,7 @@ for(seed_n in seeds){
                   
                   start_time_alt3 <- system.time({
                     res_group = cv.RRR_CCA_group(gen$X, gen$Y, gen$groups, Sy = NULL,
-                                            Sx = NULL, r=2, lambdax =10^seq(-5, 1,length.out=50),
+                                            Sx = NULL, r=r, lambdax =10^seq(-5, 1,length.out=50),
                                             group_intercept = NULL,
                                             LW_Sy = TRUE)
                   })

@@ -4,15 +4,10 @@ library(pracma)
 library(tidyverse)
 theme_set(theme_bw(base_size = 14))
 setwd("~/Documents/group-CCA/elena/")
-file_list <- list.files(path = "~/Documents/group-CCA/elena/sparse_CCA/results/", 
-                        pattern = "newest*", full.names = TRUE)
-file_list2 <- list.files(path = "~/Documents/group-CCA/elena/missing/results", 
-                        pattern = "new_RRR_efficient_results1062", full.names = TRUE)
-results2 <- file_list2 %>%
-  map_dfr(~ read_csv(.x))
-results_LW <- bind_rows(lapply(file_list2, read.csv))
+file_list <- list.files(path = "~/Documents/group-CCA/elena/group_sparse/results/", 
+                        pattern = "*.csv", full.names = TRUE)
+results <- bind_rows(lapply(file_list, read.csv))
 
-results = rbind(results, results_LW)
 # summ = results %>% group_by(n, p1, p2, r, r_pca,
 #                             nnzeros, 
 #                            overlapping_amount, noise, 
@@ -25,7 +20,7 @@ results = rbind(results, results_LW)
 #   ungroup() 
 
 summ = results %>% group_by(n, p1, p2, r, r_pca,
-                            nnzeros, 
+                            nnzeros, nb_patterns,
                             overlapping_amount, noise, 
                             #lambda_opt,
                             method,
@@ -65,97 +60,150 @@ summ = results %>% group_by(n, p1, p2, r, r_pca,
 colnames(results)
 colnames(summ)
 unique(summ$nnzeros)
-unique(summ$r)
-unique(summ$r_pca)
-unique(summ$p1)
-unique(summ$p2)
-unique(summ$counts)
 summ$theta_strength <- factor(summ$theta_strength, levels = c("high", "medium", "low"))
 unique(summ$n)
-
-
+unique(summ$r_pca)
+unique(summ$counts)
 unique(summ$method)
-legend_order <- c("Oracle",  "FIT_SAR_CV", 
-                  "FIT_SAR_BIC", "Witten_Perm", "Witten.CV",
-                  "SCCA_Parkhomenko", "Waaijenborg-CV", "Waaijenborg-Author",
-                  "Canonical Ridge-Author", "CCA-mean",
-                  "RRR" ,   "Alt-opt", "Gradient-descent",
-                  "init-alternating")
-my_colors <- c( "black", "chartreuse2", "chartreuse4",
-                "orchid1", "orchid3", "indianred",
-                "burlywood2", "burlywood4",
-                "cyan", "gray", "red",
-                "dodgerblue", "orange", "yellow")
+legend_order <- c( "FIT_SAR_CV", 
+                  "FIT_SAR_BIC", 
+                  #"Witten_Perm", "Witten.CV",
+                  #"SCCA_Parkhomenko", "Waaijenborg-CV", "Waaijenborg-Author",
+                  "RRR-opt" ,  "RRR-group")
+my_colors <- c( "indianred", "red3",
+                #"chartreuse2", "chartreuse4",
+                #"yellow",
+                #"indianred", "indianred4", "orchid",
+                #"burlywood2", "burlywood4",
+                "navy", 
+                "dodgerblue")
 
+labels_n <-   c("FIT_SAR with CV (Wilms et al)", 
+                "FIT_SAR with BIC (Wilms et al)",  
+                #"Witten et al (with Permutation Test)", "Witten et al.(with CV)",
+                #"SCCA (Parkhomenko et al)", "SCCA with CV (Waaijenborg et al)", 
+                #"SCCA with BIC (Waaijenborg et al)",
+                "RRR-sparse", "RRR-group")
 
-legend_order <- c("Oracle",  "FIT_SAR_CV", 
-                  "FIT_SAR_BIC", "Witten_Perm", "Witten.CV",
-                  "SCCA_Parkhomenko", "Waaijenborg-CV", "Waaijenborg-Author",
-                  #"RRR-0.5" ,"RRR-7.5","RRR-10","RRR-12.5",  "RRR-20",   
-                  "RRR-opt")
-my_colors <- c( "black", "red", "indianred4",
-                "orange", "yellow", "chartreuse2",
-                "burlywood2", "burlywood4",
-               # "lightblue", "lightblue3","cyan", "dodgerblue", "dodgerblue4", 
-                "navyblue")
-
-labels_n <-    c("Oracle",  "SAR CV (Wilms et al)", 
-                 "SAR BIC (Wilms et al)", 
-                 "Sparse CCA, permuted\n(Witten et al)", 
-                 "Sparse CCA with CV\n(Witten et al)",
-                 "SCCA (Parkhomenko et al)", "Sparse CCA with CV\n(Waaijenborg et al)",
-                 "Sparse CCA(Waaijenborg et al)",
-                # "RRR-0.5" ,"RRR-7.5","RRR-10","RRR-12.5",  "RRR-20",   
-                 "RRR-CCA (this paper)")
 
 unique(summ$r_pca)
-
 unique(summ$r)
 unique(summ$p1)
 unique(summ$n)
 unique(summ$p2)
 unique(summ$nnzeros)
 unique(summ$overlapping_amount)
-unique(summ$shrinkage_type)
-summ %>% filter( r_pca == 5, r==3,  p2==10, p1>50)
 
-ggplot(summ %>% filter( r_pca == 5, r==2,  p2==30,
-                        nnzeros==20, overlapping_amount == 0,
-                        method %in% legend_order
-                        ),
-       aes(x=p1, 
-           y = distance_tot_q50, 
-           colour =method)) +
-  geom_point()+
-  geom_line()+
-  geom_errorbar(aes(ymin=distance_tot_q25, ymax=distance_tot_q75,
-                                      colour =method), width=0.05)+
+summ %>% filter( r_pca == 5, r==2,  p2==10, p1>50)
+
+
+unique(results$nb_patterns)
+colnames(results)
+
+ggplot(results %>% filter(r==5,  p2==10, p1>500,
+                        method %in% legend_order),
+aes(x=p1, 
+    y = distance_tot, 
+    colour =method, fill=method)) +
+  geom_point(alpha=0.1)+
+  geom_smooth(alpha=0.1)+
   scale_color_manual(values = my_colors, breaks = legend_order,
-                    labels = labels_n) +
+                     labels = labels_n) +
+  scale_fill_manual(values = my_colors, breaks = legend_order,
+                     labels = labels_n) +
   facet_grid(theta_strength~ n, scales = "free",labeller = as_labeller(c(`20` = "p = 20",
-                                                                          `80` = "p = 80",
-                                                                          `100` = "n = 100",
-                                                                          `200` = "n = 200",
-                                                                          `300` = "n = 300",
+                                                                         `80` = "p = 80",
+                                                                         `100` = "n = 100",
+                                                                         `200` = "n = 200",
+                                                                         `300` = "n = 300",
                                                                          `500` = "n = 500",
-                                                                          `high` = "High",
+                                                                         `800` = "n = 800",
+                                                                         `high` = "High",
                                                                          `1000` = "n = 1,000",
                                                                          `2000` = "n = 2,000",
-                                                                         `10000` = "n = 10,000",
-                                                                          `medium` = "Medium",
-                                                                          `low` = "Low"
-                                                                          
+                                                                         `10000` = "n = 10000",
+                                                                         `medium` = "Medium",
+                                                                         `low` = "Low"
+                                                                         
   ))) +
   xlab("p") + 
   ylab(expression("Subspace Distance")) +
   labs(colour="Method") + 
-  scale_y_log10()+
+  #scale_y_log10()+
+  scale_x_log10()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplot(results %>% filter(r==5,  p2==10, p1>500,
+                          method %in% legend_order),
+       aes(x=p1, 
+           y = lambda_opt, 
+           colour =method, fill=method)) +
+  geom_point(alpha=0.1)+
+  geom_smooth(alpha=0.1)+
+  scale_color_manual(values = my_colors, breaks = legend_order,
+                     labels = labels_n) +
+  scale_fill_manual(values = my_colors, breaks = legend_order,
+                    labels = labels_n) +
+  facet_grid(theta_strength~ n, scales = "free",labeller = as_labeller(c(`20` = "p = 20",
+                                                                         `80` = "p = 80",
+                                                                         `100` = "n = 100",
+                                                                         `200` = "n = 200",
+                                                                         `300` = "n = 300",
+                                                                         `500` = "n = 500",
+                                                                         `800` = "n = 800",
+                                                                         `high` = "High",
+                                                                         `1000` = "n = 1,000",
+                                                                         `2000` = "n = 2,000",
+                                                                         `10000` = "n = 10000",
+                                                                         `medium` = "Medium",
+                                                                         `low` = "Low"
+                                                                         
+  ))) +
+  xlab("p") + 
+  ylab(expression("Subspace Distance")) +
+  labs(colour="Method") + 
+  #scale_y_log10()+
+  scale_x_log10()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+unique(summ$r)
+unique(summ$n)
+ggplot(summ %>% filter( r==3,  p2==10, n==500,
+                           method %in% legend_order
+),
+aes(x=p1, 
+    y = distance_tot_mean, 
+    colour =method)) +
+  geom_point()+
+  geom_line()+
+  scale_color_manual(values = my_colors, breaks = legend_order,
+                     labels = labels_n) +
+  facet_grid(theta_strength~ n, scales = "free",labeller = as_labeller(c(`20` = "p = 20",
+                                                                         `80` = "p = 80",
+                                                                         `100` = "n = 100",
+                                                                         `200` = "n = 200",
+                                                                         `300` = "n = 300",
+                                                                         `500` = "n = 500",
+                                                                         `800` = "n = 800",
+                                                                         `high` = "High",
+                                                                         `1000` = "n = 1,000",
+                                                                         `2000` = "n = 2,000",
+                                                                         `10000` = "n = 10000",
+                                                                         `medium` = "Medium",
+                                                                         `low` = "Low"
+                                                                         
+  ))) +
+  xlab("p") + 
+  ylab(expression("Subspace Distance")) +
+  labs(colour="Method") + 
+  #scale_y_log10()+
   scale_x_log10()+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
-ggplot(summ %>% filter( r_pca == 5,  p2==30, r ==2,
-                        nnzeros==20, overlapping_amount == 0,
+ggplot(summ %>% filter( r_pca == 5, r==2,  p2==50,
+                        shrinkage_type == "LW",
+                        nnzeros==10, overlapping_amount == 0,
                         method %in% legend_order
 ),
 aes(x=n, 
@@ -168,18 +216,18 @@ aes(x=n,
   scale_color_manual(values = my_colors, breaks = legend_order,
                      labels = labels_n) +
   facet_grid(theta_strength~ p1, scales = "free",labeller = as_labeller(c(`20` = "p = 20",
-                                                                         `80` = "p = 80",
-                                                                         `100` = "p = 100",
-                                                                         `200` = "p = 200",
-                                                                         `300` = "p = 300",
-                                                                         `500` = "p = 500",
-                                                                         `high` = "High",
-                                                                         `1000` = "p = 1,000",
-                                                                         `2000` = "n = 2,000",
-                                                                         `10000` = "n = 10000",
-                                                                         `medium` = "Medium",
-                                                                         `low` = "Low"
-                                                                         
+                                                                          `80` = "p = 80",
+                                                                          `100` = "p = 100",
+                                                                          `200` = "p = 200",
+                                                                          `300` = "p = 300",
+                                                                          `500` = "p = 500",
+                                                                          `high` = "High",
+                                                                          `1000` = "p = 1,000",
+                                                                          `2000` = "n = 2,000",
+                                                                          `10000` = "n = 10000",
+                                                                          `medium` = "Medium",
+                                                                          `low` = "Low"
+                                                                          
   ))) +
   xlab("n") + 
   ylab(expression("Subspace Distance")) +
@@ -188,103 +236,11 @@ aes(x=n,
   scale_x_log10()+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-unique(summ$nnzeros)
-unique(summ$p2)
-ggplot(summ %>% filter( r_pca == 5,  
-                        p2== 20, p1 %in% c(20, 80, 500, 800, 1000), 
-                        n ==200,
-                        nnzeros==20, overlapping_amount == 0,
-                        method %in% legend_order
-),
-aes(x=r, 
-    y = distance_tot_q50, 
-    colour =method)) +
-  geom_line()+
-  geom_point()+
-  scale_color_manual(values = my_colors, breaks = legend_order,
-                     labels = labels_n) +
-  facet_grid(theta_strength~ p1, scales = "free",labeller = as_labeller(c(`20` = "p = 20",
-                                                                          `80` = "p = 80",
-                                                                          `100` = "p = 100",
-                                                                          `200` = "p = 200",
-                                                                          `300` = "p = 300",
-                                                                          `500` = "p = 500",
-                                                                          `800` = "p = 800",
-                                                                          `high` = "High",
-                                                                          `1000` = "p = 1,000",
-                                                                          `2000` = "n = 2,000",
-                                                                          `10000` = "n = 10000",
-                                                                          `medium` = "Medium",
-                                                                          `low` = "Low"
-                                                                          
-  ))) +
-  xlab("r") + 
-  ylab(expression("Subspace Distance")) +
-  labs(colour="Method") + 
-  #scale_y_log10()+
-  #scale_x_log10()+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-
-ggplot(summ %>% filter( r_pca == 5,  
-                        p2== 20, p1 %in% c(20, 80, 500, 800, 1000), 
-                        n ==100,
-                        nnzeros==20, overlapping_amount == 1,
-                        method %in% legend_order
-),
-aes(x=r, 
-    y = distance_tot_q50, 
-    colour =method)) +
-  geom_line()+
-  geom_point()+
-  scale_color_manual(values = my_colors, breaks = legend_order,
-                     labels = labels_n) +
-  facet_grid(theta_strength~ p1, scales = "free",labeller = as_labeller(c(`20` = "p = 20",
-                                                                          `80` = "p = 80",
-                                                                          `100` = "p = 100",
-                                                                          `200` = "p = 200",
-                                                                          `300` = "p = 300",
-                                                                          `500` = "p = 500",
-                                                                          `800` = "p = 800",
-                                                                          `high` = "High",
-                                                                          `1000` = "p = 1,000",
-                                                                          `2000` = "n = 2,000",
-                                                                          `10000` = "n = 10000",
-                                                                          `medium` = "Medium",
-                                                                          `low` = "Low"
-                                                                          
-  ))) +
-  xlab("r") + 
-  ylab(expression("Subspace Distance")) +
-  labs(colour="Method") + 
-  #scale_y_log10()+
-  #scale_x_log10()+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-
-ggplot(summ %>% filter( r_pca == 5, theta_strength=="high", 
-                        n ==500, r==2,
-                        overlapping_amount ==1,
-                        method %in% legend_order)),
-aes(x=p1, 
-    y = distance_tot_q50, 
-    colour =method)) +
-  geom_line()+
-  geom_point()+
-  scale_color_manual(values = my_colors, breaks = legend_order,
-                     labels = labels_n) +
-  facet_grid(p2~ nnzeros, scales = "free") +
-  xlab("p") + 
-  ylab(expression("Subspace Distance")) +
-  labs(colour="Method") + 
-  scale_y_log10()+
-  scale_x_log10()+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
 ggplot(summ %>% filter( r_pca == 5, r==2,  n==500,
                         shrinkage_type == "LW",
-                        nnzeros==20, overlapping_amount == 0,
+                        nnzeros==10, overlapping_amount == 0,
                         method %in% legend_order
 ),
 aes(x=p2, 
@@ -296,11 +252,24 @@ aes(x=p2,
                     colour =method), width=0.1)+
   scale_color_manual(values = my_colors, breaks = legend_order,
                      labels = labels_n) +
-  facet_grid(theta_strength~ p1, scales = "free") +
+  facet_grid(theta_strength~ p1, scales = "free",labeller = as_labeller(c(`20` = "p = 20",
+                                                                          `80` = "p = 80",
+                                                                          `100` = "p = 100",
+                                                                          `200` = "p = 200",
+                                                                          `300` = "p = 300",
+                                                                          `500` = "p = 500",
+                                                                          `high` = "High",
+                                                                          `1000` = "p = 1,000",
+                                                                          `2000` = "n = 2,000",
+                                                                          `10000` = "n = 10000",
+                                                                          `medium` = "Medium",
+                                                                          `low` = "Low"
+                                                                          
+  ))) +
   xlab("q") + 
   ylab(expression("Subspace Distance")) +
   labs(colour="Method") + 
-  scale_y_log10()+
+  #scale_y_log10()+
   scale_x_log10()+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
@@ -323,18 +292,18 @@ aes(x=n,
                      labels = labels_n) +
   facet_grid(theta_strength~ p1, scales = "free",labeller = as_labeller(c(`20` = "p = 20",
                                                                           `50` = "p = 50",
-                                                                         `80` = "p = 80",
-                                                                         `100` = "p = 100",
-                                                                         `200` = "p = 200",
-                                                                         `300` = "n = 300",
-                                                                         `500` = "p = 500",
-                                                                         `high` = "High",
-                                                                         `1000` = "p = 1,000",
-                                                                         `2000` = "n = 2000",
-                                                                         `10000` = "n = 10000",
-                                                                         `medium` = "Medium",
-                                                                         `low` = "Low"
-                                                                         
+                                                                          `80` = "p = 80",
+                                                                          `100` = "p = 100",
+                                                                          `200` = "p = 200",
+                                                                          `300` = "n = 300",
+                                                                          `500` = "p = 500",
+                                                                          `high` = "High",
+                                                                          `1000` = "p = 1,000",
+                                                                          `2000` = "n = 2000",
+                                                                          `10000` = "n = 10000",
+                                                                          `medium` = "Medium",
+                                                                          `low` = "Low"
+                                                                          
   ))) +
   xlab("n") + 
   ylab(expression("Subspace Distance")) +
@@ -344,12 +313,12 @@ aes(x=n,
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 ggplot(summ %>% filter( 
-                        r_pca == 5, r==2,
-                        nnzeros == 5,
-                        overlapping_amount == 1),
-       aes(x=p, 
-           y = distance_tot_q50, 
-           colour =method)) +
+  r_pca == 5, r==2,
+  nnzeros == 5,
+  overlapping_amount == 1),
+  aes(x=p, 
+      y = distance_tot_q50, 
+      colour =method)) +
   geom_point()+
   geom_line()+
   geom_point(aes(y=distance_tot_q25))+    facet_grid(theta_strength~ p1, scales = "free",
@@ -374,13 +343,13 @@ unique(summ$p1)
 unique(summ$r_pca)
 unique(summ$nnzeros)
 ggplot(summ %>% filter( 
-                        r_pca == 5, r==2,
-                        overlapping_amount == 0,
-                        nnzeros==20
-                        ),
-       aes(x=n, 
-           y = distance_tot, 
-           colour =method)) +
+  r_pca == 5, r==2,
+  overlapping_amount == 0,
+  nnzeros==20
+),
+aes(x=n, 
+    y = distance_tot, 
+    colour =method)) +
   geom_line()+
   geom_point() + 
   scale_x_log10() + 
