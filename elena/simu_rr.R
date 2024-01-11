@@ -40,32 +40,19 @@ props <- c(0)
 noise = 1
 seeds = 1:100
 normalize_diagonal = TRUE
-<<<<<<< HEAD
 LW_Sy = TRUE
 nnzero_values = c(20, 10, 15, 50, 5)
-=======
-LW_Sy = FALSE
->>>>>>> 02ea63e2792f2e0f35597a7164c3a3947e83643f
 result = c()
 for(seed_n in seeds){
   #for (n in c(100, 300, 500, 1000, 10000)){
   set.seed(seed * 100 + seed_n)
-<<<<<<< HEAD
+
   for(nnzeros in nnzero_values){
     #for(p in c(100,  200, 300,  500, 800, 80, 20)){
     #for (p in c(20, 50, 80, 100, 200, 500, 1000)){
       for (q in c(10, 20, 30, 50, 80)){
       #for(nnzeros in c(5, 10, 15, 20, 50)){
       for (r in rs){
-=======
-  for(nnzeros in c(20, 10)){
-    #for(p in c(100,  200, 300,  500, 800, 80, 20)){
-    for (p in c(100, 200, 500, 1000, 20, 80, 50)){
-      for (q in c(10, 20, 30)){
-      #for(nnzeros in c(5, 10, 15, 20, 50)){
-      rs = ifelse( p <6, c(2,  5), c(2, 5, 10))
-      for (r in c(2)){
->>>>>>> 02ea63e2792f2e0f35597a7164c3a3947e83643f
         
         if ( strength_theta == "high"){
           thetas <- diag(seq(0.9, 0.75, length.out = r))
@@ -78,7 +65,7 @@ for(seed_n in seeds){
           }
         }
         for (r_pca in c(0, 5)){
-          if ( (max(r_pca, r, nnzeros) < p) ) {
+          if ( (max(r_pca, r, 2 * nnzeros) < p) & (nnzeros > max(r_pca, r)) ) {
             for (overlapping_amount in overlaps){
               for(prop_missing in props){
                 cat("seed:")
