@@ -95,9 +95,13 @@ CCA_rrr = function(X, Y, Sx=NULL, Sy=NULL,
             if(length(index_0)>0){
               Z[index_0,] = 0
             }
-            if (length(index_pos) > 0){
+            if (length(index_pos) > 1){
               Z[index_pos,] = diag(sapply(index_pos, function(x){ 1- (lambda/rho)/norm_col[x]})) %*% Z[index_pos,] 
-            }
+            }else{
+	      if (length(index_pos) == 1){
+                Z[index_pos,] = ( 1- (lambda/rho)/norm_col[index_pos]) * Z[index_pos,]
+              }
+	    }
             U = U + B - Z
             print(c("ADMM iter", i, norm(Z - B), norm(Zold - Z), norm(Uold - U)))
             if (max(c(norm(Z - B)/ sqrt(p), norm(Zold - Z)/ sqrt(p))) <thresh){
