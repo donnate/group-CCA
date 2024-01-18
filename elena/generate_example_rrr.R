@@ -1,6 +1,8 @@
 library(Matrix)
 library(pracma)
+library(igraph)
 
+source("elena/graph_utils.R")
 
 generate_example_sparse_U <- function(n, p1, p2,
                                       r_pca = 3,
@@ -124,15 +126,14 @@ generate_example_sparse_U <- function(n, p1, p2,
 }
 
 
-generate_example_group_sparse_U <- function(n, nb_patterns, 
-                                            p2, r_pca = 3,nnzeros = 5,
-                                      do_plot = FALSE,
-                                      theta = diag(c(0.9,  0.8)),
-                                      lambda_pca = 1,
-                                      nnzeros_pca = 10,
-                                      r = 2, overlapping_amount = 0,
-                                      normalize_diagonal = TRUE,
-                                      n_new = 50000) {
+generate_example_group <- function(n, p1, p2, 
+                                  r_pca = 3,
+                                  nnzeros = 5,
+                                  theta = diag(c(0.9,  0.8)),
+                                 lambda_pca = 1,
+                                  r = 2, overlapping_amount = 0,
+                                  normalize_diagonal = TRUE,
+                                 n_new = 5000) {
   ###
   # This generates a dataset (X,Y) from a multivariate normal where Sigma_XX  and 
   # Sigma_YY have a correlation structure, and Sigma_XY = U Lambda V^T is rank r on a set of nnzeros rows, 0 elsewhere.
@@ -149,47 +150,53 @@ generate_example_group_sparse_U <- function(n, nb_patterns,
   # Returns:
   # S : empirical covariance matrix X^TY
   # Sigma: underlying (population) covariance Sigma_{XY}
-  # u: ground truth for u
+  # u: ground truth for u 
   # v: ground truth for v
   ###
-  sizes = sample(2:10, nb_patterns)
-  p1 <- (sum(sizes))^2
   p_tot <- p1 + p2
-  
   pp <- c(p1, p2)
   print("We have:")
   print(c(p_tot, nnzeros <= min(p1, p2), nnzeros))
   print('--------------------------------------')
   print('Generating data ...')
   Sigma <- diag(p1 + p2)
-  s <- (1):(nnzeros)
-  
+
   print(paste0('Number of non zeros is: ', nnzeros))
-  start <- 1
-  s_pca  <- (start + 1) : (start + nnzeros_pca)
-  s_pca2  <- 1:p2
+  start = 1
+  s_pca  <- 1:min(p2, 20)
+  s_pca2  <- 1:min(p2, 20)
+  #if (start + nnzeros > q){
+  #  s_pca2 <- 1:nnzeros
+  #}
   Lambda_pca <- rep(lambda_pca, r_pca)
-  # generate vcovariance matrix for X and Y
-  
-  if (r_pca > 0){
+  # generate covariance matrix for X and Y
+  groups <- createFolds(1:p1, k = ceiling(p1/5), list = TRUE, returnTrain = FALSE) ### creates groups of equal size
+  s <- c()
+  for (i in 1:nnzeros){
+    s <- c(s, groups[[i]])
+  }
+  s_q = 1:p2
+  if (r_pca >0){
     u1 = matrix(0, p1, r_pca)
-    u1[s_pca, ] <- matrix(runif(n = nnzeros_pca * r_pca, max = 3, min=0), 
-                          nrow = nnzeros_pca, ncol = r_pca)
+    u1[s_pca, ] <- matrix(runif(n = length(s_pca) * r_pca, max = 3, min=1), 
+                          nrow = length(s_pca), ncol = r_pca) * matrix(sample(c(-1,1), length(s_pca) * r_pca, replace=TRUE), nrow=length(s_pca), ncol=r_pca)
     # Normalize u1
-    u1[s_pca,] <- 0.5 * diag(1/ sqrt(apply(u1[s_pca, ]^2, 1, sum))) %*% u1[s_pca,]
-    u1[s_pca, 1:r_pca] <- u1[s_pca,1:r_pca] #%*% (sqrtm(t(u1[s_pca,1:r_pca]) %*% u1[s_pca, 1:r_pca])$Binv)
+    print(dim(u1))
+    print(c(s_pca, r_pca))
+    u1[s_pca, 1:r_pca] <- u1[s_pca,1:r_pca] %*% (sqrtm(t(u1[s_pca,1:r_pca]) %*% u1[s_pca, 1:r_pca])$Binv)
     T1 <- u1 %*% diag(Lambda_pca) %*% t(u1)
     if (normalize_diagonal){
       diag(T1) <- 1
       Sigma[1:p1, 1:p1] <- T1
     }else{
       Sigma[1:p1, 1:p1] <- Sigma[1:p1, 1:p1] + T1 
-    } 
-    ### Same for Sigma_y
-    u2 <- matrix(runif( p2 * r_pca, max = 1, min=0), nrow=p2)
-    u2 <- 0.5 * diag(1/ sqrt(apply(u2^2, 1, sum))) %*% u2
-    #u2[s_pca2, 1:r_pca] <- u2[s_pca2, 1:r_pca] #%*% (sqrtm(t(u2[s_pca2, 1:r_pca]) %*% u2[s_pca2, 1:r_pca])$Binv)
-    T2 <- u2 %*% t(u2)
+    }
+  
+     ### Same for Sigma_y
+    u2 <- matrix(0, pp[2], r_pca)
+    u2[s_pca2, 1:r_pca] <- matrix(runif( nnzeros * r_pca,max = 3, min=1), nrow=nnzeros)  * matrix(sample(c(-1,1), nnzeros*r_pca, replace=TRUE), nrow=nnzeros, ncol=r_pca)
+    u2[s_pca2, 1:r_pca] <- u2[s_pca2,1:r_pca] %*% (sqrtm(t(u2[s_pca2,1:r_pca]) %*% u2[s_pca2,1:r_pca])$Binv)
+    T2 <- u2 %*% diag(Lambda_pca) %*% t(u2)
     if (normalize_diagonal){
       diag(T2) <- 1
       Sigma[(p1 + 1):(p1 + p2), (p1 + 1):(p1 + p2)] <- T2
@@ -197,70 +204,27 @@ generate_example_group_sparse_U <- function(n, nb_patterns,
       Sigma[(p1 + 1):(p1 + p2), (p1 + 1):(p1 + p2)] <- T2 + Sigma[(p1 + 1):(p1 + p2), (p1 + 1) : (p1 + p2)]
     }
   }
-  Sigmax <- Sigma[1:p1,1:p1];
-  Sigmay <- Sigma[(p1+1):p_tot,(p1+1):p_tot];
-  
+  Sigmax = Sigma[1:p1,1:p1];
+  Sigmay = Sigma[(p1+1):p_tot,(p1+1):p_tot];
+
   ### Generate cross covariance
-  precision = solve(Sigmax)
-  Tss <- precision
-  prod <- matrix(0, pp[1], r)
-  for (ss in s){
-    # Randomly select a number
-    random_number <- runif(r,1,max = 3)  # You can adjust the range as needed
-    # Randomly select the top-left vertex of the rectangle
-    # Ensuring the rectangle fits within the grid
-    #start_row_ind <- sample(0:(nb_patterns-1), r) * size_rect +1
-    #start_col_ind <- sample(0:(nb_patterns-1), r) * size_rect +1
-    start_row_ind <- sample(0:(nb_patterns-1), r)
-    start_col_ind <- sample(0:(nb_patterns-1), r)
-    start_row <- sapply(start_row_ind, function(x){ifelse(x>0, sum(sizes[1:x])+1, 1)})
-    start_col <- sapply(start_col_ind, function(x){ifelse(x>0, sum(sizes[1:x])+1, 1)})
-    # Assign the number to the rectangle
-    for (rr in 1:r){
-      # Initialize a p x p matrix
-      matrix_grid <- matrix(0, nrow = ceiling(sqrt(p1)), ncol = ceiling(sqrt(p1)))
-      matrix_grid[start_row[rr]:(start_row[rr]+sizes[start_row_ind[rr]+1]-1), 
-                  start_col[rr]:(start_col[rr]+sizes[start_col_ind[rr]+1]-1)] <- random_number[rr]
-      # Convert the matrix to a vector
-      vector_grid <- as.vector(matrix_grid)
-      prod[, rr] <- prod[, rr] + vector_grid
-    }
-  }
-  ####
-  if (do_plot){
-    df = data.frame(prod)
-    df["p"] = 1:p1
-    df["p.x"] = (df["p"]-1)%/% sqrt(p1) +1
-    df["p.y"] = (df["p"]-1)%% sqrt(p1) +1
-    ggplot(df, aes(x=p.x, y=p.y, fill=X1))+
-      geom_tile()
+  Tss <- Sigma[s,s]
+  u <- matrix(0, pp[1], r)
+  for (i in 1:nnzeros){
+    u[groups[[i]], 1:r] <- as.matrix(runif(r * length(groups[[i]]),
+                                           max = 3, min=1), 
+                                     nrow=length(groups[[i]]))
   }
   
-  groups = matrix(0, sqrt(p1), sqrt(p1))
-  for (i in 1:nb_patterns){
-    for (j in 1:nb_patterns){
-      a =ifelse(i ==1, 1, sum(sizes[1:(i-1)]))
-      b =ifelse(j ==1, 1, sum(sizes[1:(j-1)]))
-      groups[a:sum(sizes[1:i]), 
-             b:sum(sizes[1:j])]= (i-1) * nb_patterns +j
-    }
-    
-  }
-  
-  ####
-  prod <- prod %*% (sqrtm(t(prod[, 1:r]) %*% Tss %*% prod[, 1:r])$Binv)
-  u = precision %*% prod
-  
-  precision_y = solve(Sigma[(p1 + 1):(p1 + p2), (p1 + 1):(p1 + p2)] )
-  Tss_v <- precision_y
-  prod_v <- matrix(0, pp[2], r)
-  prod_v[, 1:r] <- as.matrix(runif( p2 * r , max = 3, min=1), nrow=p2)  * as.matrix(sample(c(-1,1), p2 * r, replace=TRUE), nrow=p2)
-  prod_v <- prod_v %*% (sqrtm(t(prod_v[, 1:r]) %*% Tss_v %*% prod_v[, 1:r])$Binv)
-  v = precision_y %*% prod_v
-  
-  #Sigma[(p1 + 1) :(p1 + p2), 1:p1] <- Sigmax %*% u %*% theta %*% t(v) %*% Sigmay
-  Sigma[1:p1, (p1 + 1):(p1 + p2)] <- prod %*% theta %*% t(prod_v)
-  Sigma[(p1 + 1) :(p1 + p2), 1:p1]  <- prod_v%*% theta %*% t(prod)
+  u <- u %*% (sqrtm(t(u[s, 1:r]) %*% Tss %*% u[s, 1:r])$Binv)
+  Tss_v <- Sigma[(p1 + 1):(p1 + p2), (p1 + 1):(p1 + p2)][s_q, s_q]
+  v <- matrix(0, pp[2], r)
+  v[s_q, 1:r] <- as.matrix(runif( length(s_q) * r,max = 3, min=1), nrow=nnzeros)  * as.matrix(sample(c(-1,1), length(s_q) *r, replace=TRUE), nrow=nnzeros)
+  v <- v %*% (sqrtm(t(v[s_q, 1:r]) %*% Tss_v %*% v[s_q, 1:r])$Binv)
+  Sigma[(p1 + 1) :(p1 + p2), 1:p1] <- Sigmay %*%  v  %*% theta %*% t(u) %*% Sigmax
+  Sigma[1:p1, (p1 + 1):(p1 + p2)] <- Sigmax %*%  u  %*% theta %*% t(v) %*% Sigmay
+
+
   
   #Generate Multivariate Normal Data According to Sigma
   sqrt_Sigma <- sqrtm(Sigma)$B
@@ -280,40 +244,33 @@ generate_example_group_sparse_U <- function(n, nb_patterns,
   S <- cov(Data)
   sigma0hat <- S * Mask
   # Generate ground truth canonical vectors
-  #Sigma_X_inv <- sqrtm(Sigma[1:p1, 1:p1])$Binv
-  #Sigma_Y_inv <-  sqrtm(Sigma[(p1+1):(p_tot), (p1+1):(p_tot)])$Binv
+  Sigma_X_inv <- solve(Sigma[1:p1, 1:p1])
+  Sigma_Y_inv <-  solve(Sigma[(p1 + 1):(p_tot), (p1 + 1):(p_tot)])
   #GT = svd(Sigma_X_inv %*% Sigma[1:p1, (p1 + 1):p_tot] %*% Sigma_Y_inv, nu = r, nv = r)
   return(list(Sigma=Sigma, Sigma0=Sigma0,
               S = S, sigma0hat =  sigma0hat, Mask= Mask,
-              X=X, Y = Y, Data=Data, 
-              u=u,#sqrtm(Sigma[1:p1, 1:p1])$Binv %*% GT$u, 
-              v=v, #sqrtm(Sigma[(p1+1):(p1+p2), (p1+1):(p1+p2)])$Binv %*% GT$v, 
-              Xnew = Xnew, Ynew=Ynew,
-              Sigmax=Sigmax, Sigmay=Sigmay,
-              groups = groups
+              X=X, Y = Y, Data=Data, u=u, v=v, 
+              groups = groups,
+              Xnew=Xnew,
+              Ynew=Ynew,
+              Sigmax=Sigmax, Sigmay=Sigmay
   ))
-  
 }
 
 
 
-
-
-
-
-
-generate_example_graph_sparse_U <- function(n, p1 = 10,
-                                            nb_patterns=0, 
+generate_example_graph <- function(n, p1 = 10,
                                             type_graph="2d-grid",
                                             p2, order = 2,
                                             r_pca = 3,
                                             nnzeros = 5,
                                             do_plot = FALSE,
-                                            theta = diag(c(0.9,  0.8)),
+                                            theta = thetas,
                                             lambda_pca = 1,
                                             nnzeros_pca = 10,
                                             r = 2, overlapping_amount = 0,
                                             normalize_diagonal = TRUE,
+                                   gen.using.gamma = FALSE,
                                             n_new = 50000) {
   ###
   # This generates a dataset (X,Y) from a multivariate normal where Sigma_XX  and 
@@ -353,6 +310,7 @@ generate_example_graph_sparse_U <- function(n, p1 = 10,
   
   print(paste0('Number of non zeros is: ', nnzeros))
   start <- 1
+  nnzeros_pca = 30
   s_pca  <- (start + 1) : (start + nnzeros_pca)
   s_pca2  <- 1:p2
   Lambda_pca <- rep(lambda_pca, r_pca)
@@ -388,41 +346,43 @@ generate_example_graph_sparse_U <- function(n, p1 = 10,
   Sigmay <- Sigma[(p1+1):p_tot,(p1+1):p_tot];
   
   ### Generate cross covariance
-  precision = solve(Sigmax)
-  Tss <- precision
-  prod <- matrix(0, nrow(prop_g$Gamma), r)
-  if (gamma_sparse){
-    s <- sample(1:nrow(prop_g$Gamma), nnzeros)
-    for (ss in s){
-      prod[ss, 1:r] <- as.matrix(runif( r,max = 3, min=1), nrow=1)  * as.matrix(sample(c(-1,1), r, replace=TRUE), nrow=1)
-      
-    }
-    prod = prop_g$Gamma_dagger %*% prod
+
+  Tss <- Sigmax
+  #svd_gamma = svd(prop_g)
+  #Gamma_dagger = svd_gamma$v[,1:(length(svd_gamma$d) -1)] %*% diag(1/svd_gamma$d[1:(length(svd_gamma$d) -1)]) %*% t(svd_gamma$u[,1:(length(svd_gamma$d) -1)] )
+  
+  if (gen.using.gamma){
+    prod <- matrix(0, nrow(prop_g), r)
+    Gamma_dagger = pinv(prop_g)
+    s <- sample(1:nrow(prop_g), nnzeros)
+    prod[s, 1:r] <- as.matrix(runif( length(s) * r,max = 3, min=1), nrow=length(s))  * as.matrix(sample(c(-1,1), length(s) * r, replace=TRUE), nrow=length(s))
+    prod =  Gamma_dagger %*% prod
   }else{
+    prod <- matrix(0, p1, r)
     s <- sample(1:p1, nnzeros)
     for (ss in s){
       ### sample neighborhood
-      ind <- neighborhood(g, order=order, nodes = ss)[[1]]
-      for (rr in 1:r){
+      ind <- as.numeric(neighborhood(g, order=order, nodes = ss)[[1]])
+      for(rr in 1:r){
         prod[ind, rr] <- runif(1, max = 3, min=1)  *  sample(c(-1,1),1)
       }
+      
     }
   }
   
   ####
-  prod <- prod %*% (sqrtm(t(prod[, 1:r]) %*% Tss %*% prod[, 1:r])$Binv)
-  u = precision %*% prod
+  u <- prod %*% (sqrtm(t(prod[, 1:r]) %*% Tss %*% prod[, 1:r])$Binv)
   
-  precision_y = solve(Sigma[(p1 + 1):(p1 + p2), (p1 + 1):(p1 + p2)] )
-  Tss_v <- precision_y
+  
+
+  Tss_v <- Sigmay
   prod_v <- matrix(0, pp[2], r)
   prod_v[, 1:r] <- as.matrix(runif( p2 * r , max = 3, min=1), nrow=p2)  * as.matrix(sample(c(-1,1), p2 * r, replace=TRUE), nrow=p2)
-  prod_v <- prod_v %*% (sqrtm(t(prod_v[, 1:r]) %*% Tss_v %*% prod_v[, 1:r])$Binv)
-  v = precision_y %*% prod_v
+  v <- prod_v %*% (sqrtm(t(prod_v[, 1:r]) %*% Tss_v %*% prod_v[, 1:r])$Binv)
   
   #Sigma[(p1 + 1) :(p1 + p2), 1:p1] <- Sigmax %*% u %*% theta %*% t(v) %*% Sigmay
-  Sigma[1:p1, (p1 + 1):(p1 + p2)] <- prod %*% theta %*% t(prod_v)
-  Sigma[(p1 + 1) :(p1 + p2), 1:p1]  <- prod_v%*% theta %*% t(prod)
+  Sigma[1:p1, (p1 + 1):(p1 + p2)] <- Sigmax %*% u %*% theta %*% t(v) %*% Sigmay
+  Sigma[(p1 + 1) :(p1 + p2), 1:p1]  <- t(Sigma[1:p1, (p1 + 1):(p1 + p2)] )
   
   #Generate Multivariate Normal Data According to Sigma
   sqrt_Sigma <- sqrtm(Sigma)$B
@@ -452,6 +412,7 @@ generate_example_graph_sparse_U <- function(n, p1 = 10,
               v=v, #sqrtm(Sigma[(p1+1):(p1+p2), (p1+1):(p1+p2)])$Binv %*% GT$v, 
               Xnew = Xnew, Ynew=Ynew,
               Sigmax=Sigmax, Sigmay=Sigmay,
+              Gamma=prop_g,
               groups = groups
   ))
   
@@ -459,4 +420,17 @@ generate_example_graph_sparse_U <- function(n, p1 = 10,
 
 
 
-
+# color_palette <- colorRampPalette(c("blue", "red"))(49)
+#  # Assign colors based on the continuous variable
+# node_colors <- color_palette[cut(gen$u[,2], breaks = length(color_palette), labels = FALSE)]
+#  V(g)$color = node_colors
+# plot(g,
+#      vertex.label = NA,
+#      vertex.size = 8,  # Adjust node size
+#      edge.color = "grey",  # Edge color
+#      vertex.label.color = "black",  # Node label color
+#      edge.label.color = "black",  # Edge label color
+#      vertex.label.dist = 0,  # Distance of labels from nodes
+#      edge.label.cex = 0.,  # Edge label size
+#      vertex.label.cex = 0  # Node label size
+# )

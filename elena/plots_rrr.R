@@ -7,11 +7,11 @@ setwd("~/Documents/group-CCA/elena/")
 file_list <- list.files(path = "~/Documents/group-CCA/elena/sparse_CCA/results/", 
                         pattern = "newest*", full.names = TRUE)
 file_list2 <- list.files(path = "~/Documents/group-CCA/elena/missing/results", 
-                        pattern = "new_RRR_efficient_results1062", full.names = TRUE)
+                        pattern = "2024-group*", full.names = TRUE)
 results2 <- file_list2 %>%
   map_dfr(~ read_csv(.x))
 results_LW <- bind_rows(lapply(file_list2, read.csv))
-
+results <- c()
 results = rbind(results, results_LW)
 # summ = results %>% group_by(n, p1, p2, r, r_pca,
 #                             nnzeros, 
@@ -62,6 +62,17 @@ summ = results %>% group_by(n, p1, p2, r, r_pca,
             
   ) %>%
   ungroup() 
+
+summ["lambda"] = sapply(summ$method, 
+                        function(x){ifelse(str_detect(x, "RRR") & !str_detect(x, "opt"),
+                                           ifelse(str_detect(x, "CVX"),
+                                                  as.numeric(str_split(x, "RRR-CVX-")[[1]][2]),
+                                                  as.numeric(str_split(x, "RRR-")[[1]][2])
+                                             
+                                           )
+                                           ,
+                                           NA)})
+unique(summ$method)
 colnames(results)
 colnames(summ)
 unique(summ$nnzeros)
@@ -70,34 +81,54 @@ unique(summ$r_pca)
 unique(summ$p1)
 unique(summ$p2)
 unique(summ$counts)
+
 summ$theta_strength <- factor(summ$theta_strength, levels = c("high", "medium", "low"))
 unique(summ$n)
+unique(summ$p1)
+r_pca = 0
+ggplot(summ %>% filter( r_pca == r_pca, 
+                        nnzeros==5,
+                        str_detect(method, "group-RRR"), !str_detect(method, "opt")),
+       aes(x=lambda, 
+       y = distance_tot_q50, 
+       colour ="group")) +
+  geom_point()+
+  geom_line() +
+  geom_point(data = summ %>% filter( r_pca == r_pca, 
+                                      nnzeros==5,
+                                      str_detect(method, "RRR"), 
+                                      !str_detect(method, "opt"),
+                                      !str_detect(method, "CVX")),
+                     aes(x=lambda, 
+                         y = distance_tot_q50, 
+                         colour ="RRR"))+
+  facet_grid(theta_strength~ p1 + n + nnzeros, scales = "free") +
+  xlab("lambda") + 
+  ylab(expression("Subspace Distance")) +
+  labs(colour="Method") + 
+  scale_y_log10()+
+  scale_x_log10()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+
+  geom_errorbar(aes(ymin=distance_tot_q25, ymax=distance_tot_q75,
+                    colour =method), width=0.05)+
+  scale_color_manual(values = my_colors, breaks = legend_order,
+                     labels = labels_n) 
 
 
 unique(summ$method)
-legend_order <- c("Oracle",  "FIT_SAR_CV", 
-                  "FIT_SAR_BIC", "Witten_Perm", "Witten.CV",
-                  "SCCA_Parkhomenko", "Waaijenborg-CV", "Waaijenborg-Author",
-                  "Canonical Ridge-Author", "CCA-mean",
-                  "RRR" ,   "Alt-opt", "Gradient-descent",
-                  "init-alternating")
-my_colors <- c( "black", "chartreuse2", "chartreuse4",
-                "orchid1", "orchid3", "indianred",
-                "burlywood2", "burlywood4",
-                "cyan", "gray", "red",
-                "dodgerblue", "orange", "yellow")
-
 
 legend_order <- c("Oracle",  "FIT_SAR_CV", 
                   "FIT_SAR_BIC", "Witten_Perm", "Witten.CV",
                   "SCCA_Parkhomenko", "Waaijenborg-CV", "Waaijenborg-Author",
                   #"RRR-0.5" ,"RRR-7.5","RRR-10","RRR-12.5",  "RRR-20",   
-                  "RRR-opt")
+                  "RRR-opt", "CVX-opt-group")
 my_colors <- c( "black", "red", "indianred4",
                 "orange", "yellow", "chartreuse2",
                 "burlywood2", "burlywood4",
                # "lightblue", "lightblue3","cyan", "dodgerblue", "dodgerblue4", 
-                "navyblue")
+                "navyblue", "dodgerblue")
 
 labels_n <-    c("Oracle",  "SAR CV (Wilms et al)", 
                  "SAR BIC (Wilms et al)", 
@@ -106,7 +137,8 @@ labels_n <-    c("Oracle",  "SAR CV (Wilms et al)",
                  "SCCA (Parkhomenko et al)", "Sparse CCA with CV\n(Waaijenborg et al)",
                  "Sparse CCA(Waaijenborg et al)",
                 # "RRR-0.5" ,"RRR-7.5","RRR-10","RRR-12.5",  "RRR-20",   
-                 "RRR-CCA (this paper)")
+                 "RRR-CCA (this paper)", 
+                "group-RRR-CCA (this paper)")
 
 unique(summ$r_pca)
 
@@ -119,8 +151,8 @@ unique(summ$overlapping_amount)
 unique(summ$shrinkage_type)
 summ %>% filter( r_pca == 5, r==3,  p2==10, p1>50)
 
-ggplot(summ %>% filter( r_pca == 5, r==2,  p2==30,
-                        nnzeros==20, overlapping_amount == 0,
+ggplot(summ %>% filter( r_pca == 5, r==2,  p2==10,
+                        nnzeros==5, overlapping_amount == 0,
                         method %in% legend_order
                         ),
        aes(x=p1, 
@@ -154,11 +186,13 @@ ggplot(summ %>% filter( r_pca == 5, r==2,  p2==30,
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
-ggplot(summ %>% filter( r_pca == 5,  p2==30, r ==2,
-                        nnzeros==20, overlapping_amount == 0,
+ggplot(summ %>% filter( r_pca == 5,  p2==10, r ==2,
+                        nnzeros==5, n==500,
+                        overlapping_amount == 0,
+                        theta_strength == "high",
                         method %in% legend_order
 ),
-aes(x=n, 
+aes(x=p1, 
     y = distance_tot_q50, 
     colour =method)) +
   geom_point()+
@@ -167,12 +201,13 @@ aes(x=n,
                     colour =method), width=0.1)+
   scale_color_manual(values = my_colors, breaks = legend_order,
                      labels = labels_n) +
-  facet_grid(theta_strength~ p1, scales = "free",labeller = as_labeller(c(`20` = "p = 20",
+  facet_grid(theta_strength~ n, scales = "free",labeller = as_labeller(c(`20` = "p = 20",
                                                                          `80` = "p = 80",
                                                                          `100` = "p = 100",
                                                                          `200` = "p = 200",
                                                                          `300` = "p = 300",
-                                                                         `500` = "p = 500",
+                                                                         `500` = "n = 500",
+                                                                         `700` = "p = 700",
                                                                          `high` = "High",
                                                                          `1000` = "p = 1,000",
                                                                          `2000` = "n = 2,000",
