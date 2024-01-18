@@ -2,6 +2,7 @@ experiments/.DS_Store
 .DS_Store
 experiments/data/
 experiments/sparse_CCA/logs/
+elena/group_sparse/logs/
 elena/missing/*.csv
 experiments/sparse_CCA/results/
 elena/missing/Plots/*
@@ -12,7 +13,9 @@ elena/missing/results/*
 experiments/sparse_CCA/results/results/
 fMRI-data/
 .Rproj.user
-.png
-.csv
-.pdf
+*.png
+*.csv
+*.ipynb
+*.pdf
 group-CCA.Rproj
+elena/Code/.ipynb_checkpoints/*

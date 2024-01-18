@@ -1,10 +1,10 @@
 #!/bin/bash
 
-#SBATCH --job-name=array
-#SBATCH --output=elena/logs/array_%A_%a.out
-#SBATCH --error=elena/logs/array_%A_%a.err
-#SBATCH --array=1-1
-#SBATCH --time=15:00:00
+#SBATCH --job-name=group_sparse_array
+#SBATCH --output=elena/group_sparse/logs/array_%A_%a.out
+#SBATCH --error=elena/group_sparse/logs/array_%A_%a.err
+#SBATCH --array=1-10
+#SBATCH --time=10:00:00
 #SBATCH --partition=caslake
 #SBATCH --mem=10G
 #SBATCH --account=pi-cdonnat

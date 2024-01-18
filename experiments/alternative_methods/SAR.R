@@ -53,8 +53,10 @@ SparseCCA <- function(X, Y, lambdaAseq=seq(from=1, to=0.01, by=-0.01),
 
   # Starting Values: Canonical Ridge Solution
   if(is.null(A.initial)){
-    cancor_regpar <- estim.regul_crossvalidation(X, Y, n.cv=n.cv)
-    cancor_regul <- rcc(X, Y, cancor_regpar$lambda1.optim, cancor_regpar$lambda2.optim)
+    cancor_regpar <- estim.regul_crossvalidation(X, Y, n.cv=n.cv,
+                                                 lambda1grid = lambdaAseq,
+                                                 lambda2grid = lambdaBseq)
+    cancor_regul <- CCA::rcc(X, Y, cancor_regpar$lambda1.optim, cancor_regpar$lambda2.optim)
     A.initial_ridge <- matrix(cancor_regul$xcoef[, 1:rank], ncol=rank, nrow=ncol(X))
     B.initial_ridge <- matrix(cancor_regul$ycoef[, 1:rank], ncol=rank, nrow=ncol(Y))
     A.initial <- apply(A.initial_ridge, 2, NORMALIZATION_UNIT)
@@ -315,11 +317,12 @@ estim.regul_crossvalidation <- function (X,  Y,  lambda1grid = NULL,
     lambda2grid=matrix(lambda2grid,nrow=1)
   }
 
-  lambda1.matrix <- matrix(rep(lambda1grid, length(lambda1grid)), ncol=length(lambda2grid), byrow=T)
-  lambda2.matrix <- matrix(sort(rep(lambda2grid, length(lambda2grid))), ncol=length(lambda1grid), byrow=T)
+  lambda1.matrix <- matrix(rep(lambda1grid, length(lambda2grid)), nrow=length(lambda2grid), byrow=T)
+  lambda2.matrix <- matrix(sort(rep(lambda2grid, length(lambda1grid))), nrow=length(lambda1grid), byrow=T)
 
 
-  cvscores <- apply(lambda1grid, 2, l1function, Xmatrix=X, Ymatrix=Y,
+  cvscores <- apply(lambda1grid, 2, l1function, 
+                    Xmatrix=X, Ymatrix=Y,
                     lambda2grid=lambda2grid, n.cv=n.cv) #cv-score
   cv.optim=cvscores[which.max(cvscores)]
   lambda1.optim=lambda1.matrix[which.max(cvscores)]
@@ -374,7 +377,7 @@ cvfunction <- function(U, n, Xmatrix, Ymatrix, lambda1, lambda2, ncvsample){
   training.sample <- whole.sample[-(((U-1)*ncvsample+1):(U*ncvsample))]
   Xcv = Xmatrix[training.sample,  ]
   Ycv = Ymatrix[training.sample,  ]
-  res = rcc(Xcv,  Ycv,  lambda1,  lambda2)
+  res = CCA::rcc(Xcv,  Ycv,  lambda1,  lambda2)
 
   xscore = Xmatrix[testing.sample,  ] %*% res$xcoef[,  1]
   yscore = Ymatrix[testing.sample,  ] %*% res$ycoef[,  1]

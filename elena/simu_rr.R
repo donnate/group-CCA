@@ -41,19 +41,17 @@ noise = 1
 seeds = 1:100
 normalize_diagonal = TRUE
 LW_Sy = TRUE
-nnzero_values = c(20, 10, 15, 50, 5)
+nnzero_values = c(20, 10)
 result = c()
-for(seed_n in seeds){
+for (seed_n in seeds){
   #for (n in c(100, 300, 500, 1000, 10000)){
   set.seed(seed * 100 + seed_n)
-
-  for(nnzeros in nnzero_values){
+  for (nnzeros in nnzero_values){
     #for(p in c(100,  200, 300,  500, 800, 80, 20)){
     #for (p in c(20, 50, 80, 100, 200, 500, 1000)){
       for (q in c(10, 20, 30, 50, 80)){
       #for(nnzeros in c(5, 10, 15, 20, 50)){
       for (r in rs){
-        
         if ( strength_theta == "high"){
           thetas <- diag(seq(0.9, 0.75, length.out = r))
         }else{
@@ -65,7 +63,7 @@ for(seed_n in seeds){
           }
         }
         for (r_pca in c(0, 5)){
-          if ( (max(r_pca, r, 2 * nnzeros) < p) & (nnzeros > max(r_pca, r)) ) {
+          if ( (max(r_pca, r, 2 * nnzeros) < min(p,q)) & (nnzeros > max(r_pca, r)) ) {
             for (overlapping_amount in overlaps){
               for(prop_missing in props){
                 cat("seed:")
@@ -102,9 +100,9 @@ for(seed_n in seeds){
                                                              gen$v,
                                                              Sigma_hat_sqrt = Sigma_hat_sqrt, 
                                                              Sigma0_sqrt = Sigma0_sqrt), 
-                                                    "noise" = noise, "method" = "RRR", 
-                                                    "prop_missing" = prop_missing,
-                                                    "overlapping_amount" = overlapping_amount,
+                                                            "noise" = noise, "method" = "RRR", 
+                                                            "prop_missing" = prop_missing,
+                                                             "overlapping_amount" = overlapping_amount,
                                                     "nnzeros" = nnzeros,
                                                     "theta_strength" = strength_theta,
                                                     "n" = n,
@@ -139,6 +137,43 @@ for(seed_n in seeds){
                                                                  Sigma_hat_sqrt = Sigma_hat_sqrt, 
                                                                  Sigma0_sqrt = Sigma0_sqrt), 
                                                         "noise" = noise, "method" = paste0("RRR-", lambda),
+                                                        "prop_missing" = prop_missing,
+                                                        "overlapping_amount" = overlapping_amount,
+                                                        "nnzeros" = nnzeros,
+                                                        "theta_strength" = strength_theta,
+                                                        "n" = n,
+                                                        "r_pca" = r_pca,
+                                                        "exp" = seed * 100 + seed_n,
+                                                        "normalize_diagonal" = normalize_diagonal,
+                                                        "lambda_opt" = lambda,
+                                                        "time" = start_time_alt[[1]]))
+                      
+                    }
+                  }, error = function(e) {
+                    # Print the error message
+                    cat("Error occurred in Alt", lambda, ":", conditionMessage(e), "\n")
+                    # Skip to the next iteration
+                  })
+
+                  tryCatch({
+                    #### if it's all zero then just stop
+                    if (is.null(init_coef) || ((norm(init_coef$U, "F") > 1e-5) & (norm(init_coef$V, "F") > 1e-5))){
+                      start_time_alt <- system.time({
+                        alt <- CCA_rrr(X, Y, Sx=NULL, Sy=NULL,
+                                       lambda =lambda, Kx=NULL, r, highdim=TRUE,
+                                       penalty = "l21", solver="CVX", LW_Sy =  LW_Sy)
+                      })
+                      #init_coef = list(U = alt$U, V = alt$V)
+                      alt$U[which(is.na(alt$U))] <- 0
+                      alt$V[which(is.na(alt$V))] <- 0
+                      
+                      
+                      result = rbind(result, data.frame(evaluate(gen$Xnew, gen$Ynew, 
+                                                                 alt$U, alt$V, gen$u, 
+                                                                 gen$v,
+                                                                 Sigma_hat_sqrt = Sigma_hat_sqrt, 
+                                                                 Sigma0_sqrt = Sigma0_sqrt), 
+                                                        "noise" = noise, "method" = paste0("RRR-CVX-", lambda),
                                                         "prop_missing" = prop_missing,
                                                         "overlapping_amount" = overlapping_amount,
                                                         "nnzeros" = nnzeros,
@@ -264,13 +299,6 @@ for(seed_n in seeds){
                     
                   })
                 }
-                
-                ##### The selection is not that trustworthy, so refine it
-                
-                #init_coef = list(U = alt$U, V = alt$V)
-                
-                
-                
                 print(res_alt$ufinal)
                 result <- rbind(result, data.frame(evaluate(gen$Xnew, gen$Ynew, 
                                                             Uhat, 
@@ -289,6 +317,60 @@ for(seed_n in seeds){
                                                    "normalize_diagonal" = normalize_diagonal,
                                                    "lambda_opt" = res_alt$lambda,
                                                    "time" = start_time_alt2[[1]]
+                )
+                )
+
+                print(paste0("Starting ", "Alt opt2") )
+                start_time_alt3 <- system.time({
+                  res_alt = CCA_rrr.CV(X, Y, 
+                             r=r, Kx = NULL, lambda_Kx = 0,
+                             param_lambda=c(10^seq(-3, 2, length.out = 50)),
+                             kfolds=5, penalty="l21", solver="CVX", LW_Sy = LW_Sy)
+                })
+                res_alt$ufinal[which(is.na( res_alt$ufinal))] <- 0
+                res_alt$vfinal[which(is.na( res_alt$vfinal))] <- 0
+                Uhat <- res_alt$ufinal[, 1:r]
+                Vhat <- res_alt$vfinal[, 1:r]
+                if (sum(apply(res_alt$ufinal, 1, function(x){sum(x!=0)}) >0) <r){
+                  #### Choose another lambda
+                  lambda_chosen = max(res_alt$resultsx$lambda[which(res_alt$resultsx$rmse > 1.05 * min(res_alt$resultsx$rmse))])
+                  start_time_alt <- system.time({
+                    res_alt <- CCA_rrr(X, Y, Sx = NULL, Sy=NULL,
+                                       lambda =lambda_chosen, Kx=NULL, r, highdim=TRUE,
+                                   penalty = "l21", solver="CVX", LW_Sy = LW_Sy)
+                    res_alt$U[which(is.na(res_alt$U))] <- 0
+                    res_alt$V[which(is.na(res_alt$v))] <- 0
+                    Uhat <- res_alt$U[, 1:r]
+                    Vhat <- res_alt$V[, 1:r]
+                    
+                  })
+                }
+                
+                ##### The selection is not that trustworthy, so refine it
+                
+                #init_coef = list(U = alt$U, V = alt$V)
+                
+                
+                
+                print(res_alt$ufinal)
+                result <- rbind(result, data.frame(evaluate(gen$Xnew, gen$Ynew, 
+                                                            Uhat, 
+                                                            res_alt$vfinal[, 1:r], 
+                                                            gen$u, gen$v,
+                                                            Sigma_hat_sqrt = Sigma_hat_sqrt, 
+                                                            Sigma0_sqrt = Sigma0_sqrt),
+                                                   "noise" = noise,  
+                                                   method = "CVX-opt",  
+                                                   "prop_missing" = prop_missing, 
+                                                   "nnzeros" = nnzeros,
+                                                   "theta_strength" = strength_theta,
+                                                   "overlapping_amount" = overlapping_amount,
+                                                   "r_pca" = r_pca,
+                                                   "n" = n,
+                                                   "exp" = seed * 100 + seed_n,
+                                                   "normalize_diagonal" = normalize_diagonal,
+                                                   "lambda_opt" = res_alt$lambda,
+                                                   "time" = start_time_alt3[[1]]
                 )
                 )
                 
@@ -334,7 +416,7 @@ for(seed_n in seeds){
                   })
                 }
                 
-                write_csv(result, paste0("elena/missing/results/newest_RRR_efficient_results", name_exp, ".csv"))
+                write_csv(result, paste0("elena/missing/results/2024_2_newest_RRR_efficient_results", name_exp, ".csv"))
               
                 #write.csv(result, "missing/simulation-RRR-results-sparse.csv", row.names = F)
               }
