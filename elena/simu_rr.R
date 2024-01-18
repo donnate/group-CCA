@@ -70,6 +70,7 @@ for (seed_n in seeds){
                 cat(seed, " ")
                 print(c(n, r, r_pca, strength_theta))
                 #gen = generate(n, p, q, s, prop_missing)
+                start_time_creation <- system.time({
                 gen = generate_example_sparse_U(n, p, q,
                                                 r_pca = r_pca,
                                                 nnzeros = nnzeros,
@@ -77,7 +78,10 @@ for (seed_n in seeds){
                                                 lambda_pca = 1,
                                                 r = r,
                                                 overlapping_amount = overlapping_amount,
-                                                normalize_diagonal = normalize_diagonal) 
+                                                normalize_diagonal = normalize_diagonal,
+                                                n_new = 5000) 
+                })
+                print(start_time_creation[[1]])
                 X = gen$X
                 Y = gen$Y
                 #Xna = gen$Xna
@@ -124,7 +128,8 @@ for (seed_n in seeds){
                       start_time_alt <- system.time({
                         alt <- CCA_rrr(X, Y, Sx=NULL, Sy=NULL,
                                        lambda =lambda, Kx=NULL, r, highdim=TRUE,
-                                       penalty = "l21", solver="rrr", LW_Sy =  LW_Sy)
+                                       solver="rrr", LW_Sy =  LW_Sy,
+                                       scale= TRUE, rho=10, niter=1e4)
                       })
                       #init_coef = list(U = alt$U, V = alt$V)
                       alt$U[which(is.na(alt$U))] <- 0
@@ -160,8 +165,9 @@ for (seed_n in seeds){
                     if (is.null(init_coef) || ((norm(init_coef$U, "F") > 1e-5) & (norm(init_coef$V, "F") > 1e-5))){
                       start_time_alt <- system.time({
                         alt <- CCA_rrr(X, Y, Sx=NULL, Sy=NULL,
-                                       lambda =lambda, Kx=NULL, r, highdim=TRUE,
-                                       penalty = "l21", solver="CVX", LW_Sy =  LW_Sy)
+                                       lambda =lambda, Kx=NULL, r,
+                                       solver="ADMM", LW_Sy =  LW_Sy,
+                                      rho=1, niter=1e4)
                       })
                       #init_coef = list(U = alt$U, V = alt$V)
                       alt$U[which(is.na(alt$U))] <- 0
@@ -173,7 +179,7 @@ for (seed_n in seeds){
                                                                  gen$v,
                                                                  Sigma_hat_sqrt = Sigma_hat_sqrt, 
                                                                  Sigma0_sqrt = Sigma0_sqrt), 
-                                                        "noise" = noise, "method" = paste0("RRR-CVX-", lambda),
+                                                        "noise" = noise, "method" = paste0("RRR-ADMM-", lambda),
                                                         "prop_missing" = prop_missing,
                                                         "overlapping_amount" = overlapping_amount,
                                                         "nnzeros" = nnzeros,

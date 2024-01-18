@@ -207,9 +207,28 @@ Y_transformed <- scale(newY %>%
   arrange(desc(record_id)) %>%
   dplyr::select(-c(record_id, redcap_event_name))) 
 
-
+get_edge_incidence <- function(g, weight = 1){
+  n_nodes = vcount(g)
+  d_max = max(degree(g))
+  #d_max = 1
+  edges = data.frame(as_edgelist(g)) %>%
+    arrange(X1, X2)
+  Gamma = matrix(0, nrow(edges), n_nodes)
+  
+  # Make beta_v into a matrix
+  names_st = unique(c(edges$X1, edges$X2))
+  for (e in 1:nrow(edges)){
+    ind1 = which( edges$X1[e] == names_st)
+    ind2 = which( edges$X2[e] == names_st)
+    Gamma[e, ind1] = weight
+    Gamma[e,ind2] = - weight
+  }
+  return(Gamma)
+}
 
 Gamma <- get_edge_incidence(g, weight = 1)
+Gamma_dagger = pinv(Gamma)
+Pi = diag(rep(1, p)) - Gamma_dagger %*% Gamma
 r = 2
 p = ncol(X_transformed)
 q = ncol(Y_transformed)
@@ -217,25 +236,79 @@ n = nrow(X_transformed)
 final =CCA_graph_rrr(as.matrix(X_transformed), as.matrix(Y_transformed),  
                      Gamma, 
                      Sx=NULL, Sy=NULL, Sxy = NULL,
-                     lambda = 0.05, Kx=NULL, r,
+                     lambda = 0.031622777, Kx=NULL, r,
                      scale = FALSE, lambda_Kx=0, 
                      LW_Sy = TRUE)
 
 final =CCA_graph_rrr.CV(as.matrix(X_transformed), as.matrix(Y_transformed),  
   Gamma,
-  r=2, Kx = NULL, lambda_Kx = 0,
-  param_lambda=10^seq(-3, 1.5, length.out = 10),
-  kfolds=2, 
+  r=4, Kx = NULL, lambda_Kx = 0,
+  param_lambda=10^seq(-3, 0, length.out = 10),
+  kfolds=10, 
   parallelize = FALSE,
   scale=FALSE,
-  LW_Sy = FALSE)
-color_palette <- colorRampPalette(c("blue", "red"))(200)
-# Assign colors based on the continuous variable
-i=2
-node_colors <- color_palette[cut(final$U[,i], breaks = length(color_palette), labels = FALSE)]
+  LW_Sy = TRUE)
+plot(final$rmse)
+library(plotly)
+# Create a graph from these edges
+
+p <- plot_ly(x = positions$x, y = positions$y, 
+             z = positions$z, type = 'scatter3d', mode = 'markers')
+
+edges_df <- do.call(rbind, lapply(E(g), function(e) {
+  start <- ends(g, e)[1]
+  end <- ends(g, e)[2]
+  rbind(cbind(positions[start,c("x", "y", "z")], type="start"), cbind(positions[end,c("x", "y", "z")], type="end"))
+}))
+edges_df$color = NA
+i=4
+positions$color = final$ufinal[,i]
+# Calculate the thresholds
+top_10_percent <- quantile(positions$color, 0.90)
+bottom_10_percent <- -10#quantile(positions$color, 0.15)
+
+
+positions$labels = node_name$label_short
+
+# Filter nodes for labeling
+label_nodes <- positions %>%
+  filter(color>= top_10_percent | color <= bottom_10_percent)
+label_nodes$labels <- gsub("^LH_", "", label_nodes$labels)
+label_nodes$labels <- gsub("^RH_", "", label_nodes$labels)
+
+p <- plot_ly(data = positions, x = ~x, y = ~y, z = ~z, 
+             color= ~color,
+             text = ~labels,  # Add node labels
+             type = 'scatter3d', mode = 'markers')
+
+# Add edges
+p <- p %>% add_trace(
+  data = edges_df, 
+  x = ~x, y = ~y, z = ~z,
+  type = 'scatter3d', mode = 'lines',
+  line = list(color = 'grey', width = 2)
+)
+
+# Add labels as a separate trace
+p <- p %>% add_trace(
+  data = label_nodes,
+  x = ~x, y = ~y, z = ~z,
+  type = 'scatter3d', mode = 'text',
+  text = ~labels, # labels column in your positions dataframe
+  textposition = 'top center',
+  hoverinfo = 'none'
+)
+
+
+final$vfinal
+
+node_name = read_table("/Users/cdonnat/Dropbox/My Mac (Claire’s MacBook Pro)/Downloads/data 3/atlases/Schaefer2018_200Parcels_7Networks_order.txt",
+                      col_names = c("nb", "label", "x", "y", "z"))
+node_name$label_short <- gsub("7Networks_", "", node_name$label)
+
+
+node_colors <- color_palette[cut(final$U[,2], breaks = length(color_palette), labels = FALSE)]
 V(g)$color = node_colors
-
-
 plot.igraph(g,
             vertex.label = V(g)$name,  # Node labels
             vertex.size = 10,  # Adjust node size
@@ -249,6 +322,9 @@ plot.igraph(g,
             vertex.label.cex = 1.,  # Node label size
             layout = as.matrix(positions[,c("x", "y", "z")])
 )
+
+plot(final$U[,2], final$U[,1])
+plot(1:p, final$ufinal[,2])
 
 library(mixOmics)
 shrink.rcc<- rcc( as.matrix(X_transformed),
@@ -272,35 +348,8 @@ plot.igraph(g,
             vertex.label.cex = 1.,  # Node label size,
             layout = as.matrix(positions[,c("x", "y", "z")])
 )
-library(plotly)
-# Create a graph from these edges
-g <- graph_from_edgelist(as.matrix(edges), directed = FALSE)
 
-# Optio
-p <- plot_ly(x = positions$x, y = positions$y, 
-             z = positions$z, type = 'scatter3d', mode = 'markers')
 
-edges_df <- do.call(rbind, lapply(E(g), function(e) {
-  start <- ends(g, e)[1]
-  end <- ends(g, e)[2]
-  rbind(cbind(positions[start,c("x", "y", "z")], type="start"), cbind(positions[end,c("x", "y", "z")], type="end"))
-}))
-edges_df$color = NA
-i=1
-positions$color = final$U[,i]
-p <- plot_ly(data = positions, x = ~x, y = ~y, z = ~z, 
-             color= ~color,
-             type = 'scatter3d', mode = 'markers')
-
-# Add edges
-p <- p %>% add_trace(
-  data = edges_df, 
-  x = ~x, y = ~y, z = ~z,
-  type = 'scatter3d', mode = 'lines',
-   line = list(color = 'grey', width = 2)
-)
-
-p
 # Add edges
 for(e in E(g)) {
   start <- ends(g, e)[1]

@@ -86,6 +86,7 @@ evaluate = function(X, Y, U, V, U0, V0,
   Y = scale(Y, scale = FALSE)
   X = scale(X, scale = FALSE)
   silly_benchmark = subdistance(matrix(0, p1 + p2, r), U0_tot)
+  all_cors = diag(cor(as.matrix(X) %*% U, as.matrix(Y) %*% V))
   data.frame(
     "n_new" = n_new,
     #"exp" = seed,
@@ -108,6 +109,10 @@ evaluate = function(X, Y, U, V, U0, V0,
     "prediction_V" = mean((Y %*% V - Y %*% V0)^2),
     "prediction_U_sub" = subdistance(X %*% U, X %*% U0)^2,  ### need to be rotated
     "prediction_V_sub" = subdistance(Y %*% V, Y %*% V0)^2,
+    "avg_corr" = mean(all_cors),
+    "max_corr" = max(all_cors),
+    "min_corr" = min(all_cors),
+    "med_corr" = median(all_cors),
     "TPR" =TPR(apply(U_tot^2, 1, sum), apply(U0_tot^2, 1, sum), tol=thres),
     "TNR" = TNR(apply(U_tot^2, 1, sum), apply(U0_tot^2, 1, sum), tol=thres),
     "FPR" = FPR(apply(U_tot^2, 1, sum), apply(U0_tot^2, 1, sum), tol=thres),
