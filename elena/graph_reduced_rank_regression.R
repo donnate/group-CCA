@@ -265,7 +265,7 @@ CCA_graph_rrr = function(X, Y,
   for (i in 1:niter){
     Uold = U
     Zold = Z
-    B = invSx %*% (prod_xy  + (Z - U))
+    B = invSx %*% (prod_xy  + rho* (Z - U))
     Bold = B
     Z = B + U
     norm_col = sapply(1:nrow(Z), function(i){sqrt(sum(Z[i,]^2))})
@@ -274,8 +274,13 @@ CCA_graph_rrr = function(X, Y,
     if(length(index_0)>0){
       Z[index_0,] = 0
     }
-    if(length(index_pos)>0){
+    print(length(index_pos))
+    if(length(index_pos)>1){
       Z[index_pos,] = diag(sapply(index_pos, function(x){ 1- (lambda/rho)/norm_col[x]})) %*% Z[index_pos,] 
+    }else{
+      if(length(index_pos) == 1){
+        Z[index_pos,] = ( 1- (lambda/rho)/norm_col[index_pos]) * Z[index_pos,] 
+      }
     }
     U = U + B - Z
     print(c("ADMM iter", i, norm(Z - B), norm(Zold - Z), norm(Uold - U)))

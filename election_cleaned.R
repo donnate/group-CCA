@@ -196,10 +196,104 @@ r = 3
 
 p = ncol(X_transformed)
 Y_transformed = scale(Y)
-
+STOP
 folds = createFolds(1:nrow(X_transformed),5)
 correlation <- c()
 lambda = 0.05
+correlation <-c()
+order = sample(1:length(folds), length(folds))
+for (i in  1:length(folds)){
+  index = order[ifelse(i < 18, i + 1, (i+1)%%18)]
+  index2 =order[ifelse(i < 17, i + 2, (i+2)%%18)]
+  print(c(i, index, index2))
+  for (lambda in 10^seq(from=-3, 1, length.out=30)){
+    final = CCA_graph_rrr(as.matrix(X_transformed)[-c(folds[[index]],
+                                                      folds[[index2]]),], 
+                          as.matrix(Y_transformed)[-c(folds[[index]],
+                                                      folds[[index2]]),],  
+                          Gamma, 
+                          Sx=NULL, Sy=NULL, Sxy = NULL,
+                          lambda = lambda, 
+                          Kx=NULL, r=r,
+                          rho=1, niter=2 * 1e4,
+                          do.scale = FALSE, lambda_Kx=0,
+                          thresh=1e-6,
+                          LW_Sy = FALSE)
+    
+    correlation <- rbind(
+      correlation,
+      c("CCA_graph_rrr",
+        lambda,
+        i,
+        diag(cov(as.matrix(X_transformed)[-c(folds[[index]],
+                                             folds[[index2]]),] %*% final$U,
+                 as.matrix(Y_transformed)[-c(folds[[index]],
+                                             folds[[index2]]),] %*%  final$V)),
+        apply(((as.matrix(X_transformed)[-c(folds[[index]],
+                                            folds[[index2]]),] %*% final$U) -
+                 (as.matrix(Y_transformed)[-c(folds[[index]],
+                                              folds[[index2]]),] %*%  final$V))^2, 2, mean),
+        diag(t(as.matrix(X_transformed)[folds[[index]][1],] %*% final$U) %*%
+               (as.matrix(Y_transformed)[folds[[index]][1],] %*%  final$V)),
+        ((as.matrix(X_transformed)[folds[[index]][1],] %*% final$U) -
+           (as.matrix(Y_transformed)[folds[[index]][1],] %*%  final$V))^2,
+        diag(t(as.matrix(X_transformed)[folds[[index2]][1],] %*% final$U) %*%
+               (as.matrix(Y_transformed)[folds[[index2]][1],] %*%  final$V)),
+        ((as.matrix(X_transformed)[folds[[index2]][1],] %*% final$U) -
+           (as.matrix(Y_transformed)[folds[[index2]][1],] %*%  final$V))^2
+      ))
+    
+  }
+  for (method in c("FIT_SAR_CV", "FIT_SAR_BIC", "Witten_Perm",
+                   "Witten.CV", "Waaijenborg-Author", "Waaijenborg-CV",
+                   "SCCA_Parkhomenko")){
+    
+    print(paste0("Starting ", method))
+    tryCatch({
+      test1<-additional_checks(as.matrix(X_transformed)[-c(folds[[index]],
+                                                           folds[[index2]]),], as.matrix(Y_transformed)[-c(folds[[index]],
+                                                                                                           folds[[index2]]),],
+                               S=NULL, 
+                               rank=r, kfolds=5, 
+                               method.type = method,
+                               lambdax= 10^seq(-3,1, length.out = 30),
+                               lambday =  10^seq(-3,1, length.out = 30))
+      
+      testX = diag(t(as.matrix(X_transformed)[folds[[index]][1],] %*% test1$u) %*%  (as.matrix(X_transformed)[folds[[index]][1],] %*% test1$u))^(-0.5)
+      testY = diag(t(as.matrix(Y_transformed)[folds[[index]][1],] %*% test1$v) %*%  (as.matrix(Y_transformed)[folds[[index]][1],] %*% test1$v))^(-0.5)
+      valX = diag(t(as.matrix(X_transformed)[folds[[index2]][1],] %*% test1$u) %*%  (as.matrix(X_transformed)[folds[[index2]][1],] %*% test1$u))^(-0.5)
+      valY = diag(t(as.matrix(Y_transformed)[folds[[index2]][1],] %*% test1$v) %*%  (as.matrix(Y_transformed)[folds[[index2]][1],] %*% test1$v))^(-0.5)
+      
+      correlation <- rbind(
+        correlation,
+        c(method,
+          lambda,
+          i,
+          diag(cov(as.matrix(X_transformed)[-c(folds[[index]],
+                                               folds[[index2]]),] %*% test1$u,
+                   as.matrix(Y_transformed)[-c(folds[[index]],
+                                               folds[[index2]]),] %*%  test1$v)),
+          apply(((as.matrix(X_transformed)[-c(folds[[index]],
+                                              folds[[index2]]),] %*% test1$u) -
+                   (as.matrix(Y_transformed)[-c(folds[[index]],
+                                                folds[[index2]]),] %*%  test1$v))^2, 2, mean),
+          diag(t(as.matrix(X_transformed)[folds[[index]][1],] %*% test1$u) %*%
+                 (as.matrix(Y_transformed)[folds[[index]][1],] %*%  test1$v)),
+          ((as.matrix(X_transformed)[folds[[index]][1],] %*% test1$u) -
+             (as.matrix(Y_transformed)[folds[[index]][1],] %*%  test1$v))^2,
+          diag(t(as.matrix(X_transformed)[folds[[index2]][1],] %*% test1$u) %*%
+                 (as.matrix(Y_transformed)[folds[[index2]][1],] %*%  test1$v)),
+          ((as.matrix(X_transformed)[folds[[index2]][1],] %*% test1$u) -
+             (as.matrix(Y_transformed)[folds[[index2]][1],] %*%  test1$v))^2
+        ))
+    }, error = function(e) {
+      # Print the error message
+      cat("Error occurred in method", method, ":", conditionMessage(e), "\n")
+      # Skip to the next iteration
+    })
+    
+  }
+}
 
 
 final = CCA_graph_rrr.CV(as.matrix(X_transformed), as.matrix(Y_transformed),  
@@ -214,15 +308,17 @@ final = CCA_graph_rrr.CV(as.matrix(X_transformed), as.matrix(Y_transformed),
                       LW_Sy = FALSE,
                       Gamma_dagger =  pinv(Gamma))
 
-folds = createFolds(1:nrow(X_transformed),18) ### 2 people per fold
-### shuffle:
+foldVector <- seq(from = 1, to = nrow(X_transformed), by = 3)
+folds = split(sample(1:nrow(X_transformed), nrow(X_transformed)), foldVector)
 correlation <-c()
-order = sample(1:length(folds), length(folds))
-for (i.ind in  1:length(folds)){
-  index = order[ifelse(i < 18, i + 1, (i+1)%%18)]
-  index2 =order[ifelse(i < 17, i + 2, (i+2)%%18)]
-  print(c(i.ind, index, index2))
-  for (lambda in 10^seq(from=-3, 1, length.out=30)){
+r=2
+order = 1:length(folds)
+correlation <- c()
+for (i in  1:length(folds)){
+  index = order[ifelse(i < 6, i + 1, (i+1)%%6)]
+  index2 =order[ifelse(i < 5, i + 2, (i+2)%%6)]
+  print(c(i, index, index2))
+  for (lambda in 10^seq(from=-3, 0, by =0.25)){
     final = CCA_graph_rrr(as.matrix(X_transformed)[-c(folds[[index]],
                                                       folds[[index2]]),], 
                           as.matrix(Y_transformed)[-c(folds[[index]],
@@ -230,35 +326,37 @@ for (i.ind in  1:length(folds)){
                           Gamma, 
                           Sx=NULL, Sy=NULL, Sxy = NULL,
                           lambda = lambda, 
-                          Kx=NULL, r=3,
-                          rho=1, niter=1e4,
+                          Kx=NULL, r=r,
+                          rho=1, niter=2 * 1e4,
                           do.scale = FALSE, lambda_Kx=0,
-                          thresh=1e-4,
+                          thresh=1e-6,
                           LW_Sy = FALSE)
     
     correlation <- rbind(
-                         correlation,
-                         c("CCA_graph_rrr",
-                           lambda,
-                           i,
-                           diag(cov(as.matrix(X_transformed)[-c(folds[[index]],
-                                                                folds[[index2]]),] %*% final$U,
-                                    as.matrix(Y_transformed)[-c(folds[[index]],
-                                                                folds[[index2]]),] %*%  final$V)),
-                           apply(((as.matrix(X_transformed)[-c(folds[[index]],
-                                                               folds[[index2]]),] %*% final$U) -
-                              (as.matrix(Y_transformed)[-c(folds[[index]],
-                                                           folds[[index2]]),] %*%  final$V))^2, 2, mean),
-                           diag(t(as.matrix(X_transformed)[folds[[index]][1],] %*% final$U) %*%
-                                    (as.matrix(Y_transformed)[folds[[index]][1],] %*%  final$V)),
-                           ((as.matrix(X_transformed)[folds[[index]][1],] %*% final$U) -
-                                  (as.matrix(Y_transformed)[folds[[index]][1],] %*%  final$V))^2,
-                           diag(t(as.matrix(X_transformed)[folds[[index2]][2],] %*% final$U) %*%
-                                  (as.matrix(Y_transformed)[folds[[index2]][2],] %*%  final$V)),
-                           ((as.matrix(X_transformed)[folds[[index2]][2],] %*% final$U) -
-                              (as.matrix(Y_transformed)[folds[[index2]][2],] %*%  final$V))^2
-                         ))
-  
+      correlation,
+      c("CCA_graph_rrr",
+        lambda,
+        i,
+        diag(cov(as.matrix(X_transformed)[-c(folds[[index]],
+                                             folds[[index2]]),] %*% final$U,
+                 as.matrix(Y_transformed)[-c(folds[[index]],
+                                             folds[[index2]]),] %*%  final$V)),
+        apply(((as.matrix(X_transformed)[-c(folds[[index]],
+                                            folds[[index2]]),] %*% final$U) -
+                 (as.matrix(Y_transformed)[-c(folds[[index]],
+                                              folds[[index2]]),] %*%  final$V))^2, 2, mean),
+        diag(t(as.matrix(X_transformed)[folds[[index]],] %*% final$U) %*%
+               (as.matrix(Y_transformed)[folds[[index]],] %*%  final$V)),
+        diag(cor(as.matrix(X_transformed)[folds[[index]],] %*% final$U, (as.matrix(Y_transformed)[folds[[index]],] %*%  final$V))),
+        apply(((as.matrix(X_transformed)[folds[[index]],] %*% final$U) -
+           (as.matrix(Y_transformed)[folds[[index]],] %*%  final$V))^2,2,mean),
+        diag(t(as.matrix(X_transformed)[folds[[index2]],] %*% final$U) %*%
+               (as.matrix(Y_transformed)[folds[[index2]],] %*%  final$V)),
+        diag(cor(as.matrix(X_transformed)[folds[[index2]],] %*% final$U, (as.matrix(Y_transformed)[folds[[index2]],] %*%  final$V))),
+        apply(((as.matrix(X_transformed)[folds[[index2]],] %*% final$U) -
+           (as.matrix(Y_transformed)[folds[[index2]],] %*%  final$V))^2,2,mean)
+      ))
+    
   }
   for (method in c("FIT_SAR_CV", "FIT_SAR_BIC", "Witten_Perm",
                    "Witten.CV", "Waaijenborg-Author", "Waaijenborg-CV",
@@ -266,37 +364,44 @@ for (i.ind in  1:length(folds)){
     
     print(paste0("Starting ", method))
     tryCatch({
-    test1<-additional_checks(as.matrix(X_transformed)[-c(folds[[index]],
-                                                         folds[[index2]]),], as.matrix(Y_transformed)[-c(folds[[index]],
-                                                                                                         folds[[index2]]),],
-                             S=NULL, 
-                             rank=r, kfolds=5, 
-                             method.type = method,
-                             lambdax= 10^seq(-3,1, length.out = 30),
-                             lambday =  10^seq(-3,1, length.out = 30))
-    
-    correlation <- rbind(
-      correlation,
-      c(method,
-        lambda,
-        i
-        diag(cov(as.matrix(X_transformed)[-c(folds[[index]],
-                                             folds[[index2]]),] %*% test1$u,
-                 as.matrix(Y_transformed)[-c(folds[[index]],
-                                             folds[[index2]]),] %*%  test1$v)),
-        apply(((as.matrix(X_transformed)[-c(folds[[index]],
-                                            folds[[index2]]),] %*% test1$u) -
-                 (as.matrix(Y_transformed)[-c(folds[[index]],
-                                              folds[[index2]]),] %*%  test1$v))^2, 2, mean),
-        diag(t(as.matrix(X_transformed)[folds[[index]][1],] %*% test1$u) %*%
-               (as.matrix(Y_transformed)[folds[[index]][1],] %*%  test1$v)),
-        ((as.matrix(X_transformed)[folds[[index]][1],] %*% test1$u) -
-           (as.matrix(Y_transformed)[folds[[index]][1],] %*%  test1$v))^2,
-        diag(t(as.matrix(X_transformed)[folds[[index2]][2],] %*% test1$u) %*%
-               (as.matrix(Y_transformed)[folds[[index2]][2],] %*%  test1$v)),
-        ((as.matrix(X_transformed)[folds[[index2]][2],] %*% test1$u) -
-           (as.matrix(Y_transformed)[folds[[index2]][2],] %*%  test1$v))^2
-      ))
+      test1<-additional_checks(as.matrix(X_transformed)[-c(folds[[index]],
+                                                           folds[[index2]]),], as.matrix(Y_transformed)[-c(folds[[index]],
+                                                                                                           folds[[index2]]),],
+                               S=NULL, 
+                               rank=r, kfolds=5, 
+                               method.type = method,
+                               lambdax= 10^seq(from=-3, 1, by =0.25),
+                               lambday = 10^seq(-4,-3, length.out = 5))
+      
+      testX = diag(t(as.matrix(X_transformed)[folds[[index]][1],] %*% test1$u) %*%  (as.matrix(X_transformed)[folds[[index]][1],] %*% test1$u))^(-0.5)
+      testY = diag(t(as.matrix(Y_transformed)[folds[[index]][1],] %*% test1$v) %*%  (as.matrix(Y_transformed)[folds[[index]][1],] %*% test1$v))^(-0.5)
+      valX = diag(t(as.matrix(X_transformed)[folds[[index2]][1],] %*% test1$u) %*%  (as.matrix(X_transformed)[folds[[index2]][1],] %*% test1$u))^(-0.5)
+      valY = diag(t(as.matrix(Y_transformed)[folds[[index2]][1],] %*% test1$v) %*%  (as.matrix(Y_transformed)[folds[[index2]][1],] %*% test1$v))^(-0.5)
+      
+      correlation <- rbind(
+        correlation,
+        (c(method,
+          lambda,
+          i,
+          diag(cov(as.matrix(X_transformed)[-c(folds[[index]],
+                                               folds[[index2]]),] %*% test1$u,
+                   as.matrix(Y_transformed)[-c(folds[[index]],
+                                               folds[[index2]]),] %*%  test1$v)),
+          apply(((as.matrix(X_transformed)[-c(folds[[index]],
+                                              folds[[index2]]),] %*% test1$u) -
+                   (as.matrix(Y_transformed)[-c(folds[[index]],
+                                                folds[[index2]]),] %*%  test1$v))^2, 2, mean),
+          diag(t(as.matrix(X_transformed)[folds[[index]],] %*% test1$u) %*%
+                 (as.matrix(Y_transformed)[folds[[index]],] %*%  test1$v)),
+          diag(cor(as.matrix(X_transformed)[folds[[index]],] %*% test1$u, (as.matrix(Y_transformed)[folds[[index]],] %*%  test1$v))),
+          apply(((as.matrix(X_transformed)[folds[[index]],] %*% test1$u) -
+             (as.matrix(Y_transformed)[folds[[index]],] %*%  test1$v))^2, 2, sum),
+          diag(t(as.matrix(X_transformed)[folds[[index2]],] %*% test1$u) %*%
+                 (as.matrix(Y_transformed)[folds[[index2]],] %*%  test1$v)),
+          diag(cor(as.matrix(X_transformed)[folds[[index2]],] %*% test1$u, (as.matrix(Y_transformed)[folds[[index2]],] %*%  test1$v))),
+          apply(((as.matrix(X_transformed)[folds[[index2]],] %*% test1$u) -
+             (as.matrix(Y_transformed)[folds[[index2]],] %*%  test1$v))^2, 2, sum)
+        )))
     }, error = function(e) {
       # Print the error message
       cat("Error occurred in method", method, ":", conditionMessage(e), "\n")
@@ -305,45 +410,209 @@ for (i.ind in  1:length(folds)){
     
   }
 }
+#folds = createFolds(1:nrow(X_transformed),6) ### 3 people per fold
+### shuffle:
 
+old_correlation = correlation_df
 
-
-pivot_longer(data.frame(correlation2)[, c(1, 5, 6, 7)],
-             cols =-c("X1")) %>%
-  group_by(X1) %>%
-  summarise(value=mean(value))
-
-pivot_longer(data.frame(correlation2)[, c(1, 5, 6, 7)],
-             cols =-c("X1")) %>%
-  group_by(X1) %>%
-  summarise(value=mean(value))
-
-pivot_longer(data.frame(correlation2)[c(1,2,5), c(1, 8)],
-             cols =-c("X1")) %>%
-  group_by(X1) %>%
-  summarise(value=mean(value))
-
-correlation2 <- c()
-for (i in 1:length(folds)){
-  final = additional_checks(as.matrix(X_transformed)[-folds[[i]],], as.matrix(Y_transformed)[-folds[[i]],selected_Y], 
-                            S=NULL, 
-                            rank=r, kfolds=2, 
-                            method.type = "Witten.CV",
-                            lambdax= 10^seq(-3,-1, length.out = 30),
-                            lambday = 10^seq(-6,-1, length.out = 30))
-  
-  correlation2 <- rbind(correlation2,
-                        c(lambda,
-                          diag(cov(as.matrix(X_transformed)[-folds[[i]],] %*% final$u,
-                                   as.matrix(Y_transformed)[-folds[[i]],selected_Y] %*%  final$v)),
-                          diag(cov(as.matrix(X_transformed)[folds[[i]],] %*% final$u,
-                                   as.matrix(Y_transformed)[folds[[i]],selected_Y] %*%  final$v)),
-                          mean(apply(( as.matrix(X_transformed)[folds[[i]],] %*% final$u - as.matrix(Y_transformed)[folds[[i]],selected_Y] %*%  final$v)^2,1,sum)
-                          )
-                        ))
+correlation_df = data.frame(correlation)
+colnames(correlation_df) = c("method", "lambda", "fold",
+                             "train_cov1",  "train_cov2",  
+                             "train_mse1",  "train_mse2",  
+                             "test_cov1",  "test_cov2",  
+                             "test_cor1",  "test_cor2",  
+                             "test_mse1", "test_mse2",
+                             "val_cov1",  "val_cov2",  
+                             "val_cor1",  "val_cor2",  
+                             "val_mse1",  "val_mse2")
+for (i in 3:19){
+  correlation_df[,i] = as.numeric(correlation_df[,i])
 }
 
+correlation_df = rbind(correlation_df,
+                       old_correlation %>% filter(method =="Witten.CV" | method == "Witten_Perm"))
 
+summary_correlation = correlation_df %>% 
+  mutate(test_mse = (test_mse1 + test_mse2 )/2,
+         train_mse = train_mse1 + train_mse2,
+         val_mse =  (val_mse1 + val_mse2 )/2,
+         test_cov = (test_cov1 + test_cov2)/2,
+         test_cor = (test_cor1 + test_cor2)/2,
+         train_cov = (train_cov1 + train_cov2)/2,
+         val_cov = (val_cov1 + val_cov2)/2,
+         val_cor = (val_cor1 + val_cor2)/2) %>%
+  group_by(method, lambda) %>% summarise_all(mean, na.rm=TRUE)%>%
+  arrange((test_mse)) %>% ungroup()
+
+ggplot(summary_correlation %>% 
+         filter(method == "CCA_graph_rrr")%>% ungroup())+
+  geom_line(aes(x = as.numeric(lambda), y=test_mse))+
+  geom_point(aes(x = as.numeric(lambda), y=test_mse))+
+  scale_x_log10()
+
+relevant_correlations = summary_correlation %>% 
+    filter( (method == "CCA_graph_rrr" & lambda == "0.316227766016838" ) | 
+            method!= "CCA_graph_rrr" ) %>%
+   dplyr::select(method, test_mse, test_cor, val_mse, val_cor)
+
+install.packages("knitr")
+install.packages("kableExtra")
+library(knitr)
+library(kableExtra)
+relevant_correlations
+latex_table <- kable(relevant_correlations, format = "latex", booktabs = TRUE)
+
+
+
+test1<-additional_checks(as.matrix(X_transformed), as.matrix(Y_transformed),  
+                         S=NULL, 
+                         rank=r, kfolds=3, 
+                         method.type = "FIT_SAR_CV",
+                         lambdax= 10^seq(-3,1, length.out = 30),
+                         lambday = 10^seq(-4,-3, length.out = 5))
+
+df = data.frame(1/sqrt(18) * as.matrix(X_transformed)%*% test1$u) #)
+df = data.frame(1/sqrt(18) * as.matrix(Y_transformed)%*%  test1$v) #)
+pol = sapply(data$candidate_simplified,
+             function(u){candidate_data$Cand_Party_Affiliation[which(candidate_data$candidate_simplified == u)[1]]})
+pol = as.character(pol)
+df["pol"] = pol
+df["name"] = data$candidate_simplified
+
+library(ellipse)
+legend_order <- c("REF", "LIB", "REP",
+                  "GRE", "IND", "DEM", "CON")
+my_colors <- c(  "purple","gold", "red", 
+                 "chartreuse2", "orchid1", "dodgerblue",
+                 "orchid4"
+                 # "lightblue", "lightblue3","cyan", "dodgerblue", "dodgerblue4",
+                 #"navyblue", #"cyan", 
+                 #"dodgerblue"
+)
+
+labels_n <-    c("Reform", "Libertarian",
+                 "Republican", "Green", "Independent",
+                 "Democratic", "Constitution"
+)
+
+ellipse.level =0.8
+ggplot(df, aes(x=X1, y=X2))+
+  geom_point(aes( colour=pol), size = 3)+
+  geom_text(aes(label = name,  colour=pol), vjust = -0.4, show.legend = FALSE)+
+  scale_color_manual(values = my_colors, breaks = legend_order,
+                     labels = labels_n) +
+  geom_path(data=data.frame(ellipse(cov(t(rbind(df$X1[which(pol=="LIB")], 
+                                                df$X2[which(pol=="LIB")]))), 
+                                    centre=colMeans(t(rbind(df$X1[which(pol=="LIB")], 
+                                                            df$X2[which(pol=="LIB")]))),
+                                    level = ellipse.level
+  )),
+  aes(x=x, y=y, colour="LIB")) +
+  geom_path(data=data.frame(ellipse(cov(t(rbind(df$X1[which(pol=="REP")], 
+                                                df$X2[which(pol=="REP")])
+  )), 
+  centre=colMeans(t(rbind(df$X1[which(pol=="REP")], 
+                          df$X2[which(pol=="REP")]))),
+  level = ellipse.level
+  )),
+  aes(x=x, y=y, colour="REP")) +
+  geom_path(data=data.frame(ellipse(cov(t(rbind(df$X1[which(pol=="DEM")], 
+                                                df$X2[which(pol=="DEM")])
+  )), 
+  centre=colMeans(t(rbind(df$X1[which(pol=="DEM")], 
+                          df$X2[which(pol=="DEM")]))),
+  level = ellipse.level
+  )),
+  aes(x=x, y=y, colour="DEM")) +
+  geom_path(data=data.frame(ellipse(cov(t(rbind(df$X1[which(pol=="GRE")], 
+                                                df$X2[which(pol=="GRE")])
+  )), 
+  centre=colMeans(t(rbind(df$X1[which(pol=="GRE")], 
+                          df$X2[which(pol=="GRE")]))),
+  level = ellipse.level
+  )),
+  aes(x=x, y=y, colour="GRE")) +
+  guides(colour = guide_legend(override.aes = list(linetype = c("solid", "solid", "solid", 
+                                                                "solid", "solid",
+                                                                "solid", "solid")))) +
+  xlab("CD-1") + 
+  ylab("CD-2")+
+  labs(colour = "Political\nAffiliation")+
+  guides(colour = guide_legend(override.aes = list(size = 2)))
+
+
+
+
+
+
+
+
+ggplot(df, aes(x=X1, y=X2, colour=pol))+
+  geom_point()+
+  stat_ellipse(geom = "polygon", alpha = 0.) +
+  geom_text(aes(label = name), vjust = -1)+
+  theme_bw() +
+  xlab("CD-1") + 
+  ylab("CD-2")+
+  labs(colour = "Political\nAffiliation")
+
+Uhat_comp = data.frame(test1$u)
+Uhat_comp["state"] = str_to_lower(colnames(X))
+map_data <- map_data("state")
+
+merged_data <- merge(map_data, Uhat_comp , by.x = "region", by.y = "state")
+# Plot
+ggplot() +
+  geom_polygon(data = merged_data, aes(x = long, y = lat, group = group, 
+                                       fill = X1), colour = "grey") +
+  coord_fixed(1.3) +
+  labs(fill = "Value") +
+  scale_fill_gradient2(mid = "white", high = "blue", low = "red",
+                      limits = c(-0.5, 0.5))
+
+ggplot() +
+  geom_polygon(data = merged_data, aes(x = long, y = lat, group = group, 
+                                       fill = X2), colour = "grey") +
+  coord_fixed(1.3) +
+  labs(fill = "Value") +
+  scale_fill_gradient2(mid = "white", high = "blue", low = "red",
+                      limits = c(-0.5, 0.7))
+
+
+Vhat_comp = test1$v
+rownames(Vhat_comp) = colnames(Y)
+print(Vhat_comp)
+heatmap(Vhat_comp)
+df_V = data.frame(Vhat_comp)
+colnames(df_V) = c("CD-1", "CD-2")
+df_V["question"] = colnames(Y)
+df_V = pivot_longer(df_V, cols=-c("question"))
+
+
+
+# Example new labels
+new_labels <- c("Should Abortion Remain  Legal?" , 
+                "Should the Death Penalty\nBe Allowed?",
+                "Should Former Felons Be\nAllowed to Vote?",
+                "Should Federal Taxes Be Increased?" ,
+                "Should the US Expand Its \n Nuclear Power?",
+                "Are More Regulations On Guns Needed?",
+                "Should the US Build a Fence\nAlong the US-Mexico Border?",
+                "Is Obamacare Good for America?",
+                "Are humans substantially responsible\nfor global climate change?",
+                "Should the US tax carbon emissions?")
+
+# Assuming your questions are in a column named 'question'
+old_labels <- unique(df_V$question)
+label_mapping <- setNames(new_labels, old_labels)
+df_V <- df_V %>% mutate(question_new = label_mapping[question])
+theme_set(theme_bw(base_size = 18))
+ggplot(df_V, aes(x = value, y = reorder(question_new, value), fill=name)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~ name) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  labs(y = "Question", x = "Response Intensity") + 
+  labs(fill = "Canonical\nDirection")
 
 plot(log10(final$resultsx$lambda[which(final$resultsx$rmse<1e5)]),
      final$resultsx$rmse[which(final$resultsx$rmse<1e5)])
@@ -351,30 +620,131 @@ plot(log10(final$resultsx$lambda[which(final$resultsx$rmse<1e5)]),
 selected_Y <- c(1:10)#[-c(2, 3,5,6,7,9,10)]
 
 index = 1:nrow(X)#which(apply(X, 1, sum) > 1)
-final = CCA_graph_rrr(as.matrix(X_transformed)[index,], as.matrix(Y_transformed)[index,selected_Y],  
+
+
+
+################## CCA
+final = CCA_graph_rrr(as.matrix(X_transformed), as.matrix(Y_transformed),  
                       Gamma, 
                       Sx=NULL, Sy=NULL, Sxy = NULL,
-                      lambda = 0.05, 
-                      Kx=NULL, r=3,
-                      rho=1, niter=1e4,
+                      lambda = 0.3, 
+                      Kx=NULL, r=2,
+                      rho=1, niter=2 * 1e4,
                       do.scale = FALSE, lambda_Kx=0,
-                      thresh=1e-5,
-                      LW_Sy = FALSE)
+                      thresh=1e-6,
+                      LW_Sy = TRUE)
 
 
 Uhat_comp = data.frame(final$U)
 #### Im not sure how to interpret the results
 Uhat_comp["state"] = str_to_lower(colnames(X))
 Vhat_comp = final$V
-rownames(Vhat_comp) = colnames(Y)[selected_Y]
+rownames(Vhat_comp) = colnames(Y)
 print(Vhat_comp)
 heatmap(Vhat_comp)
 
-
-df_V = data.frame(Vhat_comp^2 %*% diag(1/apply(Vhat_comp^2, 2, sum)))
-colnames(df_V) = c("CC1", "CC2", "CC3")
+rownames(Vhat_comp) = colnames(Y)
+print(Vhat_comp)
+heatmap(Vhat_comp)
+df_V = data.frame(Vhat_comp)
+colnames(df_V) = c("CD-1", "CD-2","CD-3", "CD-4")
 df_V["question"] = colnames(Y)
 df_V = pivot_longer(df_V, cols=-c("question"))
+
+df = data.frame(1/sqrt(18) * as.matrix(X_transformed)%*% final$U) #)
+df = data.frame(1/sqrt(18) * as.matrix(Y_transformed)%*%  final$V) #)
+pol = sapply(data$candidate_simplified,
+             function(u){candidate_data$Cand_Party_Affiliation[which(candidate_data$candidate_simplified == u)[1]]})
+pol = as.character(pol)
+df["pol"] = pol
+df["name"] = data$candidate_simplified
+
+library(ellipse)
+legend_order <- c("REF", "LIB", "REP",
+                  "GRE", "IND", "DEM", "CON")
+my_colors <- c(  "purple","gold", "red", 
+                 "chartreuse2", "orchid1", "dodgerblue",
+                 "orchid4"
+                 # "lightblue", "lightblue3","cyan", "dodgerblue", "dodgerblue4",
+                 #"navyblue", #"cyan", 
+                 #"dodgerblue"
+)
+
+labels_n <-    c("Reform", "Libertarian",
+                 "Republican", "Green", "Independent",
+                 "Democratic", "Constitution"
+)
+
+ellipse.level =0.8
+ggplot(df, aes(x=X1, y=X2))+
+  geom_point(aes( colour=pol), size = 3)+
+  geom_text(aes(label = name,  colour=pol), vjust = -0.4, show.legend = FALSE)+
+  scale_color_manual(values = my_colors, breaks = legend_order,
+                     labels = labels_n) +
+  geom_path(data=data.frame(ellipse(cov(t(rbind(df$X1[which(pol=="LIB")], 
+                                                df$X2[which(pol=="LIB")]))), 
+                                    centre=colMeans(t(rbind(df$X1[which(pol=="LIB")], 
+                                                            df$X2[which(pol=="LIB")]))),
+                                    level = ellipse.level
+  )),
+  aes(x=x, y=y, colour="LIB")) +
+  geom_path(data=data.frame(ellipse(cov(t(rbind(df$X1[which(pol=="REP")], 
+                                                df$X2[which(pol=="REP")])
+  )), 
+  centre=colMeans(t(rbind(df$X1[which(pol=="REP")], 
+                          df$X2[which(pol=="REP")]))),
+  level = ellipse.level
+  )),
+  aes(x=x, y=y, colour="REP")) +
+  geom_path(data=data.frame(ellipse(cov(t(rbind(df$X1[which(pol=="DEM")], 
+                                                df$X2[which(pol=="DEM")])
+  )), 
+  centre=colMeans(t(rbind(df$X1[which(pol=="DEM")], 
+                          df$X2[which(pol=="DEM")]))),
+  level = ellipse.level
+  )),
+  aes(x=x, y=y, colour="DEM")) +
+  geom_path(data=data.frame(ellipse(cov(t(rbind(df$X1[which(pol=="GRE")], 
+                                                df$X2[which(pol=="GRE")])
+  )), 
+  centre=colMeans(t(rbind(df$X1[which(pol=="GRE")], 
+                          df$X2[which(pol=="GRE")]))),
+  level = ellipse.level
+  )),
+  aes(x=x, y=y, colour="GRE")) +
+  guides(colour = guide_legend(override.aes = list(linetype = c("solid", "solid", "solid", 
+                                                                "solid", "solid",
+                                                                "solid", "solid")))) +
+  xlab("CD-1") + 
+  ylab("CD-2")+
+  labs(colour = "Political\nAffiliation")+
+  guides(colour = guide_legend(override.aes = list(size = 2)))
+
+
+# Example new labels
+new_labels <- c("Should Abortion Remain  Legal?" , 
+                "Should the Death Penalty\nBe Allowed?",
+                "Should Former Felons Be\nAllowed to Vote?",
+                "Should Federal Taxes Be Increased?" ,
+                "Should the US Expand Its \n Nuclear Power?",
+                "Are More Regulations On Guns Needed?",
+                "Should the US Build a Fence\nAlong the US-Mexico Border?",
+                "Is Obamacare Good for America?",
+                "Are humans substantially responsible\nfor global climate change?",
+                "Should the US tax carbon emissions?")
+
+# Assuming your questions are in a column named 'question'
+old_labels <- unique(df_V$question)
+label_mapping <- setNames(new_labels, old_labels)
+df_V <- df_V %>% mutate(question_new = label_mapping[question])
+
+ggplot(df_V, aes(x = value, y = reorder(question_new, value), fill=name)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~ name) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  #theme_bw() +
+  labs(y = "Question", x = "Response Intensity",
+       fill = "Canonical\nDirection") 
 
 ggplot(df_V)+
   geom_tile(aes(x = question, y=name, fill = 100 * value)) + 
@@ -384,15 +754,25 @@ ggplot(df_V)+
 
 map_data <- map_data("state")
 
+
+test = data.frame(score= colMeans(X[which(pol == "REP"),]),
+                  state = str_to_lower(colnames(X)))
 merged_data <- merge(map_data, Uhat_comp , by.x = "region", by.y = "state")
 # Plot
 ggplot() +
   geom_polygon(data = merged_data, aes(x = long, y = lat, group = group, 
-                                       fill = X1)) +
+                                       fill = X2)) +
   coord_fixed(1.3) +
-  labs(fill = "Your Value") +
-  scale_fill_gradient(low = "blue", high = "red", 
-                      limits = c(-0.5, 2))
+  labs(fill = "Value") +
+  scale_fill_gradient2(mid = "white", high = "blue", low = "red")
+
+ggplot() +
+  geom_polygon(data = merged_data, aes(x = long, y = lat, group = group, 
+                                       fill = X2)) +
+  coord_fixed(1.3) +
+  labs(fill = "Value") +
+  scale_fill_gradient2(mid = "white", high = "blue", low = "red",
+                      limits = c(-1, 1.3))
 
 ggplot() +
   geom_polygon(data = merged_data, aes(x = long, y = lat, group = group, 
@@ -469,15 +849,16 @@ heatmap(Vhat_comp)
 
 map_data <- map_data("state")
 
-merged_data <- merge(map_data, Uhat_comp , by.x = "region", by.y = "state")
+test = data.frame(score= colMeans(X[which(pol == "DEM"),]),
+                  state = str_to_lower(colnames(X)))
+merged_data <- merge(map_data,  , by.x = "region", by.y = "state")
 # Plot
 ggplot() +
   geom_polygon(data = merged_data, aes(x = long, y = lat, group = group, 
-                                       fill = X3)) +
+                                       fill = score)) +
   coord_fixed(1.3) +
   labs(fill = "Your Value") +
-  scale_fill_gradient(low = "blue", high = "red", 
-                      limits = c(-1, 2))
+  scale_fill_gradient(low = "blue", high = "red")
 
 
 
@@ -578,14 +959,14 @@ final = CCA_graph_rrr(as.matrix(X_transformed), as.matrix(Y),
 
 
 index = which(apply(X, 1, sum)>10)
-final = CCA_graph_rrr(as.matrix(X_transformed), as.matrix(Y)[,-c(10)],  
+final = CCA_graph_rrr(as.matrix(X_transformed), as.matrix(Y_transformed),  
                       Gamma, 
                       Sx=NULL, Sy=NULL, Sxy = NULL,
                       lambda = 0.01, 
-                      Kx=NULL, r=r,
+                      Kx=NULL, r=2,
                       rho=10, niter=1e5,
-                      scale = TRUE, lambda_Kx=0, 
-                      LW_Sy = TRUE,
+                      lambda_Kx=0, 
+                      LW_Sy = FALSE,
                       thresh=1e-5)
 
 
@@ -603,7 +984,7 @@ merged_data <- merge(map_data, Uhat_comp , by.x = "region", by.y = "state")
 # Plot
 ggplot() +
   geom_polygon(data = merged_data, aes(x = long, y = lat, group = group, 
-                                       fill = X1)) +
+                                       fill = X2)) +
   coord_fixed(1.3) +
   labs(fill = "Your Value")
 

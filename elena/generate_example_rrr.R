@@ -75,23 +75,21 @@ generate_example_sparse_U <- function(n, p1, p2,
   Sigmay <- Sigma[(p1+1):p_tot,(p1+1):p_tot];
   
   ### Generate cross covariance
-  precision = solve(Sigmax)
-  Tss <- precision[s,s]
+  Tss <- Sigmax[s,s]
   prod <- matrix(0, pp[1], r)
   prod[s, 1:r] <- as.matrix(runif( nnzeros * r,max = 3, min=1), nrow=nnzeros)  * as.matrix(sample(c(-1,1), nnzeros*r, replace=TRUE), nrow=nnzeros)
-  prod <- prod %*% (sqrtm(t(prod[s, 1:r]) %*% Tss %*% prod[s, 1:r])$Binv)
-  u = precision %*% prod
+  u <- prod %*% (sqrtm(t(prod[s, 1:r]) %*% Tss %*% prod[s, 1:r])$Binv)
   
-  precision_y = solve(Sigma[(p1 + 1):(p1 + p2), (p1 + 1):(p1 + p2)] )
-  Tss_v <- precision_y
+  
+  Tss_v <- Sigma[(p1 + 1):(p1 + p2), (p1 + 1):(p1 + p2)] 
   prod_v <- matrix(0, pp[2], r)
   prod_v[, 1:r] <- as.matrix(runif( p2 * r , max = 3, min=1), nrow=p2)  * as.matrix(sample(c(-1,1), p2 * r, replace=TRUE), nrow=p2)
-  prod_v <- prod_v %*% (sqrtm(t(prod_v[, 1:r]) %*% Tss_v %*% prod_v[, 1:r])$Binv)
-  v = precision_y %*% prod_v
+  v <- prod_v %*% (sqrtm(t(prod_v[, 1:r]) %*% Tss_v %*% prod_v[, 1:r])$Binv)
+
   
   #Sigma[(p1 + 1) :(p1 + p2), 1:p1] <- Sigmax %*% u %*% theta %*% t(v) %*% Sigmay
-  Sigma[1:p1, (p1 + 1):(p1 + p2)] <- prod %*% theta %*% t(prod_v)
-  Sigma[(p1 + 1) :(p1 + p2), 1:p1]  <- prod_v%*% theta %*% t(prod)
+  Sigma[1:p1, (p1 + 1):(p1 + p2)] <- Sigmax %*% u %*% theta %*% t(v) %*% Sigmay
+  Sigma[(p1 + 1) :(p1 + p2), 1:p1]  <-  Sigmay %*% v%*% theta %*% t(u) %*% Sigmax
   
   #Generate Multivariate Normal Data According to Sigma
   sqrt_Sigma <- sqrtm(Sigma)$B

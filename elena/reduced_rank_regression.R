@@ -14,7 +14,7 @@ CCA_rrr = function(X, Y, Sx=NULL, Sy=NULL,
                    do.scale = TRUE,
                    rho=1,
                    niter=1e4,
-                   thresh = 1e-4){
+                   thresh = 1e-4, verbose=FALSE){
   # solve RRR: ||Y-XB|| + tr(Bt K B)
   n = nrow(X)
   p = ncol(X)
@@ -64,8 +64,10 @@ CCA_rrr = function(X, Y, Sx=NULL, Sy=NULL,
     sol = svd(sqrt_Sx %*% B_OLS)
     V <- sqrt_inv_Sy %*% sol$v[, 1:r]
     U <- sqrt_inv_Sx %*% sol$u[, 1:r]
-    print(t(U) %*% Sx %*% U)
-    print(t(V) %*% Sy %*% V)
+    if(verbose){
+      print(t(U) %*% Sx %*% U)
+      print(t(V) %*% Sy %*% V)
+    }
   } else {
       if (solver == "CVX"){
         print("Using CVXR")
@@ -83,10 +85,10 @@ CCA_rrr = function(X, Y, Sx=NULL, Sy=NULL,
           prod_xy = t(X) %*% tilde_Y/ n
           invSx = solve(Sx_tot + rho * diag(rep(1, p)))
           for (i in 1:niter){
-            print(paste0("lambda is ", lambda))
+            #print(paste0("lambda is ", lambda))
             Uold = U
             Zold = Z
-            B = invSx %*% (prod_xy  + (Z - U))
+            B = invSx %*% (prod_xy  + rho * (Z - U))
             Bold = B
             Z = B + U
             norm_col = sapply(1:nrow(Z), function(i){sqrt(sum(Z[i,]^2))})
@@ -103,7 +105,9 @@ CCA_rrr = function(X, Y, Sx=NULL, Sy=NULL,
               }
 	    }
             U = U + B - Z
-            print(c("ADMM iter", i, norm(Z - B), norm(Zold - Z), norm(Uold - U)))
+            if(verbose){
+               print(c("ADMM iter", i, norm(Z - B), norm(Zold - Z), norm(Uold - U)))
+            }
             if (max(c(norm(Z - B)/ sqrt(p), norm(Zold - Z)/ sqrt(p))) <thresh){
               break
             }
@@ -133,8 +137,10 @@ CCA_rrr = function(X, Y, Sx=NULL, Sy=NULL,
         U <- matrix(0, p, r)
         V <- matrix(0, q, r)
       }
-      print(t(U) %*% Sx %*% U)
-      print(t(V) %*% Sy %*% V)
+      if(verbose){
+        print(t(U) %*% Sx %*% U)
+        print(t(V) %*% Sy %*% V)
+      }
     }
     
   
@@ -261,7 +267,6 @@ CCA_rrr.CV<- function(X, Y,
                     LW_Sy =  LW_Sy,
                     niter=niter,
                     thresh = thresh)
-    print(t(final$U) %*% cov(X) %*% final$U)
     resultsx = data.frame("lambda" = test$lambda,
                           "rmse" = test$cv.path[1:length(param_lambda)])
     final <- list(U = final$U,
@@ -327,7 +332,7 @@ CCA_rrr.folds<- function(X, Y, Sx, Sy, kfolds=5,
         return(NA)
       })
   }
-  print(c(lambda, rmse))
+  #print(c(lambda, rmse))
   # return mean RMSE across folds
   if (mean(is.na(rmse)) == 1){
     return(1e8)
