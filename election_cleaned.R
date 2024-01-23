@@ -463,16 +463,16 @@ relevant_correlations
 latex_table <- kable(relevant_correlations, format = "latex", booktabs = TRUE)
 
 
-
+r = 2
 test1<-additional_checks(as.matrix(X_transformed), as.matrix(Y_transformed),  
                          S=NULL, 
                          rank=r, kfolds=3, 
-                         method.type = "FIT_SAR_CV",
+                         method.type = "Witten_Perm",
                          lambdax= 10^seq(-3,1, length.out = 30),
-                         lambday = 10^seq(-4,-3, length.out = 5))
+                         lambday = c(0))
 
 df = data.frame(1/sqrt(18) * as.matrix(X_transformed)%*% test1$u) #)
-df = data.frame(1/sqrt(18) * as.matrix(Y_transformed)%*%  test1$v) #)
+#df = data.frame(1/sqrt(18) * as.matrix(Y_transformed)%*%  test1$v) #)
 pol = sapply(data$candidate_simplified,
              function(u){candidate_data$Cand_Party_Affiliation[which(candidate_data$candidate_simplified == u)[1]]})
 pol = as.character(pol)
@@ -496,6 +496,7 @@ labels_n <-    c("Reform", "Libertarian",
 )
 
 ellipse.level =0.8
+theme_set(theme_bw(base_size = 18))
 ggplot(df, aes(x=X1, y=X2))+
   geom_point(aes( colour=pol), size = 3)+
   geom_text(aes(label = name,  colour=pol), vjust = -0.4, show.legend = FALSE)+
@@ -567,15 +568,15 @@ ggplot() +
                                        fill = X1), colour = "grey") +
   coord_fixed(1.3) +
   labs(fill = "Value") +
-  scale_fill_gradient2(mid = "white", high = "blue", low = "red",
-                      limits = c(-0.5, 0.5))
+  scale_fill_gradient2(mid = "white", high = "yellow", low = "green",
+                      limits = c(-0.7, 0.7))
 
 ggplot() +
   geom_polygon(data = merged_data, aes(x = long, y = lat, group = group, 
                                        fill = X2), colour = "grey") +
   coord_fixed(1.3) +
   labs(fill = "Value") +
-  scale_fill_gradient2(mid = "white", high = "blue", low = "red",
+  scale_fill_gradient2(mid = "white", high = "yellow", low = "green",
                       limits = c(-0.5, 0.7))
 
 
