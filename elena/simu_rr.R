@@ -7,7 +7,7 @@ library(zoo)
 library(pracma)
 library(rrpack)
 library(corpcor)
-setwd("~/Documents/group-CCA/")
+#setwd("~/Documents/group-CCA/")
 
 source("elena/generate_example_rrr.R")
 source('experiments/sparse_CCA/experiment_functions.R')
@@ -33,15 +33,15 @@ n <- as.numeric(args[3])
 strength_theta <- args[4]
 p <- as.numeric(args[5])
 rs <- c(as.numeric(args[6]))
-#p_val <- as.numeric(args[5])
-overlaps <- c(0, 1)
+q_vals <- c(as.numeric(args[7]))
+overlaps <- c(1)
 #props <- c(0, 0.1, 0.2)
 props <- c(0)
 noise = 1
-seeds = 1:100
+seeds = 1:50
 normalize_diagonal = TRUE
 LW_Sy = TRUE
-nnzero_values = c(20, 10)
+nnzero_values = c(10)
 result = c()
 for (seed_n in seeds){
   #for (n in c(100, 300, 500, 1000, 10000)){
@@ -49,7 +49,7 @@ for (seed_n in seeds){
   for (nnzeros in nnzero_values){
     #for(p in c(100,  200, 300,  500, 800, 80, 20)){
     #for (p in c(20, 50, 80, 100, 200, 500, 1000)){
-      for (q in c(10, 20, 30, 50, 80)){
+      for (q in q_vals){
       #for(nnzeros in c(5, 10, 15, 20, 50)){
       for (r in rs){
         if ( strength_theta == "high"){
@@ -63,7 +63,7 @@ for (seed_n in seeds){
           }
         }
         for (r_pca in c(0, 5)){
-          if ( (max(r_pca, r, 2 * nnzeros) < min(p,q)) & (nnzeros > max(r_pca, r)) ) {
+          if ( (max(r_pca, r, nnzeros) < min(p)) & (nnzeros > max(r_pca, r)) ) {
             for (overlapping_amount in overlaps){
               for(prop_missing in props){
                 cat("seed:")
@@ -284,7 +284,7 @@ for (seed_n in seeds){
                 start_time_alt2 <- system.time({
                   res_alt = CCA_rrr.CV(X, Y, 
                              r=r, Kx = NULL, lambda_Kx = 0,
-                             param_lambda=c(10^seq(-3, 2, length.out = 50)),
+                             param_lambda=c(10^seq(-3, 1, length.out = 30)),
                              kfolds=5, solver="rrr", LW_Sy = LW_Sy)
                 })
                 res_alt$ufinal[which(is.na( res_alt$ufinal))] <- 0
@@ -322,7 +322,7 @@ for (seed_n in seeds){
                                                    "exp" = seed * 100 + seed_n,
                                                    "normalize_diagonal" = normalize_diagonal,
                                                    "lambda_opt" = res_alt$lambda,
-                                                   "time" = start_time_alt2[[1]]
+                                                   "time" = start_time_alt2[[4]]
                 )
                 )
                 
@@ -333,7 +333,7 @@ for (seed_n in seeds){
                     res_alt = CCA_rrr.CV(X, Y,
                                          r=r, Kx = NULL, lambda_Kx = 0,
                                          param_lambda=c(10^seq(-3, 1, length.out = 30)),
-                                         kfolds=3, solver="ADMM", LW_Sy = LW_Sy, 
+                                         kfolds=5, solver="ADMM", LW_Sy = LW_Sy, 
                                          do.scale = TRUE,
                                          rho=1, niter=2 * 1e4, thresh = 1e-6)
                   })
@@ -380,7 +380,7 @@ for (seed_n in seeds){
                                                      "exp" = seed * 100 + seed_n,
                                                      "normalize_diagonal" = normalize_diagonal,
                                                      "lambda_opt" = lambda_chosen,
-                                                     "time" = start_time_alt3[[1]]
+                                                     "time" = start_time_alt3[[4]]
                   )
                   )
                 }, error = function(e) {
@@ -402,7 +402,7 @@ for (seed_n in seeds){
                                                gen$Y, S=NULL, 
                                                rank=r, kfolds=5, 
                                                method.type = method,
-                                               lambdax= 10^seq(-3,2, length.out = 50),
+                                               lambdax= 10^seq(-3,1, length.out = 30),
                                                lambday = c(0))
                     })
                     result <- rbind(result, data.frame(evaluate(gen$Xnew, gen$Ynew, 
@@ -421,7 +421,7 @@ for (seed_n in seeds){
                                                        "exp" = seed * 100 + seed_n,
                                                        "normalize_diagonal" = normalize_diagonal,
                                                        "lambda_opt" = 0,
-                                                       "time" = start_time_additional_method[[1]]
+                                                       "time" = start_time_additional_method[[4]]
                     )
                     )
                   }, error = function(e) {
