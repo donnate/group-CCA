@@ -133,7 +133,7 @@ CCA_graph_rrr.CV<- function(X, Y,
                                                                            data.frame(lambda=lambda, rmse=rmse)
                                                                          }
   }else{
-    print('here')
+    #print('here')
     resultsx <- expand.grid(lambda = param_lambda) %>%
       mutate(rmse = map_dbl(lambda, ~CCA_graph_rrr.folds(X, Y, Gamma, 
                                                          Sx=NULL, Sy=NULL,

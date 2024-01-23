@@ -7,7 +7,7 @@ library(zoo)
 library(pracma)
 library(rrpack)
 library(corpcor)
-setwd("~/Documents/group-CCA/")
+#setwd("~/Documents/group-CCA/")
 
 source("elena/generate_example_rrr.R")
 source('experiments/sparse_CCA/experiment_functions.R')
@@ -32,8 +32,8 @@ set.seed(seed)
 n <- as.numeric(args[3])
 strength_theta <- args[4]
 #p <- as.numeric(300, 500, 700)
-rs <- c(as.numeric(args[6]))
-#p_val <- as.numeric(args[5])
+rs <- c(as.numeric(args[5]))
+p_val <- as.numeric(args[6])
 overlaps <- c(0)
 #props <- c(0, 0.1, 0.2)
 props <- c(0)
@@ -49,9 +49,9 @@ for(seed_n in seeds){
   set.seed(seed * 100 + seed_n)
   print("Start loop")
   for(nnzeros in nnzero_values){
-    for(p in c(100, 300, 500, 700, 1000, 2000)){
+    for(p in p_val){
       #for (p in c(20, 50, 80, 100, 200, 500, 1000)){
-      for (q in c(10, 30, 50)){
+      for (q in c(10, 30, 50, 80)){
         #for(nnzeros in c(5, 10, 15, 20, 50)){
         for (r in rs){
           if ( strength_theta == "high"){
@@ -261,7 +261,7 @@ for(seed_n in seeds){
                                                        "exp" = seed * 100 + seed_n,
                                                        "normalize_diagonal" = normalize_diagonal,
                                                        "lambda_opt" = res_alt$lambda,
-                                                       "time" = start_time_alt2[[1]]
+                                                       "time" = start_time_alt2[[4]]
                     )
                     )
                   }, error = function(e) {
@@ -278,7 +278,7 @@ for(seed_n in seeds){
                                            r=r, Kx = NULL, lambda_Kx = 0,
                                            param_lambda=c(10^seq(-3, 1, length.out = 30)),
                                            kfolds=3, solver="ADMM", LW_Sy = LW_Sy, do.scale = TRUE,
-                                           rho=1, niter=2 * 1e4, thresh = 1e-4)
+                                           rho=1, niter=3 * 1e4, thresh = 1e-6)
                     })
                     res_alt$ufinal[which(is.na( res_alt$ufinal))] <- 0
                     res_alt$vfinal[which(is.na( res_alt$vfinal))] <- 0
@@ -304,7 +304,7 @@ for(seed_n in seeds){
                                                        "exp" = seed * 100 + seed_n,
                                                        "normalize_diagonal" = normalize_diagonal,
                                                        "lambda_opt" = res_alt$lambda,
-                                                       "time" = start_time_alt3[[1]]
+                                                       "time" = start_time_alt3[[4]]
                     )
                     )
                   }, error = function(e) {
@@ -324,7 +324,7 @@ for(seed_n in seeds){
                                                  Gamma = gen$Gamma,
                                                  r=r, Kx = NULL, lambda_Kx = 0,
                                                  param_lambda=c(10^seq(-3, 1, length.out = 30)),
-                                                 kfolds=3, 
+                                                 kfolds=5, 
                                                  LW_Sy = LW_Sy, do.scale=TRUE,
                                                  rho=1, niter=2 * 1e4,
                                                  thresh=1e-4,
@@ -343,7 +343,7 @@ for(seed_n in seeds){
                                                                 Sigma_hat_sqrt = Sigma_hat_sqrt, 
                                                                 Sigma0_sqrt = Sigma0_sqrt),
                                                        "noise" = noise,  
-                                                       method = "CVX-opt-group",  
+                                                       method = "CVX-opt-graph",  
                                                        "prop_missing" = prop_missing, 
                                                        "nnzeros" = nnzeros,
                                                        "theta_strength" = strength_theta,
@@ -353,7 +353,7 @@ for(seed_n in seeds){
                                                        "exp" = seed * 100 + seed_n,
                                                        "normalize_diagonal" = normalize_diagonal,
                                                        "lambda_opt" = res_alt$lambda,
-                                                       "time" = start_time_alt4[[1]]
+                                                       "time" = start_time_alt4[[4]]
                     )
                     )
                   }, error = function(e) {
@@ -395,7 +395,7 @@ for(seed_n in seeds){
                                                          "exp" = seed * 100 + seed_n,
                                                          "normalize_diagonal" = normalize_diagonal,
                                                          "lambda_opt" = 0,
-                                                         "time" = start_time_additional_method[[1]]
+                                                         "time" = start_time_additional_method[[4]]
                       )
                       )
                     }, error = function(e) {
@@ -404,7 +404,7 @@ for(seed_n in seeds){
                       # Skip to the next iteration
                     })
                   }
-                  write_csv(result, paste0("elena/missing/results/2024-group-newest_RRR_efficient_results", name_exp, ".csv"))
+                  write_csv(result, paste0("elena/missing/results/2024-graph-newest_RRR_efficient_results", name_exp, ".csv"))
                   print("Done loop")
                   
                   #write.csv(result, "missing/simulation-RRR-results-sparse.csv", row.names = F)
@@ -417,5 +417,147 @@ for(seed_n in seeds){
       }
     }
     
+    
+
   }
 }
+
+
+
+# df <- read_csv("elena/missing/results/2024-graph-newest_RRR_efficient_resultstest.csv")
+# summ = df %>% group_by(n, p1, p2, r, r_pca,
+#                             nnzeros, 
+#                             overlapping_amount, noise, 
+#                             #lambda_opt,
+#                             method,
+#                             theta_strength,
+#                             normalize_diagonal,
+#                             prop_missing) %>% 
+#   summarise(distance_tot_mean = mean(distance_tot),
+#             distance_U_mean = mean(distance_U),
+#             distance_V_mean = mean(distance_V),
+#             distance_tot_q50 = quantile(distance_tot, 0.5, na.rm=TRUE),
+#             distance_tot_q75 = quantile(distance_tot, 0.75, na.rm=TRUE),
+#             distance_tot_q25 = quantile(distance_tot, 0.25, na.rm=TRUE),
+#             distance_tot_q975 = quantile(distance_tot, 0.975, na.rm=TRUE),
+#             distance_tot_q025 = quantile(distance_tot, 0.025, na.rm=TRUE),
+#             distance_tot_q90 = quantile(distance_tot, 0.9, na.rm=TRUE),
+#             distance_tot_q10 = quantile(distance_tot, 0.1, na.rm=TRUE),
+#             prediction_tot_mean= mean(prediction_tot),
+#             prediction_tot_q50 = quantile(prediction_tot, 0.5, na.rm=TRUE),
+#             prediction_tot_q25 = quantile(prediction_tot, 0.75, na.rm=TRUE),
+#             prediction_tot_q75 = quantile(prediction_tot, 0.25, na.rm=TRUE),
+#             distance_U_q50 = quantile(distance_U, 0.5, na.rm=TRUE),
+#             distance_U_q25 = quantile(distance_U, 0.75, na.rm=TRUE),
+#             distance_U_q75 = quantile(distance_U, 0.25, na.rm=TRUE),
+#             prediction_U_mean= mean(distance_U),
+#             prediction_U_q50 = quantile(distance_U, 0.5, na.rm=TRUE),
+#             prediction_U_q25 = quantile(distance_U, 0.75, na.rm=TRUE),
+#             prediction_U_q75 = quantile(distance_U, 0.25, na.rm=TRUE),
+#             distance_V_q50 = quantile(distance_V, 0.5, na.rm=TRUE),
+#             distance_V_q25 = quantile(distance_V, 0.75, na.rm=TRUE),
+#             distance_V_q75 = quantile(distance_V, 0.25, na.rm=TRUE),
+#             prediction_V_mean= mean(distance_V),
+#             prediction_V_q50 = quantile(distance_V, 0.5, na.rm=TRUE),
+#             prediction_V_q25 = quantile(distance_V, 0.75, na.rm=TRUE),
+#             prediction_V_q75 = quantile(distance_V, 0.25, na.rm=TRUE),
+#             TPR_q50 = quantile(TPR, 0.5, na.rm=TRUE),
+#             TPR_q25 = quantile(TPR, 0.75, na.rm=TRUE),
+#             TPR_q75 = quantile(TPR, 0.25, na.rm=TRUE),
+#             FPR_mean = mean(FPR, na.rm=TRUE),
+#             FPR_q50 = quantile(FPR, 0.5, na.rm=TRUE),
+#             FPR_q25 = quantile(FPR, 0.75, na.rm=TRUE),
+#             FPR_q75 = quantile(FPR, 0.25, na.rm=TRUE),
+#             FNR_mean = mean(FNR, na.rm=TRUE),
+#             FNR_q50 = quantile(FNR, 0.5, na.rm=TRUE),
+#             FNR_q25 = quantile(FNR, 0.75, na.rm=TRUE),
+#             FNR_q75 = quantile(FNR, 0.25, na.rm=TRUE),
+#             time_med = quantile(time, 0.5, na.rm=TRUE),
+#             time_mean = mean(time),
+#             counts = n()
+#             
+#   ) %>%
+#   ungroup() 
+# 
+# unique(summ$method)
+# legend_order <- c("Oracle",  "FIT_SAR_CV",
+#                   "FIT_SAR_BIC", "Witten_Perm", "Witten.CV",
+#                   "SCCA_Parkhomenko", "Waaijenborg-CV", "Waaijenborg-Author",
+#                   #"RRR-0.5" ,"RRR-7.5","RRR-10","RRR-12.5",  "RRR-20",
+#                   #"RRR-opt",    
+#                   "RRR-opt" ,
+#                   "RRR-ADMM-opt",
+#                   "CVX-opt-graph" )
+# my_colors <- c( "black", "red", "indianred4",
+#                 "orange", "yellow", "chartreuse2",
+#                 "burlywood2", "burlywood4",
+#                 # "lightblue", "lightblue3","cyan", "dodgerblue", "dodgerblue4",
+#                 "navyblue", 
+#                 "cyan", 
+#                 "dodgerblue")
+# 
+# labels_n <-    c("Oracle",  "SAR CV (Wilms et al)",
+#                  "SAR BIC (Wilms et al)",
+#                  "Sparse CCA, permuted\n(Witten et al)",
+#                  "Sparse CCA with CV\n(Witten et al)",
+#                  "SCCA (Parkhomenko et al)", "Sparse CCA with CV\n(Waaijenborg et al)",
+#                  "Sparse CCA(Waaijenborg et al)",
+#                  # "RRR-0.5" ,"RRR-7.5","RRR-10","RRR-12.5",  "RRR-20",
+#                  "RRR-CCA (this paper, using rrr solver)",
+#                  "RRR-CCA (this paper)",
+#                  "graph-RRR-CCA (this paper)")
+# theme_set(theme_bw(base_size = 18))
+# 
+# 
+# unique(summ$method)
+# colnames(results)
+# colnames(summ)
+# unique(summ$nnzeros)
+# unique(summ$r)
+# unique(summ$r_pca)
+# unique(summ$p1)
+# unique(summ$p2)
+# unique(summ$counts)
+# 
+# summ$theta_strength <- factor(summ$theta_strength, levels = c("high", "medium", "low"))
+# 
+# 
+# ggplot(summ %>% filter( r_pca == 5, r==2,
+#                         #nnzeros==10, 
+#                         n==500,
+#                         method %in% legend_order
+# ),
+# aes(x=p1, 
+#     y = distance_tot_mean, 
+#     colour =method)) +
+#   geom_point(size=2)+
+#   geom_line(linewidth=0.8)+
+#   #geom_errorbar(aes(ymin=distance_tot_q975, ymax=distance_tot_q025,
+#   #                  colour =method), width=0.05, alpha=0.5)+
+#   scale_color_manual(values = my_colors, breaks = legend_order,
+#                      labels = labels_n) +
+#   facet_grid(theta_strength~ p2, scales = "free",labeller = as_labeller(c(`10` = "q = 10",
+#                                                                           `30` = "q = 30",
+#                                                                           `50` = "q = 50",
+#                                                                           `80` = "q = 80",
+#                                                                           `100` = "n = 100",
+#                                                                           `200` = "n = 200",
+#                                                                           `300` = "n = 300",
+#                                                                           `500` = "n = 500",
+#                                                                           `high` = "High",
+#                                                                           `1000` = "n = 1,000",
+#                                                                           `2000` = "n = 2,000",
+#                                                                           `10000` = "n = 10,000",
+#                                                                           `medium` = "Medium",
+#                                                                           `low` = "Low"
+#                                                                           
+#   ))) +
+#   xlab("p") + 
+#   ylab(expression("Subspace Distance")) +
+#   labs(colour="Method") + 
+#   scale_y_log10()+
+#   scale_x_log10()+
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+

@@ -5,7 +5,7 @@ library(tidyverse)
 theme_set(theme_bw(base_size = 14))
 setwd("~/Documents/group-CCA/elena/")
 file_list <- list.files(path = "~/Documents/group-CCA/elena/missing/results", 
-                        pattern = "2024_2_newest_RRR_efficient_results1410*", full.names = TRUE)
+                        pattern = "2024-group-newest_RRR_efficient_results14*", full.names = TRUE)
 #file_list2 <- list.files(path = "~/Documents/group-CCA/elena/missing/results", 
 #                        pattern = "2024-group*", full.names = TRUE)
 #results <- file_list %>%
@@ -36,12 +36,8 @@ summ = results %>% group_by(n, p1, p2, r, r_pca,
             distance_U_mean = mean(distance_U),
             distance_V_mean = mean(distance_V),
             distance_tot_q50 = quantile(distance_tot, 0.5, na.rm=TRUE),
-            distance_tot_q75 = quantile(distance_tot, 0.75, na.rm=TRUE),
-            distance_tot_q25 = quantile(distance_tot, 0.25, na.rm=TRUE),
-            distance_tot_q975 = quantile(distance_tot, 0.975, na.rm=TRUE),
-            distance_tot_q025 = quantile(distance_tot, 0.025, na.rm=TRUE),
-            distance_tot_q90 = quantile(distance_tot, 0.9, na.rm=TRUE),
-            distance_tot_q10 = quantile(distance_tot, 0.1, na.rm=TRUE),
+            distance_tot_q25 = quantile(distance_tot, 0.75, na.rm=TRUE),
+            distance_tot_q75 = quantile(distance_tot, 0.25, na.rm=TRUE),
             prediction_tot_mean= mean(prediction_tot),
             prediction_tot_q50 = quantile(prediction_tot, 0.5, na.rm=TRUE),
             prediction_tot_q25 = quantile(prediction_tot, 0.75, na.rm=TRUE),
@@ -78,7 +74,7 @@ summ = results %>% group_by(n, p1, p2, r, r_pca,
   ) %>%
   ungroup() 
 
-unique(summ$method)
+
 
 
 
@@ -87,13 +83,12 @@ legend_order <- c("Oracle",  "FIT_SAR_CV",
                   "SCCA_Parkhomenko", "Waaijenborg-CV", "Waaijenborg-Author",
                   #"RRR-0.5" ,"RRR-7.5","RRR-10","RRR-12.5",  "RRR-20",
                   #"RRR-opt",    
-                  #"RRR-opt" ,
-                  "RRR-ADMM-opt"  )
+                  "RRR-ADMM-opt", "CVX-opt-group"   )
 my_colors <- c( "black", "red", "indianred4",
                 "orange", "yellow", "chartreuse2",
                 "burlywood2", "burlywood4",
                 # "lightblue", "lightblue3","cyan", "dodgerblue", "dodgerblue4",
-               # "navyblue", #"cyan", 
+                "navyblue", #"cyan", 
                 "dodgerblue")
 
 labels_n <-    c("Oracle",  "SAR CV (Wilms et al)",
@@ -103,8 +98,8 @@ labels_n <-    c("Oracle",  "SAR CV (Wilms et al)",
                  "SCCA (Parkhomenko et al)", "Sparse CCA with CV\n(Waaijenborg et al)",
                  "Sparse CCA(Waaijenborg et al)",
                  # "RRR-0.5" ,"RRR-7.5","RRR-10","RRR-12.5",  "RRR-20",
-                 #"RRR-CCA (this paper, using rrr solver)",
-                 "RRR-CCA (this paper)")
+                 "RRR-CCA (this paper)",
+                 "group-RRR-CCA (this paper)")
 theme_set(theme_bw(base_size = 18))
 
 
@@ -122,24 +117,22 @@ summ$theta_strength <- factor(summ$theta_strength, levels = c("high", "medium", 
 
 
 ggplot(summ %>% filter( r_pca == 5, r==2,
-                        nnzeros==10, 
-                        n==500,
-                        method %in% legend_order,
-                        overlapping_amount==1
+                        nnzeros==5, 
+                        method %in% legend_order
 ),
 aes(x=p1, 
-    y = distance_tot_mean, 
+    y = time_mean, 
     colour =method)) +
-  geom_point(size=2)+
-  geom_line(linewidth=0.8)+
-  #geom_errorbar(aes(ymin=distance_tot_q975, ymax=distance_tot_q025,
-  #                  colour =method), width=0.05, alpha=0.5)+
+  geom_point()+
+  geom_line()+
+  #geom_errorbar(aes(ymin=distance_tot_q25, ymax=distance_tot_q75,
+  #                  colour =method), width=0.05)+
   scale_color_manual(values = my_colors, breaks = legend_order,
                      labels = labels_n) +
   facet_grid(theta_strength~ p2, scales = "free",labeller = as_labeller(c(`10` = "q = 10",
                                                                          `30` = "q = 30",
                                                                          `50` = "q = 50",
-                                                                         `80` = "q = 80",
+                                                                         `70` = "q = 70",
                                                                          `100` = "n = 100",
                                                                          `200` = "n = 200",
                                                                          `300` = "n = 300",
@@ -153,88 +146,6 @@ aes(x=p1,
                                                                          
   ))) +
   xlab("p") + 
-  ylab(expression("Subspace Distance")) +
-  labs(colour="Method") + 
-  scale_y_log10()+
-  scale_x_log10()+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-
-
-ggplot(summ %>% filter( r_pca == 5, r==2,
-                        nnzeros==10, 
-                        n==500,
-                        method %in% legend_order,
-                        overlapping_amount==1
-),
-aes(x=p1, 
-    y = distance_U_q50, 
-    colour =method)) +
-  geom_point()+
-  geom_line()+
-  geom_errorbar(aes(ymin=distance_U_q25, ymax=distance_U_q75,
-                    colour =method), width=0.05)+
-  scale_color_manual(values = my_colors, breaks = legend_order,
-                     labels = labels_n) +
-  facet_grid(theta_strength~ p2, scales = "free",labeller = as_labeller(c(`10` = "q = 10",
-                                                                          `30` = "q = 30",
-                                                                          `50` = "q = 50",
-                                                                          `80` = "q = 80",
-                                                                          `100` = "n = 100",
-                                                                          `200` = "n = 200",
-                                                                          `300` = "n = 300",
-                                                                          `500` = "n = 500",
-                                                                          `high` = "High",
-                                                                          `1000` = "n = 1,000",
-                                                                          `2000` = "n = 2,000",
-                                                                          `10000` = "n = 10,000",
-                                                                          `medium` = "Medium",
-                                                                          `low` = "Low"
-                                                                          
-  ))) +
-  xlab("p") + 
-  ylab(expression("Distance U")) +
-  labs(colour="Method") + 
-  #scale_y_log10()+
-  scale_x_log10()+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-
-
-
-ggplot(summ %>% filter( r_pca == 5, r==2,
-                        nnzeros==10, 
-                        p2 == 30,
-                        p1==500,
-                        method %in% legend_order,
-                        overlapping_amount==1
-),
-aes(x=n, 
-    y = distance_tot_q50, 
-    colour =method)) +
-  geom_point()+
-  geom_line()+
-  geom_errorbar(aes(ymin=distance_tot_q25, ymax=distance_tot_q75,
-                    colour =method), width=0.05)+
-  scale_color_manual(values = my_colors, breaks = legend_order,
-                     labels = labels_n) +
-  facet_grid(p2~ theta_strength, scales = "free",labeller = as_labeller(c(`10` = "q = 10",
-                                                                          `30` = "q = 30",
-                                                                          `50` = "q = 50",
-                                                                          `70` = "q = 70",
-                                                                          `100` = "n = 100",
-                                                                          `200` = "n = 200",
-                                                                          `300` = "n = 300",
-                                                                          `500` = "n = 500",
-                                                                          `high` = "High",
-                                                                          `1000` = "n = 1,000",
-                                                                          `2000` = "n = 2,000",
-                                                                          `10000` = "n = 10,000",
-                                                                          `medium` = "Medium",
-                                                                          `low` = "Low"
-                                                                          
-  ))) +
-  xlab("n") + 
   ylab(expression("Subspace Distance")) +
   labs(colour="Method") + 
   scale_y_log10()+

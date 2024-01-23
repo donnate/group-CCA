@@ -29,7 +29,7 @@ source("elena/graph_reduced_rank_regression.R")
 #store all values above diagonal of connectome matrices in matrix c
 dir = '../fMRI-data/data/'
 
-activations <- read_csv("~/Downloads/activation (1).csv")
+activations <- read_csv2("~/Downloads/activation (1).csv")
 behaviour <- read_csv("~/Downloads/behavior.csv")
 group_assignment <- readxl::read_xlsx("~/Downloads/activation_groups.xlsx", col_names = FALSE)
 colnames(group_assignment) <- "group.id"
@@ -200,16 +200,16 @@ if (solver=="CVXR"){
  
   invSx0 = matrix(0, length(groups), p)
   rho = 10
-  for (gg in 1:length(groups)){
-    for (ggg in 1:length(groups)){
-      invSx0[gg, groups[[ggg]]] =  Sx[gg, ggg]/length(groups[[ggg]])
-    }
-  }
+  # for (gg in 1:length(groups)){
+  #   for (ggg in 1:length(groups)){
+  #     invSx0[gg, groups[[ggg]]] =  Sx[gg, ggg]/length(groups[[ggg]])
+  #   }
+  # }
   print(max(invSx0))
   niter = 100
   rho=10
   #Sx <- sapply(1:length(groups), function(g){ t(X[, groups[[g]]]) %*% X/n })
-  for (i in 1:niter){
+  for (i in 2:niter){
     Uold = U
     Zold = Z
     Bold = B
