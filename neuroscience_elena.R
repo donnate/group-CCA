@@ -33,8 +33,8 @@ lambda <- as.numeric(args[1])
 test_fold <- as.numeric(args[2])
 val_fold <- ifelse(test_fold < 16, test_fold + 1, 1)
 
-X <- as.matrix(vroom("data/activations_X_preprocessed.csv"))
-behaviour <- read_csv("data/activations_Y_preprocessed.csv")
+X <- as.matrix(vroom("data/activations_neuroscience"))
+behaviour <- read_csv("data/behavio")
 group_assignment <- readxl::read_xlsx("data/activation_groups.xlsx", col_names = FALSE)
 folds = t(read_csv("data/folds.csv"))
 
@@ -145,22 +145,22 @@ correlation <-
              lambda,
               test_fold,
              "val_fold" = val_fold,
-             diag(cov(as.matrix(X)[train_index,] %*% U,
-                      as.matrix(Y)[train_index,] %*%  V)),
-             apply(((as.matrix(X)[train_index,] %*% U) -
-                      (as.matrix(Y)[train_index,] %*%  V))^2, 2, mean),
-             diag(t(as.matrix(X)[test_index,] %*% U) %*%
-                    as.matrix(Y)[test_index,] %*% V),
-             apply(((as.matrix(X)[test_index,] %*% U) -
-                      (as.matrix(Y)[test_index,] %*%  V))^2, 2, mean),
-             diag(cor(as.matrix(X)[test_index,] %*% U),
-                    as.matrix(Y)[test_index,] %*% V),
-             diag(t(as.matrix(X)[val_index,] %*% U) %*%
-                    as.matrix(Y)[val_index,] %*% V),
-             apply(((as.matrix(X)[val_index,] %*% U) -
-                      (as.matrix(Y)[val_index,] %*%  V))^2, 2, mean),
-             diag(cor(as.matrix(X)[val_index,] %*% U),
-                  as.matrix(Y)[val_index,] %*% V)
+             diag(cov(as.matrix(X)[index_train,] %*% U,
+                      as.matrix(Y)[index_train,] %*%  V)),
+             apply(((as.matrix(X)[index_train,] %*% U) -
+                      (as.matrix(Y)[index_train,] %*%  V))^2, 2, mean),
+             diag(t(as.matrix(X)[index_test,] %*% U) %*%
+                    as.matrix(Y)[index_test,] %*% V),
+             apply(((as.matrix(X)[index_test,] %*% U) -
+                      (as.matrix(Y)[index_test,] %*%  V))^2, 2, mean),
+             diag(cor(as.matrix(X)[index_test,] %*% U),
+                    as.matrix(Y)[index_test,] %*% V),
+             diag(t(as.matrix(X)[index_val,] %*% U) %*%
+                    as.matrix(Y)[index_val,] %*% V),
+             apply(((as.matrix(X)[index_val,] %*% U) -
+                      (as.matrix(Y)[index_val,] %*%  V))^2, 2, mean),
+             diag(cor(as.matrix(X)[index_val,] %*% U),
+                  as.matrix(Y)[index_val,] %*% V)
   )
 
 write_csv(correlation, paste0("data/results_l", lambda, "_test_fold", test_fold, ".csv"))
