@@ -154,14 +154,14 @@ correlation <-
                     as.matrix(Y)[index_test,] %*% V),
              apply(((as.matrix(X)[index_test,] %*% U) -
                       (as.matrix(Y)[index_test,] %*%  V))^2, 2, mean),
-             diag(cor(as.matrix(X)[index_test,] %*% U),
-                    as.matrix(Y)[index_test,] %*% V),
+             diag(cor(as.matrix(X)[index_test,] %*% U,
+                    as.matrix(Y)[index_test,] %*% V)),
              diag(t(as.matrix(X)[index_val,] %*% U) %*%
                     as.matrix(Y)[index_val,] %*% V),
              apply(((as.matrix(X)[index_val,] %*% U) -
                       (as.matrix(Y)[index_val,] %*%  V))^2, 2, mean),
-             diag(cor(as.matrix(X)[index_val,] %*% U),
-                  as.matrix(Y)[index_val,] %*% V)
+             diag(cor(as.matrix(X)[index_val,] %*% U,
+                  as.matrix(Y)[index_val,] %*% V))
   )
 
 write_csv(correlation, paste0("data/results_l", lambda, "_test_fold", test_fold, ".csv"))
