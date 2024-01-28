@@ -146,22 +146,22 @@ correlation <-
              lambda,
               test_fold,
              "val_fold" = val_fold,
-             diag(cov(as.matrix(X)[train_index,] %*% U,
-                      as.matrix(Y)[train_index,] %*%  V)),
-             apply(((as.matrix(X)[train_index,] %*% U) -
-                      (as.matrix(Y)[train_index,] %*%  V))^2, 2, mean),
-             diag(t(as.matrix(X)[test_index,] %*% U) %*%
-                    as.matrix(Y)[test_index,] %*% V),
-             apply(((as.matrix(X)[test_index,] %*% U) -
-                      (as.matrix(Y)[test_index,] %*%  V))^2, 2, mean),
-             diag(cor(as.matrix(X)[test_index,] %*% U),
-                    as.matrix(Y)[test_index,] %*% V),
-             diag(t(as.matrix(X)[val_index,] %*% U) %*%
-                    as.matrix(Y)[val_index,] %*% V),
-             apply(((as.matrix(X)[val_index,] %*% U) -
-                      (as.matrix(Y)[val_index,] %*%  V))^2, 2, mean),
-             diag(cor(as.matrix(X)[val_index,] %*% U),
-                  as.matrix(Y)[val_index,] %*% V)
+             diag(cov(as.matrix(X)[index_train,] %*% U,
+                      as.matrix(Y)[index_train,] %*%  V)),
+             apply(((as.matrix(X)[index_train,] %*% U) -
+                      (as.matrix(Y)[index_train,] %*%  V))^2, 2, mean),
+             diag(t(as.matrix(X)[index_test,] %*% U) %*%
+                    as.matrix(Y)[index_test,] %*% V),
+             apply(((as.matrix(X)[index_test,] %*% U) -
+                      (as.matrix(Y)[index_test,] %*%  V))^2, 2, mean),
+             diag(cor(as.matrix(X)[index_test,] %*% U),
+                    as.matrix(Y)[index_test,] %*% V),
+             diag(t(as.matrix(X)[index_val,] %*% U) %*%
+                    as.matrix(Y)[index_val,] %*% V),
+             apply(((as.matrix(X)[index_val,] %*% U) -
+                      (as.matrix(Y)[index_val,] %*%  V))^2, 2, mean),
+             diag(cor(as.matrix(X)[index_val,] %*% U),
+                  as.matrix(Y)[index_val,] %*% V)
   )
 
 write_csv(correlation, paste0("data/results_l", lambda, "_test_fold", test_fold, ".csv"))
