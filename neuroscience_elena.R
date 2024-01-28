@@ -29,7 +29,7 @@ source("elena/graph_reduced_rank_regression.R")
 #store all values above diagonal of connectome matrices in matrix c
 dir = '../fMRI-data/data/'
 
-activations <- read_csv2("~/Downloads/activation (1).csv")
+activations <- read_csv("~/Downloads/activation_neuroscience.csv")
 behaviour <- read_csv("~/Downloads/behavior.csv")
 group_assignment <- readxl::read_xlsx("~/Downloads/activation_groups.xlsx", col_names = FALSE)
 colnames(group_assignment) <- "group.id"
@@ -37,8 +37,6 @@ index_groups = which(group_assignment$group.id!=0)
 activations  = activations[,c(1, 1+index_groups)]
 groups <- sapply(1:length(unique(group_assignment$group.id[index_groups])),
                  function(g){which(group_assignment$group.id[index_groups] == g)})
-
-name_subject = intersect(activations$Row, behaviour$participant_id)
 
 
 new_data = activations %>% inner_join(behaviour, join_by(Row == participant_id ))
@@ -72,30 +70,7 @@ for (i in 1:ncol(Y)){
 }
 
 
-STOP
-GM_mask = readnii("/Users/cdonnat/Documents/group-CCA/experiments/real-data/fMRI-data/data/gm_mask020_bin.nii.gz")
-GM_mask = readnii("/Users/cdonnat/Downloads/BN_Atlas_246_2mm.nii.gz")
-GM.d = GM_mask@.Data
-GM.d <- reshape2::melt(GM.d)
-colnames(GM.d)<- c("x", "y", "z", "GM")
-print(dim(GM.d))
-
-
-res_alt <- CCA_group_rrr(X, Y, 
-                         groups = groups[index_groups],
-                         Sx = NULL, Sy=NULL,
-                         lambda =lambda_chosen, Kx=NULL, 
-                         r=r, 
-                         solver="ADMM",
-                         LW_Sy = LW_Sy, do.scale=TRUE,
-                         rho=1, niter=2 * 1e4,
-                         thresh=1e-6)
-
-
-##### Grrrrr Need to adjust for gender
-
-##### Let us approximate Sx
-
+##### Split into different 
 
 n = nrow(X)
 p = ncol(X)
@@ -111,14 +86,11 @@ if (do.scale){
   Y <- scale(Y)
 }
 
+folds = createFolds(1:nrow(X), k=16)
+index_train = (1:nrow(X))[-c(folds$Fold01, folds$Fold02)]
+thresh = 1e-3
 
-newX = t(X)
-newX = data.frame(newX)
-newX["group.id"] = group_assignment$group.id[index_groups]
-#newX["ng"] = 1
-newX_summ = newX %>% group_by(group.id) %>% 
-  summarise_all(mean)
-Sx = as.matrix(newX_summ[, -c(1)]) %*% t(as.matrix(newX_summ[, -c(1)]))/n
+
 
 
 #test = pivot_longer(newX_summ, cols = -c("group.id", "ng"))
@@ -133,7 +105,7 @@ Sy = NULL
 LW_Sy = FALSE
 if (is.null(Sy)){
   ###
-  Sy = t(Y) %*% Y /n
+  Sy = t(Y[index_train,]) %*% Y[index_train,] /n
   if (LW_Sy){
     lw_cov <- corpcor::cov.shrink(Y)
     Sy <- as.matrix(lw_cov)
@@ -147,12 +119,7 @@ svd_Sy = svd(Sy)
 sqrt_inv_Sy = svd_Sy$u %*% diag(sapply(svd_Sy$d, function(x){ifelse(x > 1e-4, 
                                                                     1/sqrt(x), 0)}))  %*% t(svd_Sy$v)
 tilde_Y = Y %*% sqrt_inv_Sy
-Kx = NULL
-if(!is.null(Kx)){
-  Sx_tot = Sx + lambda_Kx * as.matrix(Kx) 
-}else{
-  Sx_tot = Sx
-}
+
 
 #lw_cov <- corpcor::cov.shrink(scale(t(as.matrix(newX_summ))))
 #Sx <- as.matrix(lw_cov)
@@ -162,31 +129,22 @@ print("lambda is")
 lambda = 0.1
 print(lambda)
 
-for (g in 1:length(groups)){
-  print(g)
-Sg = t(X[, groups[[g]]]) %*%X /n
-write_csv(data.frame(Sg), paste0("~/Downloads/groups_Sg", g, ".csv" ))
-}
+# large_groups = c(19, 18, 15, 13, 14,11, 12)
+# for (g in large_groups){
+#  print(g)
+#  Sg = t(X[index_train, groups[[g]]]) %*%X[index_train, ] /n
+#  write_csv(data.frame(Sg), paste0("~/Downloads/groups_Sg", g, ".csv" ))
+# }
 
-### Use CVXR
-if (solver=="CVXR"){
-  B <- Variable(p, q)
-  # Define the group lasso penalty
-  group_lasso_penalty <- 0
-  for (i in 1:length(groups)){
-    # Assuming you have a way to define the rows in each group
-    group_lasso_penalty <- group_lasso_penalty + norm(B[groups[[i]],], "2")
-  }
-  
-  objective <- Minimize(norm(tilde_Y- X %*% B, 'F')^2 + 
-                          lambda * group_lasso_penalty
-  )
-  
-  
-  problem <- Problem(objective)
-  result <- solve(problem)
-  B_opt <- result$getValue(B)
-}else{
+
+#STOP
+rho = 1
+svd_X = svd(X[index_train, ]/sqrt(n))
+#invSx = t(svd_X$v) %*% diag(1/ (svd_X$d + rho)) %*%  (svd_X$v)
+svd_left = (svd_X$v) %*% diag(1/ (svd_X$d + rho))
+#inv_Sx = svd_left %*% t(svd_X$v) 
+#plot(svd_X$d)
+{
   # nb_groups = length(unique(groups$group.id[index_groups]))
   # groups
   # all_groups = sort(unique(groups$group.id[index_groups]))
@@ -194,43 +152,49 @@ if (solver=="CVXR"){
   Z = matrix(0, p, q)
   B = matrix(0, p, q)
   
-  prod_xy = t(X) %*% tilde_Y/n
+  prod_xy = t(X[index_train,]) %*% tilde_Y[index_train,]/length(index_train)
   #invSx = solve(diag(sapply(1:g, function(gg){sqrt( length(groups[[gg]]))})) %*% Sx_tot %*% diag(sapply(1:g, function(gg){sqrt( length(groups[[gg]]))})) + rho *diag(rep(1, nrow(Sx_tot))))
   #### dispatch
  
-  invSx0 = matrix(0, length(groups), p)
-  rho = 10
+  #invSx0 = matrix(0, length(groups), p)
+ 
   # for (gg in 1:length(groups)){
   #   for (ggg in 1:length(groups)){
   #     invSx0[gg, groups[[ggg]]] =  Sx[gg, ggg]/length(groups[[ggg]])
   #   }
   # }
-  print(max(invSx0))
+  #print(max(invSx0))
   niter = 100
-  rho=10
+  #rho=10
   #Sx <- sapply(1:length(groups), function(g){ t(X[, groups[[g]]]) %*% X/n })
-  for (i in 2:niter){
+  for (i in 1:niter){
     Uold = U
     Zold = Z
     Bold = B
-    for (g in 1:length(groups)){
-      #print(paste0("group g = ", g))
-      #eye = matrix(0, length(groups[[g]]), p)
-      #eye[, groups[[g]]] =diag(1, length(groups[[g]]))
-      #time1<-tic()
-      #Sg <- read_csv2(paste0("~/Downloads/groups_Sg", g, ".csv" ))
-      #time2<-toc()
-      #print(time2)
-      
-      time1<-tic()
-      Sg <- t(X[, groups[[g]]]) %*%X /n
-      time2<-toc()
-      print(time2)
-      
-      B[groups[[g]],] <- -1/rho^2 * invSx0[g,]  %*% (prod_xy  + rho* (Z - U))
-      #B[groups[[g]],] <- -1/rho^2 *  (t(X[, groups[[g]]]) %*% X/n)   %*% (prod_xy  + rho* (Z - U))
-      B[groups[[g]],] <- B[groups[[g]],]  + 1/rho * (prod_xy[groups[[g]],]   + rho* (Z - U)[groups[[g]],])
-    }
+    time1<-tic()
+    B = svd_left  %*% t(svd_X$v) %*% (prod_xy  + rho * (Z - U))
+    time2<-toc()
+    print(paste0("iteration ", i, " time = ", time2))
+    # for (g in 1:length(groups)){
+    #   #print(paste0("group g = ", g))
+    #   #eye = matrix(0, length(groups[[g]]), p)
+    #   #eye[, groups[[g]]] =diag(1, length(groups[[g]]))
+    #   #time1<-tic()
+    #   #Sg <- read_csv2(paste0("~/Downloads/groups_Sg", g, ".csv" ))
+    #   #time2<-toc()
+    #   #print(time2)
+    #   
+    #   #time1<-tic()
+    #   #Sg <- t(X[index_train, groups[[g]]]) %*%X /n
+    # 
+    #   
+    #   #B[groups[[g]],] <- -1/rho^2 * invSx0[g,]  %*% (prod_xy  + rho* (Z - U))
+    #   time1<-tic()
+    #     B[groups[[g]],] <- -1/rho^2 *  (t(X[index_train, groups[[g]]]) %*% X[index_train, ]/n)   %*% (prod_xy  + rho* (Z - U)) 
+    #   B[groups[[g]],] <- B[groups[[g]],]  + 1/rho * (prod_xy[groups[[g]],]   + rho* (Z - U)[groups[[g]],])
+    #   time2<-toc()
+    #   print(paste0("group ", g, " time =",time2))
+    # }
     print(max(B))
     Z = B + U
     norm_col = sapply(1:length(groups), function(g){sqrt(sum(Z[groups[[g]],]^2))})
@@ -239,10 +203,10 @@ if (solver=="CVXR"){
         Z[groups[[g]],] = 0
         print(g)
       }else{
-        print(c(g,  (1- (lambda * sqrt(length(groups[[g]])) /rho)/norm_col[g]) ))
+        #print(c(g,  (1- (lambda * sqrt(length(groups[[g]])) /rho)/norm_col[g]) ))
         Z[groups[[g]],] =  (1- (lambda * sqrt(length(groups[[g]])) /rho)/norm_col[g]) * Z[groups[[g]],]
       }
-      print(max( Z[groups[[g]],]))
+      print(paste("Max of group ", g, " is ", max( Z[groups[[g]],])))
     }
     U = U + B - Z
     print(c("ADMM iter", i, norm(Z - B)/sqrt(p), norm(Zold - Z)/sqrt(p), norm(Uold - U)/sqrt(p)))
@@ -252,9 +216,19 @@ if (solver=="CVXR"){
   }
   B_opt = B
 }
-
+STOP
+### groups 3, 4, 7,, 8, 10 , 11, 15, 18,19 should be computed ahead
 B_opt[which(abs(B_opt)<1e-5)] = 0
 print(B_opt)
+
+newX = t(X[index_train,])
+newX = data.frame(newX[index_train,])
+newX["group.id"] = group_assignment$group.id[index_groups]
+#newX["ng"] = 1
+newX_summ = newX %>% group_by(group.id) %>% 
+  summarise_all(mean)
+Sx = as.matrix(newX_summ[, -c(1)]) %*% t(as.matrix(newX_summ[, -c(1)]))/n
+
 
 svd_Sx = svd(Sx)
 sqrt_Sx = svd_Sx$u %*% diag(sapply(svd_Sx$d, function(x){ifelse(x > 1e-4, sqrt(x), 0)}))  %*% t(svd_Sx$u)
