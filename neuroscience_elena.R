@@ -1,7 +1,4 @@
 library(tidyverse)
-library(RNifti)
-library(oro.nifti)
-library(neurobase)
 library(tidyverse)
 library(igraph)
 library(ggplot2)
@@ -33,7 +30,8 @@ lambda <- as.numeric(args[1])
 test_fold <- as.numeric(args[2])
 val_fold <- ifelse(test_fold < 16, test_fold + 1, 1)
 
-X <- as.matrix(vroom("data/activations_X_preprocessed.csv"))
+X <- (vroom("data/activations_X_preprocessed.csv"))
+print("Done loading X")
 behaviour <- read_csv("data/activations_Y_preprocessed.csv")
 group_assignment <- readxl::read_xlsx("data/activation_groups.xlsx", col_names = FALSE)
 folds = t(read_csv("data/folds.csv"))
@@ -92,7 +90,9 @@ print(lambda)
 
 #STOP
 svd_X = svd(X[index_train, ]/sqrt(n))
+print("Done with the SVD")
 svd_left = (svd_X$v) %*% diag(1/ (svd_X$d + rho))
+print("Done with svd_left")
 {
 
   U = matrix(0, p, q)
@@ -100,6 +100,7 @@ svd_left = (svd_X$v) %*% diag(1/ (svd_X$d + rho))
   B = matrix(0, p, q)
   
   prod_xy = t(X[index_train,]) %*% tilde_Y[index_train,]/length(index_train)
+  print("Starting iter")
   for (i in 1:niter){
     Uold = U
     Zold = Z
