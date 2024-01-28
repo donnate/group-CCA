@@ -5,6 +5,7 @@ library(neurobase)
 library(tidyverse)
 library(igraph)
 library(ggplot2)
+library(vroom)
 library(dplyr)
 library(fields)
 library(CCA)
@@ -32,8 +33,8 @@ lambda <- as.numeric(args[1])
 test_fold <- as.numeric(args[2])
 val_fold <- ifelse(test_fold < 16, test_fold + 1, 1)
 
-activations <- read_csv("data/activation_neuroscience.csv")
-behaviour <- read_csv("data/behavior.csv")
+X <- as.matrix(vroom("data/activations_X_preprocessed.csv"))
+behaviour <- read_csv("data/activations_Y_preprocessed.csv")
 group_assignment <- readxl::read_xlsx("data/activation_groups.xlsx", col_names = FALSE)
 folds = t(read_csv("data/folds.csv"))
 
@@ -42,7 +43,7 @@ index_groups = which(group_assignment$group.id!=0)
 groups <- sapply(1:length(unique(group_assignment$group.id[index_groups])),
                  function(g){which(group_assignment$group.id[index_groups] == g)})
 
-
+Y = as.matrix(behaviour)
 n = nrow(X)
 p = ncol(X)
 q = ncol(Y)
