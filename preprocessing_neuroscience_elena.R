@@ -39,21 +39,52 @@ Y = Y[ , c("bas_drive" ,
            "masq_anxarousal", "panas_positive","panas_negative")]
 females = which(gender == "F")
 males = which(gender == "M")
-means_f = colMeans(X[females, ])
-means_m = colMeans(X[males, ])
-X[females, ] = X[females, ] + (means_m - means_f)
+# Compute initial means
+means_qf = colMeans(X[females,], na.rm=TRUE)
+means_qm = colMeans(X[males,], na.rm=TRUE)
 
-means_qf = colMeans(Y[females,  ], na.rm=TRUE)
-means_qm = colMeans(Y[males, ], na.rm=TRUE)
-Y[females, ] = Y[females, ] + (means_m - means_f)
+# Calculate the difference in means
+mean_diff = means_qm - means_qf
 
-# Calculate column means, excluding NAs
-column_means <- colMeans(Y, na.rm = TRUE)
+# Adjust the female data
+X[females,] = X[females,] + matrix(rep(mean_diff, nrow(X[females,])), nrow=nrow(X[females,]), byrow=TRUE)
+
+# Recompute means to check
+new_means_qf = colMeans(X[females,], na.rm=TRUE)
+new_means_qm = colMeans(X[males,], na.rm=TRUE)
+
+# Check if the means are now equal
+all.equal(new_means_qf, new_means_qm)
+
+
+# Compute initial means
+means_qf = colMeans(Y[females,], na.rm=TRUE)
+means_qm = colMeans(Y[males,], na.rm=TRUE)
+
+# Calculate the difference in means
+mean_diff = means_qm - means_qf
+
+# Adjust the female data
+Y[females,] = Y[females,] + matrix(rep(mean_diff, nrow(Y[females,])), nrow=nrow(Y[females,]), byrow=TRUE)
+
+# Recompute means to check
+new_means_qf = colMeans(Y[females,], na.rm=TRUE)
+new_means_qm = colMeans(Y[males,], na.rm=TRUE)
+
+# Check if the means are now equal
+all.equal(new_means_qf, new_means_qm)
 
 # Replace NA values with column means
+column_means <- colMeans(Y, na.rm = TRUE)
+
 for (i in 1:ncol(Y)){
   Y[is.na(Y[,i]), i] <- column_means[i]
 }
+
+
+
+
+
 
 
 ##### Split into different 
@@ -71,8 +102,12 @@ if (do.scale){
   X <- scale(X)
   Y <- scale(Y)
 }
-write_csv(X, "data/activations_X_preprocessed.csv")
-write_csv(Y, "data/activations_Y_preprocessed.csv")
+write_csv(data.frame(X), "data/activations_X_preprocessed.csv")
+write_csv(data.frame(Y), "data/activations_Y_preprocessed.csv")
 
 folds = createFolds(1:nrow(X), k=16)
-write_csv(folds, "data/folds.csv")
+foldVector <- seq(from = 1, to = nrow(X), by = 10)
+folds = split(sample(1:nrow(X), nrow(X)), foldVector)
+write_csv(t(data.frame(folds)), "data/folds.csv")
+
+
