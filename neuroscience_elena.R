@@ -106,7 +106,7 @@ print("Done with svd_left")
     Zold = Z
     Bold = B
     time1<-tic()
-    B = svd_left  %*% t(svd_X$v) %*% (prod_xy  + rho * (Z - U))
+    B = svd_left  %*% (t(svd_X$v) %*% (prod_xy  + rho * (Z - U)))
     time2<-toc()
     print(paste0("iteration ", i, " time = ", time2))
     print(max(B))
@@ -135,7 +135,7 @@ print("Done with svd_left")
 B_opt[which(abs(B_opt)<1e-5)] = 0
 print(B_opt)
 
-sol = svd((svd_X$v) %*% diag(sapply(svd_Sx$d, function(x){ifelse(x > 1e-4, sqrt(x), 0)}))  %*% t(svd_X$v)  %*% B_opt)
+sol = svd(((svd_X$v) %*% diag(sapply(svd_Sx$d, function(x){ifelse(x > 1e-4, sqrt(x), 0)})))  %*% (t(svd_X$v)  %*% B_opt))
 #sol = svd(t(B_OLS[I, ]), nu = r, nv=r)
 V = sqrt_inv_Sy %*% sol$v[, 1:r]
 inv_D = diag(sapply(1:r, FUN=function(x){ifelse(sol$d[x]<1e-4, 0, 1/sol$d[x])}))
