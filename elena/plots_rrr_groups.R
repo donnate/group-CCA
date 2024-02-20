@@ -4,9 +4,9 @@ library(pracma)
 library(tidyverse)
 theme_set(theme_bw(base_size = 14))
 setwd("~/Documents/group-CCA/elena/")
-# file_list <- list.files(path = "~/Documents/group-CCA/elena/missing/results", 
-#                         pattern = "2024-group-newest_RRR_efficient_results14*", full.names = TRUE)
-# results <- bind_rows(lapply(file_list, read.csv))
+file_list <- list.files(path = "~/Documents/group-CCA/elena/missing/results", 
+                         pattern = "2024-group-newest_RRR_efficient_results14*", full.names = TRUE)
+results <- bind_rows(lapply(file_list, read.csv))
 # 
 # 
 # summ = results %>% group_by(n, p1, p2, r, r_pca,

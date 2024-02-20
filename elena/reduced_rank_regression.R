@@ -85,7 +85,7 @@ CCA_rrr = function(X, Y, Sx=NULL, Sy=NULL,
           prod_xy = t(X) %*% tilde_Y/ n
           invSx = solve(Sx_tot + rho * diag(rep(1, p)))
           for (i in 1:niter){
-            #print(paste0("lambda is ", lambda))
+            #print(paste0("iter is ", i))
             Uold = U
             Zold = Z
             B = invSx %*% (prod_xy  + rho * (Z - U))
@@ -223,7 +223,7 @@ CCA_rrr.CV<- function(X, Y,
     resultsx$rmse[which((resultsx$rmse) ==0)] = 1e8
     resultsx = resultsx %>% filter(rmse > 1e-5) 
     opt_lambda <- resultsx$lambda[which.min(resultsx$rmse)]
-    print(c("selected", opt_lambda))
+    #print(c("selected", opt_lambda))
     rmse <- resultsx$rmse
     if(is.na(opt_lambda) | is.null(opt_lambda)){
       opt_lambda = 0.1
@@ -237,7 +237,7 @@ CCA_rrr.CV<- function(X, Y,
                      LW_Sy =  LW_Sy, 
                      rho=rho,
                      niter=niter, thresh=thresh)
-    print(resultsx)
+    #print(resultsx)
   }else{
     print("Using rrr CV")
     svd_Sy = svd(Sy)

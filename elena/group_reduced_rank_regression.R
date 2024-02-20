@@ -23,7 +23,8 @@ CCA_group_rrr.folds<- function(X, Y,
                                solver= "ADMM",
                                rho=1,
                                niter=1e4,
-                               thresh=1e-4) {
+                               thresh=1e-4,
+                               verbose=FALSE) {
   # define empty vector to store results
   folds <- createFolds(1:nrow(Y), k = kfolds, list = TRUE, returnTrain = FALSE)
   rmse <- rep(1e8, kfolds)
@@ -69,7 +70,7 @@ CCA_group_rrr.folds<- function(X, Y,
       })
   }
   
-  print(c(lambda, rmse))
+  #print(c(lambda, rmse))
   # return mean RMSE across folds
   if (mean(is.na(rmse)) == 1){
     return(1e8)
@@ -156,14 +157,14 @@ CCA_group_rrr.CV<- function(X, Y,
   resultsx$rmse[which((resultsx$rmse) ==0)] = 1e8
   resultsx = resultsx %>% filter(rmse > 1e-5) 
   opt_lambda <- resultsx$lambda[which.min(resultsx$rmse)]
-  print(c("selected", opt_lambda))
+  #print(c("selected", opt_lambda))
   rmse <- resultsx$rmse
   if(is.na(opt_lambda) | is.null(opt_lambda)){
     opt_lambda = 0.1
   }
   #plot(log(resultsx$lambda), resultsx$rmse)
   opt_lambda <- resultsx$lambda[which.min(resultsx$rmse)]
-  print(c("selected", opt_lambda))
+  #print(c("selected", opt_lambda))
   rmse = resultsx$rmse
   final <-CCA_group_rrr(X, Y, groups, 
                         Sx = Sx, Sy = Sy, 
@@ -176,7 +177,7 @@ CCA_group_rrr.CV<- function(X, Y,
                   rho=rho,
                   niter=niter)
   
-  print(resultsx)
+  #print(resultsx)
   return(list( ufinal = final$U, 
                vfinal = final$V,
                lambda=opt_lambda,
@@ -198,7 +199,8 @@ CCA_group_rrr = function(X, Y,
                          solver = "ADMM",
                          rho=1,
                          niter=1e4,
-                         thresh=1e-4){
+                         thresh=1e-4,
+                         verbose=FALSE){
   # solve RRR: ||Y-XB|| + tr(Bt K B)
   n = nrow(X)
   p = ncol(X)
@@ -275,20 +277,23 @@ CCA_group_rrr = function(X, Y,
     for (i in 1:niter){
       Uold = U
       Zold = Z
-      B = invSx %*% (prod_xy  + (Z - U))
+      B = invSx %*% (prod_xy  + rho  * (Z - U))
       Bold = B
       Z = B + U
       norm_col = sapply(1:length(groups), function(i){sqrt(sum(Z[groups[[i]],]^2))})
       for (g in 1:length(groups)){
-        if(norm_col[g] < lambda * sqrt(length(groups[[g]]))){
+        if(norm_col[g] < lambda * sqrt(length(groups[[g]]))/rho){
           Z[groups[[g]],] = 0
         }else{
           Z[groups[[g]],] =  (1- (lambda * sqrt(length(groups[[g]])) /rho)/norm_col[g]) * Z[groups[[g]],]
         }
       }
       U = U + B - Z
-      print(c("ADMM iter", i, norm(Z - B), norm(Zold - Z), norm(Uold - U)))
-      if (max(c(norm(Z - B), norm(Zold - Z))) <thresh){
+      if (verbose){
+        print(c("ADMM iter", i, norm(Z - B), norm(Zold - Z), norm(Uold - U)))
+        
+      }
+     if (max(c(norm(Z - B), norm(Zold - Z))) <thresh){
         break
       }
     }
@@ -296,21 +301,27 @@ CCA_group_rrr = function(X, Y,
   }
   
   B_opt[which(abs(B_opt)<1e-5)] = 0
-  print(B_opt)
+  
+  if (verbose){
+    print(B_opt)
+  }
     
   svd_Sx = svd(Sx)
   sqrt_Sx = svd_Sx$u %*% diag(sapply(svd_Sx$d, function(x){ifelse(x > 1e-4, sqrt(x), 0)}))  %*% t(svd_Sx$u)
   sqrt_inv_Sx = svd_Sx$u %*% diag(sapply(svd_Sx$d, function(x){ifelse(x > 1e-4, 1/sqrt(x), 0)}))  %*% t(svd_Sx$u)
   sol = svd(sqrt_Sx %*% B_opt)
-  print(sqrt_Sx %*% B_opt)
+  #print(sqrt_Sx %*% B_opt)
   #sol = svd(t(B_OLS[I, ]), nu = r, nv=r)
   V = sqrt_inv_Sy %*% sol$v[, 1:r]
   #U = matrix(0, p, r)
   # B = U \tilde{V} 
   inv_D = diag(sapply(1:r, FUN=function(x){ifelse(sol$d[x]<1e-4, 0, 1/sol$d[x])}))
   U = B_opt %*% sol$v[, 1:r] %*% inv_D ### = U\lambda
-  print(t(U) %*% Sx %*% U)
-  print(t(V) %*% Sy %*% V)
+  if (verbose){
+    print(t(U) %*% Sx %*% U)
+    print(t(V) %*% Sy %*% V)    
+  }
+
   
   
   

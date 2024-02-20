@@ -265,7 +265,7 @@ i=4
 positions$color = final$ufinal[,i]
 # Calculate the thresholds
 top_10_percent <- quantile(positions$color, 0.90)
-bottom_10_percent <- -10#quantile(positions$color, 0.15)
+bottom_10_percent <- quantile(positions$color, 0.10)
 
 
 positions$labels = node_name$label_short
