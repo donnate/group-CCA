@@ -102,11 +102,9 @@ for (i in  1:length(folds)){
     
     print(paste0("Starting ", method))
     tryCatch({
-      test1<-additional_checks(as.matrix(X)[-c(folds[[index]],
-                                                           folds[[index2]]),], as.matrix(Y)[-c(folds[[index]],
-                                                                                                           folds[[index2]]),],
+      test1<-additional_checks(as.matrix(X)[-c(folds[[index2]]),], as.matrix(Y)[-c(folds[[index2]]),],
                                S=NULL, 
-                               rank=r, kfolds=5, 
+                               rank=r, kfolds=8, 
                                method.type = method,
                                lambdax= 10^seq(-3,1, length.out = 30),
                                lambday =  10^seq(-3,1, length.out = 30))
@@ -177,6 +175,7 @@ ggplot(summary_correlation %>%
   geom_point(aes(x = as.numeric(lambda), y=test_mse))+
   scale_x_log10()
 
+
 lambda_opt = summary_correlation$lambda[which.min(summary_correlation$train_mse[which(summary_correlation$method ==  "CCA_graph_rrr")])]
 lambda_opt = 0.009236709
 
@@ -193,19 +192,76 @@ latex_table <- kable(relevant_correlations, format = "latex", booktabs = TRUE)
 
 
 r = 5
+
+"Waaijenborg-Author", "Waaijenborg-CV",
+"SCCA_Parkhomenko"
 test1<-additional_checks(as.matrix(X), as.matrix(Y),  
                          S=NULL, 
                          rank=r, kfolds=5, 
-                         method.type = "FIT_SAR_CV",
+                         method.type =  "FIT_SAR_CV",
                          lambdax= 10^seq(-3,1, length.out = 30),
                          lambday = c(0))
 
-#df = data.frame(1/sqrt(nrow(X)) * as.matrix(X)%*% test1$u) #)
-df = data.frame(1/sqrt(nrow(X)) * as.matrix(Y)%*% test1$v) #)
+df = data.frame(1/sqrt(nrow(X)) * as.matrix(X)%*% test1$u) #)
+#df = data.frame(1/sqrt(nrow(X)) * as.matrix(X)%*% final$U) #)
+#df = data.frame(1/sqrt(nrow(X)) * as.matrix(Y)%*% test1$v) #)
 gen =  nutrimouse$genotype
 diet = nutrimouse$diet
 df["diet"] = diet
 df["gen"] = gen
+
+
+
+set.seed(107)
+ inTrain <- createDataPartition(
+  y = df$diet,
+  ## the outcome data are needed
+  p = .75,
+  ## The percentage of data in the
+  ## training set
+  list = FALSE
+)
+training <- df[ inTrain,]
+testing  <- df[-inTrain,]
+svm_model <- train(diet ~ .-gen, data = training, method = "lda",
+                   trControl = trainControl(method = "cv", number = 5),
+                   preProcess = c("center", "scale"),
+                   tuneLength = 5)
+# Evaluate the model
+predictions <- predict(svm_model, newdata = testing)
+confusionMatrix(predictions, testing$diet)
+
+test_cluster = kmeans(1/sqrt(nrow(X)) * as.matrix(X)%*% test1$u[,1:5], 2) #)
+library(mclust)
+model <- Mclust(1/sqrt(nrow(X)) * as.matrix(X)%*% test1$u, G=5:5)
+confusionMatrix(factor(model$classification), factor(as.numeric(df$diet)))
+
+
+
+# inTrain2 <- createDataPartition(
+#   y = df$gen,
+#   ## the outcome data are needed
+#   p = .75,
+#   ## The percentage of data in the
+#   ## training set
+#   list = FALSE
+# )
+training2 <- df[ inTrain2,]
+testing2  <- df[-inTrain2,]
+svm_model <- train(gen ~ .-diet, data = training2, 
+                   method = "lda",
+                   trControl = trainControl(method = "cv", number = 5),
+                   preProcess = c("center", "scale"),
+                   tuneLength = 5)
+predictions <- predict(svm_model, newdata = testing2)
+confusionMatrix(predictions, testing2$gen)
+
+
+test_cluster2 = kmeans(1/sqrt(nrow(X)) * as.matrix(X)%*% test1$u[,1:5], 2) #)
+model <- Mclust(1/sqrt(nrow(X)) * as.matrix(X)%*% test1$u, G=2:2)
+confusionMatrix(factor(model$classification), factor(as.numeric(df$gen)))
+
+
 
 library(ellipse)
 legend_order <- c("lin", "sun", "fish",
@@ -216,7 +272,8 @@ my_colors <- c(  "red","orange",  "dodgerblue",
                  #"navyblue", #"cyan", 
                  #"dodgerblue"
 )
-
+test_cluster = kmeans(1/sqrt(nrow(X)) * as.matrix(X)%*% test1$u, 5) #)
+confusionMatrix(factor(test_cluster$cluster), factor(as.numeric(df$diet)))
 labels_n <-   c("LIN", "SUN", "FISH",
                 "REF", "COC")
 
@@ -398,11 +455,18 @@ df_V = pivot_longer(df_V, cols=-c("Hepatic Fatty Acids"))
 theme_set(theme_bw(base_size = 18))
 ggplot(df_V, aes(x = value, y = reorder(`Hepatic Fatty Acids`, value), fill=name)) +
   geom_bar(stat = "identity", show.legend = FALSE) +
-  facet_wrap(~ name) +
+  facet_wrap(~ name, scale="free_y", nrow=1) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   labs(y = "Hepatic Fatty Acids", x = "Response Intensity") + 
   labs(fill = "Canonical\nDirection")
 
+
+ggplot(df_V %>% filter(abs(value) > 1e-1) %>% mutate(row = ifelse(name %in% c("CD-4", "CD-5"), 2,1)), aes(x = value, y = reorder(`Hepatic Fatty Acids`, value), fill=name)) +
+  geom_bar(stat = "identity", show.legend = FALSE) +
+  facet_wrap(.~name, scale="free_y") +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  labs(y = "Hepatic Fatty Acids", x = "Loading Value") + 
+  labs(fill = "Canonical\nDirection")
 
 Uhat_comp = test1$u
 rownames(Uhat_comp) = colnames(X)
@@ -430,6 +494,7 @@ ggplot(df_U %>% filter(abs(value) > 1e-1), aes(x = value, y = reorder(`Gene`, va
 
 
 r = 5
+LW_Sy = TRUE
 final = CCA_rrr(as.matrix(X),
                 as.matrix(Y),  
                 lambda = 0.1, 
@@ -441,11 +506,58 @@ final = CCA_rrr(as.matrix(X),
                 LW_Sy = LW_Sy)
 
 df = data.frame(1/sqrt(nrow(X)) * as.matrix(X)%*% final$U) #)
-df = data.frame(1/sqrt(nrow(X)) * as.matrix(Y)%*% final$V) #)
+#df = data.frame(1/sqrt(nrow(X)) * as.matrix(X)%*% final$U) #)
+#df = data.frame(1/sqrt(nrow(X)) * as.matrix(Y)%*% test1$v) #)
 gen =  nutrimouse$genotype
 diet = nutrimouse$diet
 df["diet"] = diet
 df["gen"] = gen
+
+
+set.seed(107)
+inTrain <- createDataPartition(
+  y = df$diet,
+  ## the outcome data are needed
+  p = .75,
+  ## The percentage of data in the
+  ## training set
+  list = FALSE
+)
+#training <- df[ inTrain,]
+#testing  <- df[-inTrain,]
+svm_model <- train(diet ~ .-gen, data = training, method = "lda",
+                   trControl = trainControl(method = "cv", number = 5),
+                   preProcess = c("center", "scale"),
+                   tuneLength = 5)
+# Evaluate the model
+predictions <- predict(svm_model, newdata = testing)
+confusionMatrix(predictions, testing$diet)
+
+library(mclust)
+model <- Mclust(1/sqrt(nrow(X)) * as.matrix(X)%*% final$U[, 1:2], G=5:5)
+confusionMatrix(factor(model$classification), factor(as.numeric(df$diet)))
+
+
+
+inTrain2 <- createDataPartition(
+  y = df$gen,
+  ## the outcome data are needed
+  p = .80,
+  ## The percentage of data in the
+  ## training set
+  list = FALSE
+)
+training2 <- df[ inTrain2,]
+testing2  <- df[-inTrain2,]
+svm_model <- train(gen ~ .-diet, data = training2, 
+                   method = "lda",
+                   trControl = trainControl(method = "cv", number = 5),
+                   #preProcess = c("center", "scale"),
+                   tuneLength = 5)
+predictions <- predict(svm_model, newdata = testing2)
+confusionMatrix(predictions, testing2$gen)
+model <- Mclust(1/sqrt(nrow(X)) * as.matrix(X)%*% final$U, G=2:2)
+confusionMatrix(factor(model$classification), factor(as.numeric(df$gen)))
 
 library(ellipse)
 legend_order <- c("lin", "sun", "fish",
@@ -464,7 +576,7 @@ ellipse.level =0.95
 theme_set(theme_bw(base_size = 18))
 ggplot(df, aes(x=X1, y=X2 ,colour=diet))+
   geom_point(aes( shape=gen), size = 4)+
-  geom_text(aes(label = gen), vjust = -0.4, show.legend = FALSE)+
+  geom_text(aes(label = gen), vjust = -1, show.legend = FALSE)+
   scale_color_manual(values = my_colors, breaks = legend_order,
                      labels = labels_n) +
   geom_path(data=data.frame(ellipse(cov(t(rbind(df$X1[which(diet=="lin")], 
@@ -512,12 +624,12 @@ ggplot(df, aes(x=X1, y=X2 ,colour=diet))+
   xlab("CD-1") + 
   ylab("CD-2")+
   labs(colour = "Diet", shape = "Genotype")+
-  guides(colour = guide_legend(override.aes = list(size = 2)))
+  guides(colour = guide_legend(override.aes = list(size = 3)))
 
 
 ggplot(df, aes(x=X3, y=X4 ,colour=diet))+
   geom_point(aes( shape=gen), size = 4)+
-  geom_text(aes(label = gen), vjust = -0.4, show.legend = FALSE)+
+  geom_text(aes(label = gen), vjust = -1, show.legend = FALSE)+
   scale_color_manual(values = my_colors, breaks = legend_order,
                      labels = labels_n) +
   geom_path(data=data.frame(ellipse(cov(t(rbind(df$X3[which(diet=="lin")], 
@@ -570,7 +682,7 @@ ggplot(df, aes(x=X3, y=X4 ,colour=diet))+
 
 ggplot(df, aes(x=X1, y=X5 ,colour=diet))+
   geom_point(aes( shape=gen), size = 4)+
-  geom_text(aes(label = gen), vjust = -0.4, show.legend = FALSE)+
+  geom_text(aes(label = gen), vjust = -1, show.legend = FALSE)+
   scale_color_manual(values = my_colors, breaks = legend_order,
                      labels = labels_n) +
   geom_path(data=data.frame(ellipse(cov(t(rbind(df$X1[which(diet=="lin")], 
@@ -618,7 +730,7 @@ ggplot(df, aes(x=X1, y=X5 ,colour=diet))+
   xlab("CD-1") + 
   ylab("CD-5")+
   labs(colour = "Diet", shape = "Genotype")+
-  guides(colour = guide_legend(override.aes = list(size = 2)))
+  guides(colour = guide_legend(override.aes = list(size = 3)))
 
 
 Vhat_comp = final$V
@@ -638,7 +750,7 @@ df_V = pivot_longer(df_V, cols=-c("Hepatic Fatty Acids"))
 theme_set(theme_bw(base_size = 18))
 ggplot(df_V %>% filter(abs(value) > 1e-1) %>% mutate(row = ifelse(name %in% c("CD-4", "CD-5"), 2,1)), aes(x = value, y = reorder(`Hepatic Fatty Acids`, value), fill=name)) +
   geom_bar(stat = "identity", show.legend = FALSE) +
-  facet_wrap(.~name) +
+  facet_wrap(.~name, scale="free_y", nrow=1) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   labs(y = "Hepatic Fatty Acids", x = "Loading Value") + 
   labs(fill = "Canonical\nDirection")
@@ -663,7 +775,8 @@ theme_set(theme_bw(base_size = 18))
 ggplot(df_U %>% filter(abs(value) > 1e-1), aes(x = value, y = reorder(`Gene`, value), 
                                                fill=name)) +
   geom_bar(stat = "identity", show.legend = FALSE) +
-  facet_wrap(~name) +
+  facet_wrap(~name, scale="free_y", nrow=1) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   labs(y = "Gene", x = "Loading Value") + 
   labs(fill = "Canonical\nDirection")
+

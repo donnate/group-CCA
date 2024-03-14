@@ -68,7 +68,7 @@ CCA_graph_rrr.folds<- function(X, Y,
       })
   }
   
-  print(c(lambda, rmse))
+  #print(c(lambda, rmse))
   # return mean RMSE across folds
   if (mean(is.na(rmse)) == 1){
     return(1e8)
@@ -155,7 +155,7 @@ CCA_graph_rrr.CV<- function(X, Y,
   resultsx = resultsx %>% filter(rmse > 1e-5)
   #plot(log(resultsx$lambda), resultsx$rmse)
   opt_lambda <- resultsx$lambda[which.min(resultsx$rmse)]
-  print(c("selected", opt_lambda))
+  #print(c("selected", opt_lambda))
   rmse = resultsx$rmse
   final <-CCA_graph_rrr(X, Y, Gamma, 
                         Sx = NULL, Sy = NULL, 
@@ -169,7 +169,7 @@ CCA_graph_rrr.CV<- function(X, Y,
                   thresh=thresh,
                   Gamma_dagger = Gamma_dagger)
   
-  print(resultsx)
+  #print(resultsx)
   return(list( ufinal = final$U, 
                vfinal = final$V,
                lambda=opt_lambda,
@@ -191,6 +191,7 @@ CCA_graph_rrr = function(X, Y,
                          rho=10,
                          niter=1e4,
                          thresh=1e-4,
+                         verbose=FALSE,
                          Gamma_dagger = NULL){
   # solve RRR: ||Y-XB|| + tr(Bt K B)
   n = nrow(X)
@@ -274,7 +275,7 @@ CCA_graph_rrr = function(X, Y,
     if(length(index_0)>0){
       Z[index_0,] = 0
     }
-    print(length(index_pos))
+    #print(length(index_pos))
     if(length(index_pos)>1){
       Z[index_pos,] = diag(sapply(index_pos, function(x){ 1- (lambda/rho)/norm_col[x]})) %*% Z[index_pos,] 
     }else{
@@ -283,7 +284,10 @@ CCA_graph_rrr = function(X, Y,
       }
     }
     U = U + B - Z
-    print(c("ADMM iter", i, norm(Z - B), norm(Zold - Z), norm(Uold - U)))
+    if (verbose){
+      print(c("ADMM iter", i, norm(Z - B), norm(Zold - Z), norm(Uold - U)))
+      
+    }
     if (max(c(norm(Z - B)/sqrt(new_p), norm(Zold - Z)/sqrt(new_p))) <thresh){
       break
     }
@@ -291,21 +295,27 @@ CCA_graph_rrr = function(X, Y,
   
   B_opt = Gamma_dagger %*% B + Pi %*% Projection
   B_opt[which(abs(B_opt)<1e-5)] = 0
-  print(B_opt)
+  if(verbose){
+    print(B_opt)  
+  }
+  
     
   svd_Sx = svd(Sx_tot)
   sqrt_Sx = svd_Sx$u %*% diag(sapply(svd_Sx$d, function(x){ifelse(x > 1e-4, sqrt(x), 0)}))  %*% t(svd_Sx$u)
   sqrt_inv_Sx = svd_Sx$u %*% diag(sapply(svd_Sx$d, function(x){ifelse(x > 1e-4, 1/sqrt(x), 0)}))  %*% t(svd_Sx$u)
   sol = svd(sqrt_Sx %*% B_opt)
-  print(sqrt_Sx %*% B_opt)
+  #print(sqrt_Sx %*% B_opt)
   #sol = svd(t(B_OLS[I, ]), nu = r, nv=r)
   V = sqrt_inv_Sy %*% sol$v[, 1:r]
   #U = matrix(0, p, r)
   # B = U \tilde{V} 
   inv_D = diag(sapply(1:r, FUN=function(x){ifelse(sol$d[x]<1e-4, 0, 1/sol$d[x])}))
   U = B_opt %*% sol$v[, 1:r] %*% inv_D ### = U\lambda
-  print(t(U) %*% Sx %*% U)
-  print(t(V) %*% Sy %*% V)
+  if (verbose){
+    print(t(U) %*% Sx %*% U)
+    print(t(V) %*% Sy %*% V)    
+  }
+
   
   
   

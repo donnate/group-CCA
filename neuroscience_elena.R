@@ -10,7 +10,7 @@ library(tidyr)
 library(zoo)
 library(pracma)
 
-
+setwd("~/Documents/group-CCA/")
 source('experiments/sparse_CCA/experiment_functions.R')
 source('experiments/alternative_methods/SAR.R')
 source('experiments/alternative_methods/Parkhomenko.R')
@@ -33,7 +33,7 @@ val_fold <- ifelse(test_fold < 16, test_fold + 1, 1)
 X <- (vroom("data/activations_X_preprocessed.csv"))
 print("Done loading X")
 behaviour <- read_csv("data/activations_Y_preprocessed.csv")
-group_assignment <- readxl::read_xlsx("data/activation_groups.xlsx", col_names = FALSE)
+group_assignment <- readxl::read_xlsx("~/Downloads/activation_groups.xlsx", col_names = FALSE)
 folds = t(read_csv("data/folds.csv"))
 
 colnames(group_assignment) <- "group.id"
@@ -101,6 +101,7 @@ print("Done with svd_left")
   
   prod_xy = t(X[index_train,]) %*% tilde_Y[index_train,]/length(index_train)
   print("Starting iter")
+  print(max(prod_xy))
   for (i in 1:niter){
     Uold = U
     Zold = Z
@@ -167,3 +168,84 @@ correlation <-
 write_csv(correlation, file = paste0("data/results_l", lambda, "_test_fold", test_fold, ".csv"))
 
 
+#### Follow up: load results:
+
+file_list <- list.files(path = "~/Documents/group-CCA/data", 
+                         pattern = "results*", full.names = TRUE)
+results <- bind_rows(lapply(file_list, read.csv))
+colnames(results) <- c("Method", "Lambda",
+                       "Test_fold","Val_fold",
+                       "train_cov",
+                       "train_mse",
+                       "test_prod",
+                       "test_mse",
+                        "test_cor",
+                       "val_prod",
+                       "val_mse",
+                       "val_cor")
+results2 = pivot_longer(results, cols = -c("Method", "Lambda",
+                                            "Test_fold","Val_fold")
+                       )
+results2 = pivot_wider(results2, id_cols = c("Method", "Lambda",
+                                            "Test_fold","Val_fold"),
+                       names_from = "name",
+                       values_from = "value")
+
+summary_correlation = results %>% 
+  group_by(Method, Lambda, Test_fold, Val_fold) %>%
+  summarise(test_mse = sum(test_mse),
+         train_mse = mean(train_mse),
+         val_mse =  mean(val_mse),
+         test_cor = mean(test_cor),
+         val_cor = mean(val_cor)) %>%
+  group_by(Method, Lambda) %>% summarise_all(mean, na.rm=TRUE)%>%
+  arrange((test_mse)) %>% ungroup()
+
+ordered_res = summary_correlation %>% 
+  filter(lambda< 0.1)%>% ungroup()%>% arrange(test_mse)
+lambda_opt = 0.0001
+
+
+relevant_correlations = summary_correlation %>% 
+  filter( Lambda == lambda_opt ) %>%
+  dplyr::select(Method, test_mse, test_cor, val_mse, val_cor)
+
+
+ggplot(summary_correlation%>% ungroup())+
+  geom_line(aes(x = as.numeric(Lambda), y=test_mse))+
+  geom_point(aes(x = as.numeric(Lambda), y=test_mse))+
+  scale_x_log10()
+
+Vhat_comp = V
+rownames(Vhat_comp) = colnames(Y)
+print(Vhat_comp)
+heatmap(Vhat_comp)
+df_V = data.frame(Vhat_comp)
+colnames(df_V) = c("CD-1", "CD-2")
+df_V["question"] = colnames(Y)
+df_V = pivot_longer(df_V, cols=-c("question"))
+
+
+
+# Example new labels
+new_labels <- c("Drive" , 
+                "Funseeking",
+                "Reward Response" ,
+                "Total",
+                "Distress",
+                "Anhedonia",
+                "Anxarousal",
+                "PANAS Positive Affect",
+                "PANAS Negative Affect")
+
+# Assuming your questions are in a column named 'question'
+old_labels <- unique(df_V$question)
+label_mapping <- setNames(new_labels, old_labels)
+df_V <- df_V %>% mutate(question_new = label_mapping[question])
+theme_set(theme_bw(base_size = 18))
+ggplot(df_V, aes(x = value, y = reorder(question_new, value), fill=name)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~ name) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  labs(y = "Question", x = "Loading Intensity") + 
+  labs(fill = "Canonical\nDirection")
