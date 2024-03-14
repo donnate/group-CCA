@@ -280,54 +280,7 @@ for (seed_n in seeds){
                 )
                 )
                 
-                print(paste0("Starting ", "Alt opt RRR") )
-                start_time_alt2 <- system.time({
-                  res_alt = CCA_rrr.CV(X, Y, 
-                             r=r, Kx = NULL, lambda_Kx = 0,
-                             param_lambda=c(10^seq(-3, 1, length.out = 30)),
-                             kfolds=5, solver="rrr", LW_Sy = LW_Sy)
-                })
-                res_alt$ufinal[which(is.na( res_alt$ufinal))] <- 0
-                res_alt$vfinal[which(is.na( res_alt$vfinal))] <- 0
-                Uhat <- res_alt$ufinal[, 1:r]
-                Vhat <- res_alt$vfinal[, 1:r]
-                if (sum(apply(res_alt$ufinal, 1, function(x){sum(x!=0)}) >0) <r){
-                  #### Choose another lambda
-                  lambda_chosen = max(res_alt$resultsx$lambda[which(res_alt$resultsx$rmse > 1.05 * min(res_alt$resultsx$rmse))])
-                  start_time_alt <- system.time({
-                    res_alt <- CCA_rrr(X, Y, Sx = NULL, Sy=NULL,
-                                       lambda =lambda_chosen, Kx=NULL, r, highdim=TRUE,
-                                       solver="rrr", LW_Sy = LW_Sy)
-                    res_alt$U[which(is.na(res_alt$U))] <- 0
-                    res_alt$V[which(is.na(res_alt$v))] <- 0
-                    Uhat <- res_alt$U[, 1:r]
-                    Vhat <- res_alt$V[, 1:r]
-                    
-                  })
-                }
-                print(res_alt$ufinal)
-                result <- rbind(result, data.frame(evaluate(gen$Xnew, gen$Ynew, 
-                                                            Uhat, 
-                                                            res_alt$vfinal[, 1:r], 
-                                                            gen$u, gen$v,
-                                                            Sigma_hat_sqrt = Sigma_hat_sqrt, 
-                                                            Sigma0_sqrt = Sigma0_sqrt),
-                                                   "noise" = noise,  method = "RRR-opt",  
-                                                   "prop_missing" = prop_missing, 
-                                                   "nnzeros" = nnzeros,
-                                                   "theta_strength" = strength_theta,
-                                                   "overlapping_amount" = overlapping_amount,
-                                                   "r_pca" = r_pca,
-                                                   "n" = n,
-                                                   "exp" = seed * 100 + seed_n,
-                                                   "normalize_diagonal" = normalize_diagonal,
-                                                   "lambda_opt" = res_alt$lambda,
-                                                   "time" = start_time_alt2[[4]]
-                )
-                )
-                
-
-                print(paste0("Starting ", "Alt opt2") )
+                print(paste0("Starting ", "Alt opt") )
                 tryCatch({
                   start_time_alt3 <- system.time({
                     res_alt = CCA_rrr.CV(X, Y,

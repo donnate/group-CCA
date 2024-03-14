@@ -4,7 +4,7 @@
 #SBATCH --output=elena/group_sparse/logs/neuro_array_%A_%a.out
 #SBATCH --error=elena/group_sparse/logs/neuro_array_%A_%a.err
 #SBATCH --array=1-16
-#SBATCH --time=24:00:00
+#SBATCH --time=12:00:00
 #SBATCH --partition=caslake
 #SBATCH --mem=15G
 #SBATCH --account=pi-cdonnat

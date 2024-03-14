@@ -48,9 +48,9 @@ q = ncol(Y)
 Sy = NULL
 LW_Sy = FALSE
 rho = 1
-niter = 100
+niter = 1000
 r = 2
-thresh = 1e-3
+thresh = 1e-5
 ##### Split into different 
 index_test = as.numeric(folds[test_fold,])
 index_val = as.numeric(folds[val_fold,])
@@ -91,7 +91,7 @@ print(lambda)
 #STOP
 svd_X = svd(X[index_train, ]/sqrt(n))
 print("Done with the SVD")
-svd_left = (svd_X$v) %*% diag(1/ (svd_X$d + rho))
+svd_left = (svd_X$v) %*% diag(1/ (svd_X$d^2 + rho))
 print("Done with svd_left")
 {
 
@@ -113,7 +113,7 @@ print("Done with svd_left")
     Z = B + U
     norm_col = sapply(1:length(groups), function(g){sqrt(sum(Z[groups[[g]],]^2))})
     for (g in 1:length(groups)){
-      if(norm_col[g] < lambda * sqrt(length(groups[[g]]))){
+      if(norm_col[g] < lambda * sqrt(length(groups[[g]]))/rho){
         Z[groups[[g]],] = 0
         print(g)
       }else{
@@ -135,7 +135,7 @@ print("Done with svd_left")
 B_opt[which(abs(B_opt)<1e-5)] = 0
 print(B_opt)
 
-sol = svd(((svd_X$v) %*% diag(sapply(svd_Sx$d, function(x){ifelse(x > 1e-4, sqrt(x), 0)})))  %*% (t(svd_X$v)  %*% B_opt))
+sol = svd(((svd_X$v) %*% diag(sapply(svd_X$d^2, function(x){ifelse(x > 1e-4, sqrt(x), 0)})))  %*% (t(svd_X$v)  %*% B_opt))
 #sol = svd(t(B_OLS[I, ]), nu = r, nv=r)
 V = sqrt_inv_Sy %*% sol$v[, 1:r]
 inv_D = diag(sapply(1:r, FUN=function(x){ifelse(sol$d[x]<1e-4, 0, 1/sol$d[x])}))
@@ -164,6 +164,6 @@ correlation <-
                   as.matrix(Y)[index_val,] %*% V))
   )
 
-write_csv(correlation, paste0("data/results_l", lambda, "_test_fold", test_fold, ".csv"))
+write_csv(correlation, file = paste0("data/results_l", lambda, "_test_fold", test_fold, ".csv"))
 
 
