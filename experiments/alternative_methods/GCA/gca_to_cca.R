@@ -16,7 +16,8 @@ gca_to_cca <-
        a_estimate[nnz_indices_y,] = a_estimate[nnz_indices_y,] %*% pracma::sqrtm(t(a_estimate[nnz_indices_y,]) %*% sigmayhat %*% a_estimate[nnz_indices_y,])$Binv;
      }
     
-    
+    u_estimate = a_estimate[1:p1,]
+    v_estimate = a_estimate[(p1+1):p,] 
     l = list("u" = u_estimate, "v" = v_estimate)
     return(l)
   }

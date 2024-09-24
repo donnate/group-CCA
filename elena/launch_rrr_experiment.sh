@@ -3,8 +3,8 @@
 # Define the values for the variables
 theta_strengths="high medium low"
 n_values="500"
-#p_values="100 300 500 800"
-p_values="500"
+p_values="100 300 500 800 1000 2000"
+#p_values="500"
 r_values="2 5 7 10 15"
 q_values="30"
 for theta in $theta_strengths; do
