@@ -271,14 +271,12 @@ generate_example_none_trivial_pca <- function(n, p1, p2,
   
   S <- cov(Data)
   sigma0hat <- S * Mask;
-  
-  GT = svd(sqrtm(Sigma[1:p1, 1:p1])$Binv %*% Sigma[1:p1, (p1+1):p_tot]%*% sqrtm(Sigma[(p1+1):(p_tot), (p1+1):(p_tot)])$Binv, 
-           nu=r, nv=r)
+
   
   
   return(list(Sigma=Sigma, Sigma0=Sigma0,
               S = S, sigma0hat =  sigma0hat, Mask= Mask,
-              X=X, Y = Y, Data=Data, u=GT$u, v=GT$v, 
+              X=X, Y = Y, Data=Data, u=u, v=v, 
               Sigmax=Sigmax, Sigmay=Sigmay
   ))
 }
